@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: knight-platform-e2e
+
+  # SQL Server Database for E2E Testing
+  datasource:
+    url: jdbc:sqlserver://localhost:1433;databaseName=knight;encrypt=true;trustServerCertificate=true
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    username: sa
+    password: ${DB_PASSWORD:YourStrong@Passw0rd}
+
+  # JPA Configuration for E2E
+  jpa:
+    database-platform: org.hibernate.dialect.SQLServerDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.SQLServerDialect
+
+  # Enable Flyway for E2E
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+# Logging for E2E Tests
+logging:
+  level:
+    com.knight: DEBUG
+    org.springframework: WARN
+    org.hibernate.SQL: DEBUG

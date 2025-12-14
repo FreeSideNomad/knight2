@@ -1,0 +1,40 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: employee-portal
+
+# API backend configuration
+api:
+  base-url: ${API_URL:http://localhost:8080}
+
+# JWT Configuration (tokens come from nginx gateway)
+jwt:
+  issuer: ${JWT_ISSUER:https://login.microsoftonline.com/common/v2.0}
+  audience: ${JWT_AUDIENCE:}
+  jwks-url: ${JWT_JWKS_URL:https://login.microsoftonline.com/common/discovery/v2.0/keys}
+
+# Vaadin configuration
+vaadin:
+  launch-browser: false
+  whitelisted-packages:
+    - com.vaadin
+    - org.vaadin
+    - com.knight.portal
+
+# Logging
+logging:
+  level:
+    com.knight.portal: DEBUG
+    org.springframework.security: DEBUG
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

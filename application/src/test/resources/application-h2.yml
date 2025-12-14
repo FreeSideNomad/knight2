@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: knight-platform-h2-test
+
+  # H2 In-Memory Database for Unit Testing
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MSSQLServer
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  # JPA Configuration for H2
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    defer-datasource-initialization: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  # Disable Flyway for H2 tests (use Hibernate DDL instead)
+  flyway:
+    enabled: false
+
+  # Kafka disabled for unit tests
+  kafka:
+    bootstrap-servers: localhost:9092
+    listener:
+      auto-startup: false
+    consumer:
+      auto-startup: false
+
+# Logging for Tests
+logging:
+  level:
+    com.knight: DEBUG
+    org.springframework: WARN
+    org.hibernate.SQL: DEBUG

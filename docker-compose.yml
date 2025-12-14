@@ -1,0 +1,131 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: knight-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - knight-network
+
+  gateway:
+    build: ./employee-gateway
+    container_name: knight-gateway
+    ports:
+      - "80:80"
+    environment:
+      - ENTRA_TENANT_ID=${ENTRA_TENANT_ID}
+      - ENTRA_CLIENT_ID=${ENTRA_CLIENT_ID}
+      - ENTRA_CLIENT_SECRET=${ENTRA_CLIENT_SECRET}
+      - ENTRA_REDIRECT_URI=http://localhost/oauth2/callback
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_TTL_SECONDS=1200
+      - SESSION_COOKIE_NAME=KNIGHT_SESSION
+      - BACKEND_URL=http://portal:8081
+    depends_on:
+      redis:
+        condition: service_healthy
+      portal:
+        condition: service_started
+      platform:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - knight-network
+
+  portal:
+    build: ./employee-portal
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - API_URL=http://platform:8080
+      - JWT_ISSUER=https://login.microsoftonline.com/${ENTRA_TENANT_ID}/v2.0
+      - JWT_AUDIENCE=api://${ENTRA_CLIENT_ID}
+      - JWT_JWKS_URL=https://login.microsoftonline.com/${ENTRA_TENANT_ID}/discovery/v2.0/keys
+    depends_on:
+      - platform
+    networks:
+      - knight-network
+
+  platform:
+    build: ./application
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:sqlserver://sqlserver:1433;databaseName=knight;encrypt=true;trustServerCertificate=true
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-YourStrong@Passw0rd}
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      sql-init:
+        condition: service_completed_successfully
+    networks:
+      - knight-network
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    ports:
+      - "1433:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${DB_PASSWORD:-YourStrong@Passw0rd}
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$${MSSQL_SA_PASSWORD}" -C -Q "SELECT 1"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - knight-network
+
+  sql-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      - MSSQL_SA_PASSWORD=${DB_PASSWORD:-YourStrong@Passw0rd}
+    volumes:
+      - ./docker/sqlserver:/scripts
+    entrypoint: ["/bin/bash", "-c", "/opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q \"IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = N'knight') CREATE DATABASE knight\""]
+    networks:
+      - knight-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    networks:
+      - knight-network
+
+volumes:
+  sqlserver-data:
+  redis-data:
+
+networks:
+  knight-network:
+    driver: bridge

@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: knight-platform-test
+
+  # SQL Server Database for Testing
+  datasource:
+    url: jdbc:sqlserver://localhost:1433;databaseName=knight;encrypt=true;trustServerCertificate=true
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    username: sa
+    password: ${DB_PASSWORD:YourStrong@Passw0rd}
+
+  # JPA Configuration for Tests
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  # Enable Flyway for Tests
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  # Kafka disabled for unit tests
+  kafka:
+    bootstrap-servers: localhost:9092
+
+# Logging for Tests
+logging:
+  level:
+    com.knight: DEBUG
+    org.springframework: WARN
+    org.hibernate.SQL: DEBUG

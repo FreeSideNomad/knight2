@@ -1,0 +1,50 @@
+# Environment and secrets
+.env
+*.pem
+*.key
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+.factorypath
+.sts4-cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Java / Maven
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+hs_err_pid*
+
+# Vaadin
+node_modules/
+**/frontend/generated/
+**/webpack.generated.js
+**/*.generated.js
+**/*.generated.ts
+**/tsconfig.json
+**/types.d.ts
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+vite.generated.ts
+error-screenshots/
+
+# Spring Boot
+*.pid
+
+# Docker
+docker/data/
+
+# Test outputs
+test-output/
