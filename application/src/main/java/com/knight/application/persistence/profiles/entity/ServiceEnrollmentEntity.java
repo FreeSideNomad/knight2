@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 
 /**
- * JPA entity for ServiceEnrollment within ServicingProfile.
+ * JPA entity for ServiceEnrollment within Profile.
  */
 @Entity
 @Table(name = "service_enrollments")
@@ -23,7 +23,7 @@ public class ServiceEnrollmentEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "profile_id", nullable = false)
-    private ServicingProfileEntity profile;
+    private ProfileEntity profile;
 
     @Column(name = "service_type", nullable = false, length = 100)
     private String serviceType;

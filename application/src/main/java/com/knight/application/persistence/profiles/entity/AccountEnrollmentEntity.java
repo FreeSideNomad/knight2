@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 
 /**
- * JPA entity for AccountEnrollment within ServicingProfile.
+ * JPA entity for AccountEnrollment within Profile.
  */
 @Entity
 @Table(name = "account_enrollments")
@@ -23,10 +23,20 @@ public class AccountEnrollmentEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "profile_id", nullable = false)
-    private ServicingProfileEntity profile;
+    private ProfileEntity profile;
 
-    @Column(name = "service_enrollment_id", nullable = false, length = 100)
+    /**
+     * Nullable - when null, the account is enrolled to the profile itself.
+     * When set, the account is enrolled to a specific service.
+     */
+    @Column(name = "service_enrollment_id", length = 100)
     private String serviceEnrollmentId;
+
+    /**
+     * The client that owns this account.
+     */
+    @Column(name = "client_id", nullable = false, length = 100)
+    private String clientId;
 
     @Column(name = "account_id", nullable = false, length = 100)
     private String accountId;

@@ -6,7 +6,12 @@ package com.knight.application.rest.serviceprofiles.dto;
  */
 public record ProfileSummaryDto(
     String profileId,
+    String name,
     String profileType,
-    String status
+    String status,
+    String primaryClientId,
+    int clientCount,
+    int serviceEnrollmentCount,
+    int accountEnrollmentCount
 ) {
 }

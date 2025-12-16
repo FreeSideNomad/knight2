@@ -2,6 +2,8 @@ package com.knight.application.persistence.clients.mapper;
 
 import com.knight.application.persistence.clients.entity.ClientEntity;
 import com.knight.domain.clients.aggregate.Client;
+import com.knight.domain.clients.types.ClientStatus;
+import com.knight.domain.clients.types.ClientType;
 import com.knight.platform.sharedkernel.Address;
 import com.knight.platform.sharedkernel.ClientId;
 import org.mapstruct.*;
@@ -32,9 +34,6 @@ public interface ClientMapper {
         entity.setClientId(clientIdToString(domain.clientId()));
         entity.setClientType(clientTypeToString(domain.clientType()));
         entity.setName(domain.name());
-        entity.setTaxId(domain.taxId());
-        entity.setPhoneNumber(domain.phoneNumber());
-        entity.setEmailAddress(domain.emailAddress());
         entity.setStatus(statusToString(domain.status()));
 
         // Map address
@@ -73,16 +72,13 @@ public interface ClientMapper {
         Address address = entityToAddress(entity);
 
         // Convert ClientType
-        Client.ClientType clientType = stringToClientType(entity.getClientType());
+        ClientType clientType = stringToClientType(entity.getClientType());
 
         // Create Client using factory method
         Client client = Client.create(clientId, entity.getName(), clientType, address);
 
         // Use reflection to set additional fields
         try {
-            setField(client, "taxId", entity.getTaxId());
-            setField(client, "phoneNumber", entity.getPhoneNumber());
-            setField(client, "emailAddress", entity.getEmailAddress());
             setField(client, "status", stringToStatus(entity.getStatus()));
             setField(client, "createdAt", entity.getCreatedAt());
             setField(client, "updatedAt", entity.getUpdatedAt());
@@ -121,35 +117,35 @@ public interface ClientMapper {
     }
 
     /**
-     * Converts Client.ClientType enum to string.
+     * Converts ClientType enum to string.
      */
     @Named("clientTypeToString")
-    default String clientTypeToString(Client.ClientType clientType) {
+    default String clientTypeToString(ClientType clientType) {
         return clientType != null ? clientType.name() : null;
     }
 
     /**
-     * Converts string to Client.ClientType enum (case-insensitive).
+     * Converts string to ClientType enum (case-insensitive).
      */
     @Named("stringToClientType")
-    default Client.ClientType stringToClientType(String clientType) {
-        return clientType != null ? Client.ClientType.valueOf(clientType.toUpperCase()) : null;
+    default ClientType stringToClientType(String clientType) {
+        return clientType != null ? ClientType.valueOf(clientType.toUpperCase()) : null;
     }
 
     /**
-     * Converts Client.Status enum to string.
+     * Converts ClientStatus enum to string.
      */
     @Named("statusToString")
-    default String statusToString(Client.Status status) {
+    default String statusToString(ClientStatus status) {
         return status != null ? status.name() : null;
     }
 
     /**
-     * Converts string to Client.Status enum.
+     * Converts string to ClientStatus enum.
      */
     @Named("stringToStatus")
-    default Client.Status stringToStatus(String status) {
-        return status != null ? Client.Status.valueOf(status) : null;
+    default ClientStatus stringToStatus(String status) {
+        return status != null ? ClientStatus.valueOf(status) : null;
     }
 
     /**

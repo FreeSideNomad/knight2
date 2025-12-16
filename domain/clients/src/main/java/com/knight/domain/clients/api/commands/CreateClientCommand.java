@@ -1,6 +1,6 @@
 package com.knight.domain.clients.api.commands;
 
-import com.knight.domain.clients.aggregate.Client;
+import com.knight.domain.clients.types.ClientType;
 import com.knight.platform.sharedkernel.Address;
 import com.knight.platform.sharedkernel.ClientId;
 
@@ -18,7 +18,7 @@ import com.knight.platform.sharedkernel.ClientId;
 public record CreateClientCommand(
     ClientId clientId,
     String name,
-    Client.ClientType clientType,
+    ClientType clientType,
     Address address,
     String taxId,
     String phoneNumber,

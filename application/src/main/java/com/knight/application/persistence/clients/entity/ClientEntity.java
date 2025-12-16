@@ -40,24 +40,6 @@ public class ClientEntity {
     private String name;
 
     /**
-     * Tax identification number (optional).
-     */
-    @Column(name = "tax_id", length = 50)
-    private String taxId;
-
-    /**
-     * Phone number (optional).
-     */
-    @Column(name = "phone_number", length = 50)
-    private String phoneNumber;
-
-    /**
-     * Email address (optional).
-     */
-    @Column(name = "email_address", length = 255)
-    private String emailAddress;
-
-    /**
      * Client status - ACTIVE, INACTIVE, or SUSPENDED.
      */
     @Column(name = "status", nullable = false, length = 20)

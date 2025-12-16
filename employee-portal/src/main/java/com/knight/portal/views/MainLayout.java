@@ -7,12 +7,15 @@ import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.sidenav.SideNav;
+import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.router.RouterLayout;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 
@@ -122,20 +125,39 @@ public class MainLayout extends AppLayout implements RouterLayout {
     }
 
     /**
-     * Create the navigation drawer (optional for MVP, can be expanded later).
+     * Create the navigation drawer with main navigation items.
      */
     private void createDrawer() {
         VerticalLayout drawer = new VerticalLayout();
         drawer.addClassNames(LumoUtility.Padding.SMALL);
+        drawer.setSpacing(false);
+        drawer.setPadding(false);
 
-        // Placeholder for navigation items
-        Span placeholder = new Span("Navigation menu (to be implemented)");
-        placeholder.addClassNames(
-                LumoUtility.TextColor.SECONDARY,
-                LumoUtility.FontSize.SMALL
+        // Navigation header
+        H3 navHeader = new H3("Navigation");
+        navHeader.addClassNames(
+                LumoUtility.FontSize.MEDIUM,
+                LumoUtility.Padding.Horizontal.MEDIUM,
+                LumoUtility.Padding.Vertical.SMALL,
+                LumoUtility.TextColor.SECONDARY
         );
 
-        drawer.add(placeholder);
+        // Create side navigation
+        SideNav nav = new SideNav();
+        nav.setWidthFull();
+
+        // Clients section
+        SideNavItem clientsItem = new SideNavItem("Clients", ClientSearchView.class, VaadinIcon.USERS.create());
+        clientsItem.addItem(new SideNavItem("Search Clients", ClientSearchView.class));
+
+        // Profiles section
+        SideNavItem profilesItem = new SideNavItem("Profiles", ProfileSearchView.class, VaadinIcon.FOLDER_O.create());
+        profilesItem.addItem(new SideNavItem("Search Profiles", ProfileSearchView.class));
+
+        nav.addItem(clientsItem);
+        nav.addItem(profilesItem);
+
+        drawer.add(navHeader, nav);
         addToDrawer(drawer);
     }
 }

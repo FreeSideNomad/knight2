@@ -1,6 +1,6 @@
 package com.knight.domain.users.aggregate;
 
-import com.knight.platform.sharedkernel.ClientId;
+import com.knight.platform.sharedkernel.ProfileId;
 import com.knight.platform.sharedkernel.UserId;
 
 import java.time.Instant;
@@ -22,14 +22,14 @@ public class User {
     }
 
     public enum IdentityProvider {
-        OKTA, AZURE_AD
+        OKTA, AZURE_AD, ANP
     }
 
     private final UserId id;
     private final String email;
     private final UserType userType;
     private final IdentityProvider identityProvider;
-    private final ClientId clientId;
+    private final ProfileId profileId;
     private Status status;
     private final Instant createdAt;
     private Instant updatedAt;
@@ -37,24 +37,24 @@ public class User {
     private String deactivationReason;
 
     private User(UserId id, String email, UserType userType,
-                IdentityProvider identityProvider, ClientId clientId) {
+                IdentityProvider identityProvider, ProfileId profileId) {
         this.id = Objects.requireNonNull(id, "id cannot be null");
         this.email = Objects.requireNonNull(email, "email cannot be null");
         this.userType = Objects.requireNonNull(userType, "userType cannot be null");
         this.identityProvider = Objects.requireNonNull(identityProvider, "identityProvider cannot be null");
-        this.clientId = Objects.requireNonNull(clientId, "clientId cannot be null");
+        this.profileId = Objects.requireNonNull(profileId, "profileId cannot be null");
         this.status = Status.PENDING;
         this.createdAt = Instant.now();
         this.updatedAt = this.createdAt;
     }
 
     public static User create(String email, UserType userType,
-                             IdentityProvider identityProvider, ClientId clientId) {
+                             IdentityProvider identityProvider, ProfileId profileId) {
         if (email == null || email.isBlank() || !email.contains("@")) {
             throw new IllegalArgumentException("Valid email is required");
         }
         UserId id = UserId.of(UUID.randomUUID().toString());
-        return new User(id, email, userType, identityProvider, clientId);
+        return new User(id, email, userType, identityProvider, profileId);
     }
 
     public void activate() {
@@ -104,7 +104,7 @@ public class User {
     public String email() { return email; }
     public UserType userType() { return userType; }
     public IdentityProvider identityProvider() { return identityProvider; }
-    public ClientId clientId() { return clientId; }
+    public ProfileId profileId() { return profileId; }
     public Status status() { return status; }
     public Instant createdAt() { return createdAt; }
     public Instant updatedAt() { return updatedAt; }

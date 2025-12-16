@@ -1,0 +1,33 @@
+#!/bin/bash
+#
+# Pre-commit hook to enforce JaCoCo coverage requirements
+# Requires 80% line coverage and 80% branch coverage
+#
+# Install: ./scripts/install-hooks.sh
+#
+
+echo "🔍 Running coverage checks..."
+
+# Run Maven verify with JaCoCo check on profile modules
+./mvnw verify -pl domain/profiles,application -am \
+    -DskipTests=false \
+    -Dtest='**/profiles/**/*Test,ProfileControllerE2ETest' \
+    -Dsurefire.failIfNoSpecifiedTests=false \
+    -q
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ Coverage check failed!"
+    echo ""
+    echo "JaCoCo requires:"
+    echo "  - 80% line coverage"
+    echo "  - 80% branch coverage"
+    echo ""
+    echo "Please add more tests to meet coverage requirements."
+    echo "Run './mvnw verify -pl domain/profiles,application -am' to see details."
+    echo ""
+    exit 1
+fi
+
+echo "✅ Coverage requirements met!"
+exit 0

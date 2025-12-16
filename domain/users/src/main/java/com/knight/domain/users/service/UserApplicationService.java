@@ -5,7 +5,6 @@ import com.knight.domain.users.api.commands.UserCommands;
 import com.knight.domain.users.api.events.UserCreated;
 import com.knight.domain.users.api.queries.UserQueries;
 import com.knight.domain.users.repository.UserRepository;
-import com.knight.platform.sharedkernel.ClientId;
 import com.knight.platform.sharedkernel.UserId;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -37,7 +36,7 @@ public class UserApplicationService implements UserCommands, UserQueries {
         User.UserType userType = User.UserType.valueOf(cmd.userType());
         User.IdentityProvider identityProvider = User.IdentityProvider.valueOf(cmd.identityProvider());
 
-        User user = User.create(cmd.email(), userType, identityProvider, cmd.clientId());
+        User user = User.create(cmd.email(), userType, identityProvider, cmd.profileId());
 
         repository.save(user);
 

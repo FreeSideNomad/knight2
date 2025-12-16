@@ -7,5 +7,7 @@ public enum AccountType {
     DDA,
     CC,
     LOC,
-    MTG
+    MTG,
+    PAD,
+    PAP
 }

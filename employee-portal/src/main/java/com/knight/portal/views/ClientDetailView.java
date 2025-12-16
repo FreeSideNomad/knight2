@@ -1,9 +1,11 @@
 package com.knight.portal.views;
 
 import com.knight.portal.services.ClientService;
+import com.knight.portal.services.ProfileService;
 import com.knight.portal.services.dto.ClientAccount;
 import com.knight.portal.services.dto.ClientDetail;
 import com.knight.portal.services.dto.PageResult;
+import com.knight.portal.services.dto.ProfileSummary;
 import com.knight.portal.views.components.Breadcrumb;
 import com.knight.portal.views.components.Breadcrumb.BreadcrumbItem;
 import com.vaadin.flow.component.UI;
@@ -29,6 +31,7 @@ import java.util.Map;
 public class ClientDetailView extends VerticalLayout implements HasUrlParameter<String>, AfterNavigationObserver {
 
     private final ClientService clientService;
+    private final ProfileService profileService;
     private String clientId;
     private ClientDetail clientDetail;
     private String searchParams = "";  // Store search params for breadcrumb URLs
@@ -39,9 +42,11 @@ public class ClientDetailView extends VerticalLayout implements HasUrlParameter<
     private final Span nameLabel;
     private final VerticalLayout addressLayout;
     private Grid<ClientAccount> accountsGrid;
+    private Grid<ProfileSummary> profilesGrid;
 
-    public ClientDetailView(ClientService clientService) {
+    public ClientDetailView(ClientService clientService, ProfileService profileService) {
         this.clientService = clientService;
+        this.profileService = profileService;
 
         // Title - smaller font size matching tab labels
         titleLabel = new Span("Client Details");
@@ -109,11 +114,13 @@ public class ClientDetailView extends VerticalLayout implements HasUrlParameter<
         HorizontalLayout buttonLayout = new HorizontalLayout(serviceProfileButton, onlineProfileButton);
         buttonLayout.setSpacing(true);
 
-        // Empty grid for profiles (MVP)
-        Grid<Object> profilesGrid = new Grid<>();
-        profilesGrid.addColumn(obj -> "").setHeader("Profile Type");
-        profilesGrid.addColumn(obj -> "").setHeader("Status");
-        profilesGrid.setItems(List.of());
+        // Profiles grid
+        profilesGrid = new Grid<>(ProfileSummary.class, false);
+        profilesGrid.addColumn(ProfileSummary::getName).setHeader("Name").setAutoWidth(true);
+        profilesGrid.addColumn(ProfileSummary::getProfileType).setHeader("Type").setAutoWidth(true);
+        profilesGrid.addColumn(ProfileSummary::getStatus).setHeader("Status").setAutoWidth(true);
+        profilesGrid.addColumn(ProfileSummary::getClientCount).setHeader("Clients").setAutoWidth(true);
+        profilesGrid.addColumn(ProfileSummary::getAccountEnrollmentCount).setHeader("Accounts").setAutoWidth(true);
         profilesGrid.setHeight("300px");
 
         layout.add(buttonLayout, profilesGrid);
@@ -215,8 +222,9 @@ public class ClientDetailView extends VerticalLayout implements HasUrlParameter<
                 addressLayout.add(new Span("Address: No address available"));
             }
 
-            // Load accounts
+            // Load accounts and profiles
             loadAccounts();
+            loadProfiles();
 
         } catch (Exception e) {
             Notification notification = Notification.show("Error loading client details: " + e.getMessage());
@@ -249,6 +257,20 @@ public class ClientDetailView extends VerticalLayout implements HasUrlParameter<
             }
         } catch (Exception e) {
             Notification notification = Notification.show("Error loading accounts: " + e.getMessage());
+            notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+            notification.setPosition(Notification.Position.TOP_CENTER);
+            notification.setDuration(5000);
+        }
+    }
+
+    private void loadProfiles() {
+        try {
+            List<ProfileSummary> profiles = profileService.getClientProfiles(clientId);
+            if (profilesGrid != null) {
+                profilesGrid.setItems(profiles);
+            }
+        } catch (Exception e) {
+            Notification notification = Notification.show("Error loading profiles: " + e.getMessage());
             notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
             notification.setPosition(Notification.Position.TOP_CENTER);
             notification.setDuration(5000);

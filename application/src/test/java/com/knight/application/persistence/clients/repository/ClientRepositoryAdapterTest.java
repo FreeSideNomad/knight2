@@ -5,6 +5,7 @@ import com.knight.application.persistence.clients.mapper.ClientMapper;
 import com.knight.application.persistence.clients.mapper.ClientMapperImpl;
 import com.knight.domain.clients.aggregate.Client;
 import com.knight.domain.clients.api.PageResult;
+import com.knight.domain.clients.types.ClientType;
 import com.knight.domain.clients.repository.ClientRepository;
 import com.knight.platform.sharedkernel.Address;
 import com.knight.platform.sharedkernel.CdrClientId;
@@ -69,40 +70,40 @@ class ClientRepositoryAdapterTest {
         srfClient1 = createAndSaveClient(
             new SrfClientId("123456789"),
             "Acme Corporation",
-            Client.ClientType.BUSINESS,
+            ClientType.BUSINESS,
             createCanadianAddress("Toronto", "ON")
         );
 
         srfClient2 = createAndSaveClient(
             new SrfClientId("987654321"),
             "Alpha Industries Ltd.",
-            Client.ClientType.BUSINESS,
+            ClientType.BUSINESS,
             createCanadianAddress("Vancouver", "BC")
         );
 
         cdrClient1 = createAndSaveClient(
             new CdrClientId("000001"),
             "Beta Solutions Inc.",
-            Client.ClientType.BUSINESS,
+            ClientType.BUSINESS,
             createUSAddress("New York", "NY")
         );
 
         cdrClient2 = createAndSaveClient(
             new CdrClientId("000002"),
             "John Smith",
-            Client.ClientType.INDIVIDUAL,
+            ClientType.INDIVIDUAL,
             createUSAddress("Los Angeles", "CA")
         );
 
         cdrClient3 = createAndSaveClient(
             new CdrClientId("000003"),
             "Gamma Corp",
-            Client.ClientType.BUSINESS,
+            ClientType.BUSINESS,
             createUSAddress("Chicago", "IL")
         );
     }
 
-    private Client createAndSaveClient(ClientId clientId, String name, Client.ClientType type, Address address) {
+    private Client createAndSaveClient(ClientId clientId, String name, ClientType type, Address address) {
         Client client = Client.create(clientId, name, type, address);
         clientRepository.save(client);
         return client;
@@ -128,7 +129,7 @@ class ClientRepositoryAdapterTest {
             Client newClient = Client.create(
                 newClientId,
                 "New Test Company",
-                Client.ClientType.BUSINESS,
+                ClientType.BUSINESS,
                 createCanadianAddress("Montreal", "QC")
             );
 
@@ -139,7 +140,7 @@ class ClientRepositoryAdapterTest {
             Optional<Client> found = clientRepository.findById(newClientId);
             assertThat(found).isPresent();
             assertThat(found.get().name()).isEqualTo("New Test Company");
-            assertThat(found.get().clientType()).isEqualTo(Client.ClientType.BUSINESS);
+            assertThat(found.get().clientType()).isEqualTo(ClientType.BUSINESS);
         }
 
         @Test
@@ -374,7 +375,7 @@ class ClientRepositoryAdapterTest {
 
             // Then
             assertThat(found).isPresent();
-            assertThat(found.get().clientType()).isEqualTo(Client.ClientType.INDIVIDUAL);
+            assertThat(found.get().clientType()).isEqualTo(ClientType.INDIVIDUAL);
         }
 
         @Test
@@ -385,7 +386,7 @@ class ClientRepositoryAdapterTest {
 
             // Then
             assertThat(found).isPresent();
-            assertThat(found.get().clientType()).isEqualTo(Client.ClientType.BUSINESS);
+            assertThat(found.get().clientType()).isEqualTo(ClientType.BUSINESS);
         }
 
         @Test
@@ -395,7 +396,7 @@ class ClientRepositoryAdapterTest {
             Optional<Client> existing = clientRepository.findById(cdrClient2.clientId());
             assertThat(existing).isPresent();
             Client client = existing.get();
-            client.updateClientType(Client.ClientType.BUSINESS);
+            client.updateClientType(ClientType.BUSINESS);
 
             // When
             clientRepository.save(client);
@@ -403,7 +404,7 @@ class ClientRepositoryAdapterTest {
 
             // Then
             assertThat(updated).isPresent();
-            assertThat(updated.get().clientType()).isEqualTo(Client.ClientType.BUSINESS);
+            assertThat(updated.get().clientType()).isEqualTo(ClientType.BUSINESS);
         }
     }
 }

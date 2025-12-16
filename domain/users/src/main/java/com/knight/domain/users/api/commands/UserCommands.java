@@ -1,6 +1,6 @@
 package com.knight.domain.users.api.commands;
 
-import com.knight.platform.sharedkernel.ClientId;
+import com.knight.platform.sharedkernel.ProfileId;
 import com.knight.platform.sharedkernel.UserId;
 
 /**
@@ -15,7 +15,7 @@ public interface UserCommands {
         String email,
         String userType,
         String identityProvider,
-        ClientId clientId
+        ProfileId profileId
     ) {}
 
     void activateUser(ActivateUserCmd cmd);

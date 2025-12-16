@@ -78,9 +78,14 @@ public class JwtValidator {
 
             // Validate audience if configured
             if (expectedAudience != null && !expectedAudience.isBlank()) {
-                if (!verifiedJwt.getAudience().contains(expectedAudience)) {
-                    log.warn("Token audience mismatch. Expected: {}, Got: {}",
-                            expectedAudience, verifiedJwt.getAudience());
+                // Some tokens might just have the client ID without the api:// prefix
+                String clientId = expectedAudience.replace("api://", "");
+                boolean audienceMatches = verifiedJwt.getAudience().contains(expectedAudience) ||
+                        verifiedJwt.getAudience().contains(clientId);
+                
+                if (!audienceMatches) {
+                    log.warn("Token audience mismatch. Expected: {} (or {}), Got: {}",
+                            expectedAudience, clientId, verifiedJwt.getAudience());
                 }
             }
 

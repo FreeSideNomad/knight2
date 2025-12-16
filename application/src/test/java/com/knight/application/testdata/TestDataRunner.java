@@ -2,6 +2,7 @@ package com.knight.application.testdata;
 
 import com.knight.domain.clients.aggregate.Client;
 import com.knight.domain.clients.aggregate.ClientAccount;
+import com.knight.domain.clients.types.ClientType;
 import com.knight.domain.clients.repository.ClientAccountRepository;
 import com.knight.domain.clients.repository.ClientRepository;
 import com.knight.platform.sharedkernel.*;
@@ -206,9 +207,9 @@ public class TestDataRunner {
         String name = generateBusinessName(isUS);
 
         // Client type - mostly BUSINESS
-        Client.ClientType clientType = random.nextDouble() > 0.2
-            ? Client.ClientType.BUSINESS
-            : Client.ClientType.INDIVIDUAL;
+        ClientType clientType = random.nextDouble() > 0.2
+            ? ClientType.BUSINESS
+            : ClientType.INDIVIDUAL;
 
         // Address based on ID prefix:
         // SRF clients are always Canadian, CDR clients are always US

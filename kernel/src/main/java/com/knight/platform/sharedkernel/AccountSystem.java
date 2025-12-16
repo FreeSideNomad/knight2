@@ -10,5 +10,6 @@ public enum AccountSystem {
     CAN_MTG,
     US_FIN,
     US_FIS,
-    OFI
+    OFI,
+    CAN_GRADS
 }

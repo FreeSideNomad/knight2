@@ -3,6 +3,7 @@ package com.knight.application.testdata;
 import com.github.javafaker.Faker;
 import com.knight.domain.clients.aggregate.Client;
 import com.knight.domain.clients.aggregate.ClientAccount;
+import com.knight.domain.clients.types.ClientType;
 import com.knight.domain.clients.repository.ClientAccountRepository;
 import com.knight.domain.clients.repository.ClientRepository;
 import com.knight.platform.sharedkernel.*;
@@ -93,16 +94,12 @@ public class TestDataGenerator {
         Address address = generateAddress();
 
         // Create client
-        Client client = Client.create(clientId, name, Client.ClientType.BUSINESS, address);
+        Client client = Client.create(clientId, name, ClientType.BUSINESS, address);
 
-        // Add optional contact information
-        String phone = generatePhoneNumber();
-        String email = generateBusinessEmail(name);
-        client.updateContactInfo(phone, email);
-
-        // Add tax ID
-        String taxId = generateTaxId();
-        client.updateTaxId(taxId);
+        // Note: Contact info and tax ID methods not yet implemented
+        // String phone = generatePhoneNumber();
+        // String email = generateBusinessEmail(name);
+        // String taxId = generateTaxId();
 
         return client;
     }

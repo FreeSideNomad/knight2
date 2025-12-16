@@ -1,5 +1,7 @@
 package com.knight.domain.clients.aggregate;
 
+import com.knight.domain.clients.types.ClientStatus;
+import com.knight.domain.clients.types.ClientType;
 import com.knight.platform.sharedkernel.Address;
 import com.knight.platform.sharedkernel.ClientId;
 
@@ -13,22 +15,11 @@ import java.util.Objects;
  */
 public class Client {
 
-    public enum Status {
-        ACTIVE, INACTIVE, SUSPENDED
-    }
-
-    public enum ClientType {
-        INDIVIDUAL, BUSINESS
-    }
-
     private final ClientId clientId;
     private String name;
     private ClientType clientType;
     private Address address;
-    private String taxId;
-    private String phoneNumber;
-    private String emailAddress;
-    private Status status;
+    private ClientStatus status;
     private final Instant createdAt;
     private Instant updatedAt;
 
@@ -41,7 +32,7 @@ public class Client {
         this.name = validateName(name);
         this.clientType = Objects.requireNonNull(clientType, "clientType cannot be null");
         this.address = Objects.requireNonNull(address, "address cannot be null");
-        this.status = Status.ACTIVE;
+        this.status = ClientStatus.ACTIVE;
         this.createdAt = Instant.now();
         this.updatedAt = this.createdAt;
     }
@@ -88,32 +79,6 @@ public class Client {
     }
 
     /**
-     * Updates the client's contact information.
-     *
-     * @param phoneNumber the new phone number (can be null)
-     * @param emailAddress the new email address (can be null)
-     * @throws IllegalStateException if client is suspended
-     */
-    public void updateContactInfo(String phoneNumber, String emailAddress) {
-        validateNotSuspended();
-        this.phoneNumber = normalizeString(phoneNumber);
-        this.emailAddress = normalizeString(emailAddress);
-        this.updatedAt = Instant.now();
-    }
-
-    /**
-     * Updates the client's tax ID.
-     *
-     * @param taxId the new tax ID (can be null)
-     * @throws IllegalStateException if client is suspended
-     */
-    public void updateTaxId(String taxId) {
-        validateNotSuspended();
-        this.taxId = normalizeString(taxId);
-        this.updatedAt = Instant.now();
-    }
-
-    /**
      * Updates the client type.
      *
      * @param clientType the new client type
@@ -132,13 +97,13 @@ public class Client {
      * @throws IllegalStateException if client is suspended
      */
     public void activate() {
-        if (this.status == Status.SUSPENDED) {
+        if (this.status == ClientStatus.SUSPENDED) {
             throw new IllegalStateException("Cannot activate a suspended client");
         }
-        if (this.status == Status.ACTIVE) {
+        if (this.status == ClientStatus.ACTIVE) {
             return; // Already active
         }
-        this.status = Status.ACTIVE;
+        this.status = ClientStatus.ACTIVE;
         this.updatedAt = Instant.now();
     }
 
@@ -148,13 +113,13 @@ public class Client {
      * @throws IllegalStateException if client is already inactive or suspended
      */
     public void deactivate() {
-        if (this.status == Status.INACTIVE) {
+        if (this.status == ClientStatus.INACTIVE) {
             return; // Already inactive
         }
-        if (this.status == Status.SUSPENDED) {
+        if (this.status == ClientStatus.SUSPENDED) {
             throw new IllegalStateException("Cannot deactivate a suspended client");
         }
-        this.status = Status.INACTIVE;
+        this.status = ClientStatus.INACTIVE;
         this.updatedAt = Instant.now();
     }
 
@@ -162,10 +127,10 @@ public class Client {
      * Suspends the client, preventing any further modifications.
      */
     public void suspend() {
-        if (this.status == Status.SUSPENDED) {
+        if (this.status == ClientStatus.SUSPENDED) {
             throw new IllegalStateException("Client is already suspended");
         }
-        this.status = Status.SUSPENDED;
+        this.status = ClientStatus.SUSPENDED;
         this.updatedAt = Instant.now();
     }
 
@@ -173,10 +138,10 @@ public class Client {
      * Unsuspends the client, restoring it to active status.
      */
     public void unsuspend() {
-        if (this.status != Status.SUSPENDED) {
+        if (this.status != ClientStatus.SUSPENDED) {
             throw new IllegalStateException("Client is not suspended");
         }
-        this.status = Status.ACTIVE;
+        this.status = ClientStatus.ACTIVE;
         this.updatedAt = Instant.now();
     }
 
@@ -190,7 +155,7 @@ public class Client {
     }
 
     private void validateNotSuspended() {
-        if (this.status == Status.SUSPENDED) {
+        if (this.status == ClientStatus.SUSPENDED) {
             throw new IllegalStateException("Cannot modify suspended client");
         }
     }
@@ -217,19 +182,7 @@ public class Client {
         return address;
     }
 
-    public String taxId() {
-        return taxId;
-    }
-
-    public String phoneNumber() {
-        return phoneNumber;
-    }
-
-    public String emailAddress() {
-        return emailAddress;
-    }
-
-    public Status status() {
+    public ClientStatus status() {
         return status;
     }
 
