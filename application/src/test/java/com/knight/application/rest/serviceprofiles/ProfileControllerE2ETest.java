@@ -661,5 +661,548 @@ class ProfileControllerE2ETest {
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$").isEmpty());
         }
+
+        @Test
+        @DisplayName("should get online profiles for client")
+        void shouldGetOnlineProfilesForClient() throws Exception {
+            // Create an online profile
+            String onlineRequest = """
+                {
+                    "profileType": "ONLINE",
+                    "name": "Online Profile",
+                    "clients": [
+                        {
+                            "clientId": "srf:123456789",
+                            "isPrimary": true,
+                            "accountEnrollmentType": "MANUAL",
+                            "accountIds": []
+                        }
+                    ]
+                }
+                """;
+
+            mockMvc.perform(post("/api/profiles")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(onlineRequest))
+                .andExpect(status().isCreated());
+
+            // Get only online profiles
+            MvcResult result = mockMvc.perform(get("/api/clients/srf:123456789/profiles/online")
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn();
+
+            JsonNode response = objectMapper.readTree(result.getResponse().getContentAsString());
+            assertThat(response.isArray()).isTrue();
+            assertThat(response.size()).isEqualTo(1);
+            assertThat(response.get(0).get("profileType").asText()).isEqualTo("ONLINE");
+        }
+    }
+
+    // ==================== Profile Detail ====================
+
+    @Nested
+    @DisplayName("GET /api/profiles/{profileId}/detail - Profile Detail")
+    class ProfileDetailTests {
+
+        @Test
+        @DisplayName("should get profile detail with all enrollments")
+        void shouldGetProfileDetailWithAllEnrollments() throws Exception {
+            // Create a profile with accounts
+            String createRequest = """
+                {
+                    "profileType": "SERVICING",
+                    "name": "Detail Test Profile",
+                    "clients": [
+                        {
+                            "clientId": "srf:123456789",
+                            "isPrimary": true,
+                            "accountEnrollmentType": "MANUAL",
+                            "accountIds": ["CAN_DDA:DDA:12345:000000000001"]
+                        }
+                    ]
+                }
+                """;
+
+            MvcResult createResult = mockMvc.perform(post("/api/profiles")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createRequest))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+            JsonNode createResponse = objectMapper.readTree(createResult.getResponse().getContentAsString());
+            String profileId = createResponse.get("profileId").asText();
+
+            // Get profile detail
+            mockMvc.perform(get("/api/profiles/{profileId}/detail", profileId)
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.profileId").value(profileId))
+                .andExpect(jsonPath("$.name").value("Detail Test Profile"))
+                .andExpect(jsonPath("$.profileType").value("SERVICING"))
+                .andExpect(jsonPath("$.clientEnrollments").isArray())
+                .andExpect(jsonPath("$.clientEnrollments.length()").value(1))
+                .andExpect(jsonPath("$.accountEnrollments").isArray())
+                .andExpect(jsonPath("$.serviceEnrollments").isArray());
+        }
+    }
+
+    // ==================== Service Enrollment ====================
+
+    @Nested
+    @DisplayName("POST /api/profiles/{profileId}/services - Enroll Service")
+    class EnrollServiceTests {
+
+        @Test
+        @DisplayName("should enroll service without account links")
+        void shouldEnrollServiceWithoutAccountLinks() throws Exception {
+            // Create a profile
+            String createRequest = """
+                {
+                    "profileType": "SERVICING",
+                    "name": "Service Test Profile",
+                    "clients": [
+                        {
+                            "clientId": "srf:123456789",
+                            "isPrimary": true,
+                            "accountEnrollmentType": "MANUAL",
+                            "accountIds": ["CAN_DDA:DDA:12345:000000000001"]
+                        }
+                    ]
+                }
+                """;
+
+            MvcResult createResult = mockMvc.perform(post("/api/profiles")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createRequest))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+            JsonNode createResponse = objectMapper.readTree(createResult.getResponse().getContentAsString());
+            String profileId = createResponse.get("profileId").asText();
+
+            // Enroll service without account links
+            String enrollRequest = """
+                {
+                    "serviceType": "PAYMENT",
+                    "configuration": "{\\"setting\\": \\"value\\"}"
+                }
+                """;
+
+            mockMvc.perform(post("/api/profiles/{profileId}/services", profileId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(enrollRequest))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.serviceType").value("PAYMENT"))
+                .andExpect(jsonPath("$.enrollmentId").exists())
+                .andExpect(jsonPath("$.linkedAccountCount").value(0));
+        }
+
+        @Test
+        @DisplayName("should enroll service with account links")
+        void shouldEnrollServiceWithAccountLinks() throws Exception {
+            // Create a profile
+            String createRequest = """
+                {
+                    "profileType": "SERVICING",
+                    "name": "Service Test Profile",
+                    "clients": [
+                        {
+                            "clientId": "srf:123456789",
+                            "isPrimary": true,
+                            "accountEnrollmentType": "MANUAL",
+                            "accountIds": ["CAN_DDA:DDA:12345:000000000001"]
+                        }
+                    ]
+                }
+                """;
+
+            MvcResult createResult = mockMvc.perform(post("/api/profiles")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createRequest))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+            JsonNode createResponse = objectMapper.readTree(createResult.getResponse().getContentAsString());
+            String profileId = createResponse.get("profileId").asText();
+
+            // Enroll service with account links
+            String enrollRequest = """
+                {
+                    "serviceType": "REPORTING",
+                    "configuration": "{\\"format\\": \\"CSV\\"}",
+                    "accountLinks": [
+                        {
+                            "clientId": "srf:123456789",
+                            "accountId": "CAN_DDA:DDA:12345:000000000001"
+                        }
+                    ]
+                }
+                """;
+
+            mockMvc.perform(post("/api/profiles/{profileId}/services", profileId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(enrollRequest))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.serviceType").value("REPORTING"))
+                .andExpect(jsonPath("$.linkedAccountCount").value(1));
+        }
+    }
+
+    // ==================== Search Profiles ====================
+
+    @Nested
+    @DisplayName("POST /api/profiles/search - Search Profiles")
+    class SearchProfilesTests {
+
+        @Test
+        @DisplayName("should search by primary client ID")
+        void shouldSearchByPrimaryClientId() throws Exception {
+            // Create a profile
+            String createRequest = """
+                {
+                    "profileType": "SERVICING",
+                    "name": "Search Test Profile",
+                    "clients": [
+                        {
+                            "clientId": "srf:123456789",
+                            "isPrimary": true,
+                            "accountEnrollmentType": "MANUAL",
+                            "accountIds": []
+                        }
+                    ]
+                }
+                """;
+
+            mockMvc.perform(post("/api/profiles")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createRequest))
+                .andExpect(status().isCreated());
+
+            // Search by client ID (primary only)
+            String searchRequest = """
+                {
+                    "clientId": "srf:123456789",
+                    "primaryOnly": true,
+                    "page": 0,
+                    "size": 10
+                }
+                """;
+
+            mockMvc.perform(post("/api/profiles/search")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(searchRequest))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.totalElements").value(1));
+        }
+
+        @Test
+        @DisplayName("should search by client ID (any enrollment)")
+        void shouldSearchByClientIdAnyEnrollment() throws Exception {
+            // Create a profile
+            String createRequest = """
+                {
+                    "profileType": "SERVICING",
+                    "name": "Search Test Profile",
+                    "clients": [
+                        {
+                            "clientId": "srf:123456789",
+                            "isPrimary": true,
+                            "accountEnrollmentType": "MANUAL",
+                            "accountIds": []
+                        }
+                    ]
+                }
+                """;
+
+            mockMvc.perform(post("/api/profiles")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createRequest))
+                .andExpect(status().isCreated());
+
+            // Search by client ID (any enrollment)
+            String searchRequest = """
+                {
+                    "clientId": "srf:123456789",
+                    "primaryOnly": false,
+                    "page": 0,
+                    "size": 10
+                }
+                """;
+
+            mockMvc.perform(post("/api/profiles/search")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(searchRequest))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.totalElements").value(1));
+        }
+
+        @Test
+        @DisplayName("should search by client name")
+        void shouldSearchByClientName() throws Exception {
+            // Create a profile
+            String createRequest = """
+                {
+                    "profileType": "SERVICING",
+                    "name": "Search Test Profile",
+                    "clients": [
+                        {
+                            "clientId": "srf:123456789",
+                            "isPrimary": true,
+                            "accountEnrollmentType": "MANUAL",
+                            "accountIds": []
+                        }
+                    ]
+                }
+                """;
+
+            mockMvc.perform(post("/api/profiles")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createRequest))
+                .andExpect(status().isCreated());
+
+            // Search by client name
+            String searchRequest = """
+                {
+                    "clientName": "srf:123",
+                    "primaryOnly": true,
+                    "page": 0,
+                    "size": 10
+                }
+                """;
+
+            mockMvc.perform(post("/api/profiles/search")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(searchRequest))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray());
+        }
+
+        @Test
+        @DisplayName("should return empty result when no search criteria")
+        void shouldReturnEmptyResultWhenNoSearchCriteria() throws Exception {
+            String searchRequest = """
+                {
+                    "primaryOnly": false,
+                    "page": 0,
+                    "size": 10
+                }
+                """;
+
+            mockMvc.perform(post("/api/profiles/search")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(searchRequest))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content").isEmpty())
+                .andExpect(jsonPath("$.totalElements").value(0));
+        }
+
+        @Test
+        @DisplayName("should search with profile type filter")
+        void shouldSearchWithProfileTypeFilter() throws Exception {
+            // Create profiles
+            String servicingRequest = """
+                {
+                    "profileType": "SERVICING",
+                    "name": "Servicing Profile",
+                    "clients": [
+                        {
+                            "clientId": "srf:123456789",
+                            "isPrimary": true,
+                            "accountEnrollmentType": "MANUAL",
+                            "accountIds": []
+                        }
+                    ]
+                }
+                """;
+
+            mockMvc.perform(post("/api/profiles")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(servicingRequest))
+                .andExpect(status().isCreated());
+
+            // Search with type filter
+            String searchRequest = """
+                {
+                    "clientId": "srf:123456789",
+                    "primaryOnly": true,
+                    "profileTypes": ["SERVICING"],
+                    "page": 0,
+                    "size": 10
+                }
+                """;
+
+            mockMvc.perform(post("/api/profiles/search")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(searchRequest))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1));
+        }
+    }
+
+    // ==================== Secondary Client Management ====================
+
+    @Nested
+    @DisplayName("Secondary Client Management")
+    class SecondaryClientManagementTests {
+
+        @Test
+        @DisplayName("should add secondary client with accounts")
+        void shouldAddSecondaryClientWithAccounts() throws Exception {
+            // Create a profile
+            String createRequest = """
+                {
+                    "profileType": "SERVICING",
+                    "name": "Secondary Client Test",
+                    "clients": [
+                        {
+                            "clientId": "srf:123456789",
+                            "isPrimary": true,
+                            "accountEnrollmentType": "MANUAL",
+                            "accountIds": []
+                        }
+                    ]
+                }
+                """;
+
+            MvcResult createResult = mockMvc.perform(post("/api/profiles")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createRequest))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+            JsonNode createResponse = objectMapper.readTree(createResult.getResponse().getContentAsString());
+            String profileId = createResponse.get("profileId").asText();
+
+            // Add secondary client
+            String addRequest = """
+                {
+                    "clientId": "srf:987654321",
+                    "accountEnrollmentType": "MANUAL",
+                    "accountIds": ["CAN_DDA:DDA:12345:000000000003"]
+                }
+                """;
+
+            mockMvc.perform(post("/api/profiles/{profileId}/clients", profileId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(addRequest))
+                .andExpect(status().isCreated());
+        }
+
+        @Test
+        @DisplayName("should add secondary client without accounts")
+        void shouldAddSecondaryClientWithoutAccounts() throws Exception {
+            // Create a profile
+            String createRequest = """
+                {
+                    "profileType": "SERVICING",
+                    "name": "Secondary Client Test",
+                    "clients": [
+                        {
+                            "clientId": "srf:123456789",
+                            "isPrimary": true,
+                            "accountEnrollmentType": "MANUAL",
+                            "accountIds": []
+                        }
+                    ]
+                }
+                """;
+
+            MvcResult createResult = mockMvc.perform(post("/api/profiles")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createRequest))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+            JsonNode createResponse = objectMapper.readTree(createResult.getResponse().getContentAsString());
+            String profileId = createResponse.get("profileId").asText();
+
+            // Add secondary client without accounts
+            String addRequest = """
+                {
+                    "clientId": "srf:987654321",
+                    "accountEnrollmentType": "AUTOMATIC"
+                }
+                """;
+
+            mockMvc.perform(post("/api/profiles/{profileId}/clients", profileId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(addRequest))
+                .andExpect(status().isCreated());
+        }
+
+        @Test
+        @DisplayName("should remove secondary client")
+        void shouldRemoveSecondaryClient() throws Exception {
+            // Create a profile with secondary client
+            String createRequest = """
+                {
+                    "profileType": "SERVICING",
+                    "name": "Remove Client Test",
+                    "clients": [
+                        {
+                            "clientId": "srf:123456789",
+                            "isPrimary": true,
+                            "accountEnrollmentType": "MANUAL",
+                            "accountIds": []
+                        },
+                        {
+                            "clientId": "srf:987654321",
+                            "isPrimary": false,
+                            "accountEnrollmentType": "MANUAL",
+                            "accountIds": []
+                        }
+                    ]
+                }
+                """;
+
+            MvcResult createResult = mockMvc.perform(post("/api/profiles")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createRequest))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+            JsonNode createResponse = objectMapper.readTree(createResult.getResponse().getContentAsString());
+            String profileId = createResponse.get("profileId").asText();
+
+            // Remove secondary client
+            mockMvc.perform(delete("/api/profiles/{profileId}/clients/{clientId}", profileId, "srf:987654321"))
+                .andExpect(status().isNoContent());
+        }
+    }
+
+    // ==================== Create Profile with Null Account IDs ====================
+
+    @Nested
+    @DisplayName("Create Profile with Null Account IDs")
+    class NullAccountIdsTests {
+
+        @Test
+        @DisplayName("should handle null accountIds in client selection")
+        void shouldHandleNullAccountIdsInClientSelection() throws Exception {
+            String requestBody = """
+                {
+                    "profileType": "SERVICING",
+                    "name": "Null AccountIds Profile",
+                    "clients": [
+                        {
+                            "clientId": "srf:123456789",
+                            "isPrimary": true,
+                            "accountEnrollmentType": "AUTOMATIC"
+                        }
+                    ]
+                }
+                """;
+
+            mockMvc.perform(post("/api/profiles")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(requestBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.profileId").exists());
+        }
     }
 }

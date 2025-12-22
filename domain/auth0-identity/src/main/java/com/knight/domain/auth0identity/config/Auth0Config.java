@@ -9,7 +9,8 @@ public record Auth0Config(
     String clientSecret,
     String audience,
     String managementAudience,
-    String connection
+    String connection,
+    String passwordResetResultUrl
 ) {
     public String getIssuer() {
         return "https://" + domain + "/";
@@ -21,5 +22,9 @@ public record Auth0Config(
 
     public String getTokenUrl() {
         return "https://" + domain + "/oauth/token";
+    }
+
+    public String getPasswordResetResultUrl() {
+        return passwordResetResultUrl != null ? passwordResetResultUrl : "http://localhost/";
     }
 }

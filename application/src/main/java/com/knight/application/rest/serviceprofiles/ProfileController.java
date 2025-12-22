@@ -9,6 +9,7 @@ import com.knight.domain.serviceprofiles.api.queries.ProfileQueries;
 import com.knight.domain.serviceprofiles.api.queries.ProfileQueries.*;
 import com.knight.platform.sharedkernel.ClientAccountId;
 import com.knight.platform.sharedkernel.ClientId;
+import com.knight.platform.sharedkernel.EnrollmentId;
 import com.knight.platform.sharedkernel.ProfileId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,6 +86,62 @@ public class ProfileController {
     public ResponseEntity<ProfileDetailDto> getProfileDetail(@PathVariable String profileId) {
         ProfileDetail detail = profileQueries.getProfileDetail(ProfileId.fromUrn(profileId));
         return ResponseEntity.ok(toDetailDto(detail));
+    }
+
+    // ==================== Service Enrollment ====================
+
+    /**
+     * Enroll a service to a profile with optional account linking.
+     */
+    @PostMapping("/profiles/{profileId}/services")
+    public ResponseEntity<EnrollServiceResponse> enrollService(
+        @PathVariable String profileId,
+        @RequestBody EnrollServiceRequest request
+    ) {
+        logger.info("Enrolling service {} to profile {}", request.serviceType(), profileId);
+
+        ProfileId profId = ProfileId.fromUrn(profileId);
+
+        // Enroll the service
+        EnrollServiceCmd cmd = new EnrollServiceCmd(
+            profId,
+            request.serviceType(),
+            request.configuration()
+        );
+        profileCommands.enrollService(cmd);
+
+        // Get the profile detail to find the newly created service enrollment
+        ProfileDetail detail = profileQueries.getProfileDetail(profId);
+        ServiceEnrollmentInfo serviceEnrollment = detail.serviceEnrollments().stream()
+            .filter(se -> se.serviceType().equals(request.serviceType()))
+            .findFirst()
+            .orElseThrow();
+
+        EnrollmentId serviceEnrollmentId = EnrollmentId.of(serviceEnrollment.enrollmentId());
+
+        // Link accounts to the service if requested
+        int linkedCount = 0;
+        if (request.accountLinks() != null && !request.accountLinks().isEmpty()) {
+            for (EnrollServiceRequest.AccountLink link : request.accountLinks()) {
+                EnrollAccountToServiceCmd linkCmd = new EnrollAccountToServiceCmd(
+                    profId,
+                    serviceEnrollmentId,
+                    ClientId.of(link.clientId()),
+                    ClientAccountId.of(link.accountId())
+                );
+                profileCommands.enrollAccountToService(linkCmd);
+                linkedCount++;
+            }
+        }
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(new EnrollServiceResponse(
+                serviceEnrollment.enrollmentId(),
+                serviceEnrollment.serviceType(),
+                serviceEnrollment.status(),
+                serviceEnrollment.enrolledAt(),
+                linkedCount
+            ));
     }
 
     // ==================== Search endpoints ====================

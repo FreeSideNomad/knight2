@@ -4,9 +4,11 @@ import com.knight.domain.clients.aggregate.ClientAccount;
 import com.knight.domain.clients.api.PageResult;
 import com.knight.platform.sharedkernel.ClientAccountId;
 import com.knight.platform.sharedkernel.ClientId;
+import com.knight.platform.sharedkernel.IndirectClientId;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Repository interface for ClientAccount aggregate.
@@ -54,4 +56,20 @@ public interface ClientAccountRepository {
      * @param account the account to save
      */
     void save(ClientAccount account);
+
+    /**
+     * Finds all OFI accounts belonging to a specific indirect client by its internal UUID.
+     *
+     * @param indirectClientId the indirect client UUID (from indirect_clients table)
+     * @return a list of OFI accounts owned by the indirect client
+     */
+    List<ClientAccount> findByIndirectClientId(UUID indirectClientId);
+
+    /**
+     * Finds all OFI accounts belonging to a specific indirect client by its value object ID.
+     *
+     * @param indirectClientId the indirect client ID value object
+     * @return a list of OFI accounts owned by the indirect client
+     */
+    List<ClientAccount> findByIndirectClientId(IndirectClientId indirectClientId);
 }

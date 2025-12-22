@@ -33,8 +33,21 @@ public class ProfileRepositoryAdapter implements ServicingProfileRepository {
     @Override
     @Transactional
     public void save(Profile profile) {
-        ProfileEntity entity = mapper.toEntity(profile);
-        jpaRepository.save(entity);
+        String profileUrn = profile.profileId().urn();
+
+        // Check if entity exists - if so, update it instead of replacing
+        Optional<ProfileEntity> existingOpt = jpaRepository.findById(profileUrn);
+
+        if (existingOpt.isPresent()) {
+            // Update existing entity to preserve JPA-managed collections
+            ProfileEntity existing = existingOpt.get();
+            mapper.updateEntity(existing, profile);
+            jpaRepository.save(existing);
+        } else {
+            // New entity - create fresh
+            ProfileEntity entity = mapper.toEntity(profile);
+            jpaRepository.save(entity);
+        }
     }
 
     @Override

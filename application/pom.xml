@@ -42,6 +42,10 @@
             <groupId>com.knight.domain</groupId>
             <artifactId>auth0-identity</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.knight.domain</groupId>
+            <artifactId>batch</artifactId>
+        </dependency>
 
         <!-- Spring Boot starters -->
         <dependency>

@@ -19,12 +19,14 @@ public final class ProfileId {
         if (clientId == null) {
             throw new IllegalArgumentException("ClientId cannot be null");
         }
-        if (!(clientId instanceof BankClientId bankClientId)) {
-            throw new IllegalArgumentException("ProfileId requires BankClientId (SRF or CDR)");
-        }
-        String system = bankClientId.system();
-        if (!"srf".equals(system) && !"cdr".equals(system)) {
-            throw new IllegalArgumentException("ProfileId requires SRF or CDR client");
+        // Accept BankClientId (SRF/CDR) or IndirectClientId
+        if (clientId instanceof BankClientId bankClientId) {
+            String system = bankClientId.system();
+            if (!"srf".equals(system) && !"cdr".equals(system)) {
+                throw new IllegalArgumentException("ProfileId requires SRF or CDR client");
+            }
+        } else if (!(clientId instanceof IndirectClientId)) {
+            throw new IllegalArgumentException("ProfileId requires BankClientId (SRF or CDR) or IndirectClientId");
         }
         this.profileType = profileType.toLowerCase();
         this.clientId = clientId;

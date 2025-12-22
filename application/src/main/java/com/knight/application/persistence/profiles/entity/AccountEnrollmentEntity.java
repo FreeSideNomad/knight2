@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * JPA entity for AccountEnrollment within Profile.
@@ -18,8 +19,8 @@ import java.time.Instant;
 public class AccountEnrollmentEntity {
 
     @Id
-    @Column(name = "enrollment_id", nullable = false, length = 100)
-    private String enrollmentId;
+    @Column(name = "enrollment_id", nullable = false, columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID enrollmentId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "profile_id", nullable = false)
@@ -29,8 +30,8 @@ public class AccountEnrollmentEntity {
      * Nullable - when null, the account is enrolled to the profile itself.
      * When set, the account is enrolled to a specific service.
      */
-    @Column(name = "service_enrollment_id", length = 100)
-    private String serviceEnrollmentId;
+    @Column(name = "service_enrollment_id", columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID serviceEnrollmentId;
 
     /**
      * The client that owns this account.

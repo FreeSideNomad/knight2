@@ -55,7 +55,7 @@ public interface ClientMapper {
 
     /**
      * Custom mapping method to convert ClientEntity to Client domain aggregate.
-     * Uses reflection to set private fields after creating via factory method.
+     * Uses the domain's reconstitute method to properly restore the object.
      *
      * @param entity the ClientEntity
      * @return the Client aggregate
@@ -74,28 +74,16 @@ public interface ClientMapper {
         // Convert ClientType
         ClientType clientType = stringToClientType(entity.getClientType());
 
-        // Create Client using factory method
-        Client client = Client.create(clientId, entity.getName(), clientType, address);
-
-        // Use reflection to set additional fields
-        try {
-            setField(client, "status", stringToStatus(entity.getStatus()));
-            setField(client, "createdAt", entity.getCreatedAt());
-            setField(client, "updatedAt", entity.getUpdatedAt());
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to map ClientEntity to Client", e);
-        }
-
-        return client;
-    }
-
-    /**
-     * Sets a private field using reflection.
-     */
-    default void setField(Client client, String fieldName, Object value) throws Exception {
-        var field = Client.class.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(client, value);
+        // Use reconstitute to properly restore all fields
+        return Client.reconstitute(
+            clientId,
+            entity.getName(),
+            clientType,
+            address,
+            stringToStatus(entity.getStatus()),
+            entity.getCreatedAt(),
+            entity.getUpdatedAt()
+        );
     }
 
     // Custom mapping methods for value objects

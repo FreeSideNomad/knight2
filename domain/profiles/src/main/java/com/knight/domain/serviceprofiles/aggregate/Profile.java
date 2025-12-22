@@ -6,6 +6,7 @@ import com.knight.domain.serviceprofiles.types.ProfileType;
 import com.knight.platform.sharedkernel.ClientAccountId;
 import com.knight.platform.sharedkernel.ClientId;
 import com.knight.platform.sharedkernel.EnrollmentId;
+import com.knight.platform.sharedkernel.IndirectClientId;
 import com.knight.platform.sharedkernel.ProfileId;
 
 import java.time.Instant;
@@ -76,6 +77,15 @@ public class Profile {
             this.enrolledAt = Instant.now();
         }
 
+        // Constructor for reconstruction
+        private ServiceEnrollment(EnrollmentId enrollmentId, String serviceType, String configuration, ProfileStatus status, Instant enrolledAt) {
+            this.enrollmentId = enrollmentId;
+            this.serviceType = serviceType;
+            this.configuration = configuration;
+            this.status = status;
+            this.enrolledAt = enrolledAt;
+        }
+
         public EnrollmentId enrollmentId() { return enrollmentId; }
         public String serviceType() { return serviceType; }
         public String configuration() { return configuration; }
@@ -107,6 +117,16 @@ public class Profile {
             this.accountId = Objects.requireNonNull(accountId, "accountId cannot be null");
             this.status = ProfileStatus.ACTIVE;
             this.enrolledAt = Instant.now();
+        }
+
+        // Constructor for reconstruction
+        private AccountEnrollment(EnrollmentId enrollmentId, EnrollmentId serviceEnrollmentId, ClientId clientId, ClientAccountId accountId, ProfileStatus status, Instant enrolledAt) {
+            this.enrollmentId = enrollmentId;
+            this.serviceEnrollmentId = serviceEnrollmentId;
+            this.clientId = clientId;
+            this.accountId = accountId;
+            this.status = status;
+            this.enrolledAt = enrolledAt;
         }
 
         public EnrollmentId enrollmentId() { return enrollmentId; }
@@ -162,6 +182,58 @@ public class Profile {
     }
 
     /**
+     * Private constructor for reconstitution from persistence.
+     * This allows setting final fields directly instead of using reflection.
+     */
+    private Profile(ProfileId profileId, ProfileType profileType, String name, String createdBy,
+                   ProfileStatus status, List<ClientEnrollment> clientEnrollments,
+                   List<ServiceEnrollment> serviceEnrollments, List<AccountEnrollment> accountEnrollments,
+                   Instant createdAt, Instant updatedAt) {
+        this.profileId = profileId;
+        this.profileType = profileType;
+        this.name = name;
+        this.createdBy = createdBy;
+        this.status = status;
+        this.clientEnrollments = new ArrayList<>(clientEnrollments);
+        this.serviceEnrollments = new ArrayList<>(serviceEnrollments);
+        this.accountEnrollments = new ArrayList<>(accountEnrollments);
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
+    /**
+     * Factory method for reconstituting a Profile from persistence.
+     * This properly preserves all IDs and timestamps instead of generating new ones.
+     *
+     * @param profileId the profile ID
+     * @param profileType the profile type
+     * @param name the profile name
+     * @param createdBy who created the profile
+     * @param status the current status
+     * @param clientEnrollments list of client enrollments (already reconstructed with correct IDs)
+     * @param serviceEnrollments list of service enrollments (already reconstructed with correct IDs)
+     * @param accountEnrollments list of account enrollments (already reconstructed with correct IDs)
+     * @param createdAt when the profile was created
+     * @param updatedAt when the profile was last updated
+     * @return the reconstituted Profile
+     */
+    public static Profile reconstitute(
+            ProfileId profileId,
+            ProfileType profileType,
+            String name,
+            String createdBy,
+            ProfileStatus status,
+            List<ClientEnrollment> clientEnrollments,
+            List<ServiceEnrollment> serviceEnrollments,
+            List<AccountEnrollment> accountEnrollments,
+            Instant createdAt,
+            Instant updatedAt) {
+        return new Profile(profileId, profileType, name, createdBy, status,
+                          clientEnrollments, serviceEnrollments, accountEnrollments,
+                          createdAt, updatedAt);
+    }
+
+    /**
      * Creates a profile with client enrollments and account enrollments.
      *
      * @param profileType the type of profile (SERVICING or ONLINE)
@@ -203,6 +275,26 @@ public class Profile {
             }
         }
 
+        return profile;
+    }
+
+    /**
+     * Creates an INDIRECT profile linked to an IndirectClient.
+     * The profile ID is derived from the IndirectClientId.
+     *
+     * @param indirectClientId the indirect client this profile is linked to
+     * @param name profile name
+     * @param createdBy the user creating the profile
+     * @return the created INDIRECT profile
+     */
+    public static Profile createIndirectProfile(
+        IndirectClientId indirectClientId,
+        String name,
+        String createdBy
+    ) {
+        ProfileId profileId = ProfileId.of(ProfileType.INDIRECT.name(), indirectClientId);
+        Profile profile = new Profile(profileId, ProfileType.INDIRECT, name, createdBy);
+        profile.addClientEnrollment(indirectClientId, true, AccountEnrollmentType.MANUAL);
         return profile;
     }
 

@@ -532,6 +532,261 @@ class ProfileTest {
         }
     }
 
+    // ==================== Indirect Profile Creation ====================
+
+    @Nested
+    @DisplayName("Indirect Profile Creation")
+    class IndirectProfileCreationTests {
+
+        @Test
+        @DisplayName("should create indirect profile with correct ID format")
+        void shouldCreateIndirectProfileWithCorrectIdFormat() {
+            IndirectClientId indirectClientId = IndirectClientId.of(PRIMARY_CLIENT_ID, 1);
+
+            Profile profile = Profile.createIndirectProfile(indirectClientId, "Payor Profile", "admin");
+
+            assertThat(profile.profileId().urn()).isEqualTo("indirect:indirect:srf:123456789:1");
+            assertThat(profile.profileType()).isEqualTo(ProfileType.INDIRECT);
+            assertThat(profile.name()).isEqualTo("Payor Profile");
+            assertThat(profile.createdBy()).isEqualTo("admin");
+        }
+
+        @Test
+        @DisplayName("should enroll indirect client as primary")
+        void shouldEnrollIndirectClientAsPrimary() {
+            IndirectClientId indirectClientId = IndirectClientId.of(PRIMARY_CLIENT_ID, 5);
+
+            Profile profile = Profile.createIndirectProfile(indirectClientId, "Test", "admin");
+
+            assertThat(profile.clientEnrollments()).hasSize(1);
+            ClientEnrollment enrollment = profile.clientEnrollments().get(0);
+            assertThat(enrollment.clientId().urn()).isEqualTo("indirect:srf:123456789:5");
+            assertThat(enrollment.isPrimary()).isTrue();
+            assertThat(enrollment.accountEnrollmentType()).isEqualTo(AccountEnrollmentType.MANUAL);
+        }
+
+        @Test
+        @DisplayName("should return indirect client as primary client ID")
+        void shouldReturnIndirectClientAsPrimaryClientId() {
+            IndirectClientId indirectClientId = IndirectClientId.of(PRIMARY_CLIENT_ID, 3);
+
+            Profile profile = Profile.createIndirectProfile(indirectClientId, "Test", "admin");
+
+            assertThat(profile.primaryClientId().urn()).isEqualTo("indirect:srf:123456789:3");
+        }
+    }
+
+    // ==================== Secondary Client Management ====================
+
+    @Nested
+    @DisplayName("Secondary Client Management")
+    class SecondaryClientManagementTests {
+
+        @Test
+        @DisplayName("should add secondary client with accounts")
+        void shouldAddSecondaryClientWithAccounts() {
+            Profile profile = createActiveProfile();
+
+            profile.addSecondaryClient(SECONDARY_CLIENT_ID, AccountEnrollmentType.MANUAL, List.of(ACCOUNT_ID_1, ACCOUNT_ID_2));
+
+            assertThat(profile.clientEnrollments()).hasSize(2);
+            ClientEnrollment secondary = profile.clientEnrollments().stream()
+                .filter(ce -> ce.clientId().equals(SECONDARY_CLIENT_ID))
+                .findFirst()
+                .orElseThrow();
+            assertThat(secondary.isPrimary()).isFalse();
+            assertThat(secondary.accountEnrollmentType()).isEqualTo(AccountEnrollmentType.MANUAL);
+            assertThat(profile.accountEnrollments()).hasSize(2);
+        }
+
+        @Test
+        @DisplayName("should reject duplicate secondary client")
+        void shouldRejectDuplicateSecondaryClient() {
+            Profile profile = createActiveProfile();
+            profile.addSecondaryClient(SECONDARY_CLIENT_ID, AccountEnrollmentType.MANUAL, List.of());
+
+            assertThatIllegalArgumentException()
+                .isThrownBy(() -> profile.addSecondaryClient(SECONDARY_CLIENT_ID, AccountEnrollmentType.MANUAL, List.of()))
+                .withMessageContaining("already enrolled");
+        }
+
+        @Test
+        @DisplayName("should reject adding secondary client when profile suspended")
+        void shouldRejectAddingSecondaryClientWhenSuspended() {
+            Profile profile = createActiveProfile();
+            profile.suspend("Test");
+
+            assertThatIllegalStateException()
+                .isThrownBy(() -> profile.addSecondaryClient(SECONDARY_CLIENT_ID, AccountEnrollmentType.MANUAL, List.of()))
+                .withMessageContaining("Cannot add client to profile in status");
+        }
+
+        @Test
+        @DisplayName("should remove secondary client and their accounts")
+        void shouldRemoveSecondaryClientAndAccounts() {
+            Profile profile = createActiveProfile();
+            profile.addSecondaryClient(SECONDARY_CLIENT_ID, AccountEnrollmentType.MANUAL, List.of(ACCOUNT_ID_1));
+
+            profile.removeSecondaryClient(SECONDARY_CLIENT_ID);
+
+            assertThat(profile.clientEnrollments()).hasSize(1);
+            assertThat(profile.clientEnrollments().get(0).clientId()).isEqualTo(PRIMARY_CLIENT_ID);
+            assertThat(profile.accountEnrollments()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("should reject removing primary client")
+        void shouldRejectRemovingPrimaryClient() {
+            Profile profile = createActiveProfile();
+
+            assertThatIllegalArgumentException()
+                .isThrownBy(() -> profile.removeSecondaryClient(PRIMARY_CLIENT_ID))
+                .withMessageContaining("Cannot remove primary client");
+        }
+
+        @Test
+        @DisplayName("should reject removing non-enrolled client")
+        void shouldRejectRemovingNonEnrolledClient() {
+            Profile profile = createActiveProfile();
+
+            assertThatIllegalArgumentException()
+                .isThrownBy(() -> profile.removeSecondaryClient(SECONDARY_CLIENT_ID))
+                .withMessageContaining("Client not enrolled in profile");
+        }
+
+        @Test
+        @DisplayName("should reject removing secondary client when profile suspended")
+        void shouldRejectRemovingSecondaryClientWhenSuspended() {
+            Profile profile = createActiveProfile();
+            profile.addSecondaryClient(SECONDARY_CLIENT_ID, AccountEnrollmentType.MANUAL, List.of());
+            profile.suspend("Test");
+
+            assertThatIllegalStateException()
+                .isThrownBy(() -> profile.removeSecondaryClient(SECONDARY_CLIENT_ID))
+                .withMessageContaining("Cannot remove client from profile in status");
+        }
+    }
+
+    // ==================== Profile Reconstitution ====================
+
+    @Nested
+    @DisplayName("Profile Reconstitution")
+    class ProfileReconstitutionTests {
+
+        @Test
+        @DisplayName("should reconstitute profile from persistence")
+        void shouldReconstituteProfileFromPersistence() {
+            ProfileId profileId = ProfileId.fromUrn("servicing:srf:123456789");
+            java.time.Instant createdAt = java.time.Instant.now().minusSeconds(3600);
+            java.time.Instant updatedAt = java.time.Instant.now();
+
+            Profile profile = Profile.reconstitute(
+                profileId,
+                ProfileType.SERVICING,
+                "Reconstituted Profile",
+                "originalUser",
+                ProfileStatus.ACTIVE,
+                List.of(),
+                List.of(),
+                List.of(),
+                createdAt,
+                updatedAt
+            );
+
+            assertThat(profile.profileId()).isEqualTo(profileId);
+            assertThat(profile.profileType()).isEqualTo(ProfileType.SERVICING);
+            assertThat(profile.name()).isEqualTo("Reconstituted Profile");
+            assertThat(profile.createdBy()).isEqualTo("originalUser");
+            assertThat(profile.status()).isEqualTo(ProfileStatus.ACTIVE);
+            assertThat(profile.createdAt()).isEqualTo(createdAt);
+            assertThat(profile.updatedAt()).isEqualTo(updatedAt);
+        }
+
+        @Test
+        @DisplayName("should reconstitute with enrollments")
+        void shouldReconstituteWithEnrollments() {
+            ProfileId profileId = ProfileId.fromUrn("servicing:srf:123456789");
+
+            // Create existing enrollments using the private constructor via reflection
+            ClientEnrollment clientEnrollment = new ClientEnrollment(PRIMARY_CLIENT_ID, true, AccountEnrollmentType.MANUAL);
+            ServiceEnrollment serviceEnrollment = new ServiceEnrollment("PAYMENT", "{}");
+            AccountEnrollment accountEnrollment = new AccountEnrollment(null, PRIMARY_CLIENT_ID, ACCOUNT_ID_1);
+
+            Profile profile = Profile.reconstitute(
+                profileId,
+                ProfileType.SERVICING,
+                "Test",
+                "user",
+                ProfileStatus.ACTIVE,
+                List.of(clientEnrollment),
+                List.of(serviceEnrollment),
+                List.of(accountEnrollment),
+                java.time.Instant.now(),
+                java.time.Instant.now()
+            );
+
+            assertThat(profile.clientEnrollments()).hasSize(1);
+            assertThat(profile.serviceEnrollments()).hasSize(1);
+            assertThat(profile.accountEnrollments()).hasSize(1);
+        }
+    }
+
+    // ==================== Legacy Factory Methods ====================
+
+    @Nested
+    @DisplayName("Legacy Factory Methods")
+    class LegacyFactoryMethodsTests {
+
+        @Test
+        @DisplayName("should create profile using deprecated create method")
+        @SuppressWarnings("deprecation")
+        void shouldCreateProfileUsingDeprecatedCreateMethod() {
+            Profile profile = Profile.create(PRIMARY_CLIENT_ID, ProfileType.SERVICING, "user");
+
+            assertThat(profile.profileId()).isNotNull();
+            assertThat(profile.profileType()).isEqualTo(ProfileType.SERVICING);
+            assertThat(profile.name()).contains("srf:123456789");
+            assertThat(profile.clientEnrollments()).hasSize(1);
+            assertThat(profile.clientEnrollments().get(0).isPrimary()).isTrue();
+        }
+
+        @Test
+        @DisplayName("should create servicing profile using deprecated method")
+        @SuppressWarnings("deprecation")
+        void shouldCreateServicingProfileDeprecated() {
+            Profile profile = Profile.createServicing(PRIMARY_CLIENT_ID, "user");
+
+            assertThat(profile.profileType()).isEqualTo(ProfileType.SERVICING);
+        }
+
+        @Test
+        @DisplayName("should create online profile using deprecated method")
+        @SuppressWarnings("deprecation")
+        void shouldCreateOnlineProfileDeprecated() {
+            Profile profile = Profile.createOnline(PRIMARY_CLIENT_ID, "user");
+
+            assertThat(profile.profileType()).isEqualTo(ProfileType.ONLINE);
+        }
+    }
+
+    // ==================== Activate on Account Enrollment ====================
+
+    @Nested
+    @DisplayName("Profile Activation on Account Enrollment")
+    class ProfileActivationOnAccountEnrollmentTests {
+
+        @Test
+        @DisplayName("should activate profile on first account enrollment")
+        void shouldActivateProfileOnFirstAccountEnrollment() {
+            Profile profile = createBasicProfile();
+            assertThat(profile.status()).isEqualTo(ProfileStatus.PENDING);
+
+            profile.enrollAccount(PRIMARY_CLIENT_ID, ACCOUNT_ID_1);
+
+            assertThat(profile.status()).isEqualTo(ProfileStatus.ACTIVE);
+        }
+    }
+
     // ==================== Helper Methods ====================
 
     private Profile createBasicProfile() {

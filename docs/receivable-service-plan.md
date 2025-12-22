@@ -3,8 +3,8 @@
 ## Overview
 
 This document outlines the comprehensive plan to implement the Receivable Service feature, including:
-- New CAN_GRADS account system with PAD/PAP account types
-- Receivable service enrollment with PAD account selection
+- New CAN_GRADS account system with PAP/PDB account types
+- Receivable service enrollment with PAP account selection
 - Indirect Client management linked to receivable-enrolled clients
 - Related Person management with ADMIN/CONTACT roles
 
@@ -14,22 +14,21 @@ This document outlines the comprehensive plan to implement the Receivable Servic
 
 ### 1.1 Design
 
-**New Account System:** `CAN_GRADS` (Canadian GRADS - Government Remittance and Direct Payment Service)
+**New Account System:** `CAN_GRADS` (Canadian GRADS ACH System)
 
 **New Account Types:**
-- `PAD` - Pre-Authorized Debit (can be enrolled to receivable service)
-- `PAP` - Pre-Authorized Payment (cannot be enrolled to receivable service)
+- `PAP` - PAP (Pre-Approved Payment) - Used for receivable service enrollment
+- `PDB` - PDB (Pre-Authorized Debit Batch) - Deposit type for outbound payments
 
 **Account Number Format:**
 ```
-CAN_GRADS:PAD:{dataCenter}:{gsan}
-CAN_GRADS:PAP:{dataCenter}:{gsan}
+CAN_GRADS:PAP:{gsan}
+CAN_GRADS:PDB:{gsan}
 
 Where:
-- dataCenter: OCC, QCC, or BCC (3 characters)
-- gsan: 12-digit GSAN (Grads Service Account Number)
+- gsan: 10-digit GSAN (Grads Service Account Number)
 
-Example: CAN_GRADS:PAD:OCC:123456789012
+Example: CAN_GRADS:PAP:1234567890
 ```
 
 ### 1.2 Development Tasks
@@ -45,29 +44,25 @@ CAN_GRADS     // Canadian GRADS (Pre-Authorized Debits/Payments)
 **File:** `kernel/src/main/java/com/knight/platform/sharedkernel/AccountType.java`
 ```java
 // Add if not already present:
-PAD,   // Pre-Authorized Debit (GRADS)
-PAP    // Pre-Authorized Payment (GRADS)
+PAP,   // Pre-Approved Payment (GRADS) - for receivable enrollment
+PDB    // Pre-Authorized Debit Batch (GRADS) - deposit type
 ```
 
 **File:** `kernel/src/main/java/com/knight/platform/sharedkernel/ClientAccountId.java`
 
 Add parsing support for CAN_GRADS URN format:
 ```java
-// CAN_GRADS format: CAN_GRADS:PAD:OCC:123456789012
-// - 3 char data center (OCC, QCC, BCC)
-// - 12 digit GSAN
+// CAN_GRADS format: CAN_GRADS:PAP:1234567890
+// - 10 digit GSAN
 
-public static ClientAccountId ofGrads(AccountType type, String dataCenter, String gsan) {
-    if (type != AccountType.PAD && type != AccountType.PAP) {
-        throw new IllegalArgumentException("GRADS accounts must be PAD or PAP");
+public static ClientAccountId ofGrads(AccountType type, String gsan) {
+    if (type != AccountType.PAP && type != AccountType.PDB) {
+        throw new IllegalArgumentException("GRADS accounts must be PAP or PDB");
     }
-    if (!Set.of("OCC", "QCC", "BCC").contains(dataCenter)) {
-        throw new IllegalArgumentException("Invalid data center: " + dataCenter);
+    if (gsan == null || !gsan.matches("\\d{10}")) {
+        throw new IllegalArgumentException("GSAN must be 10 digits");
     }
-    if (gsan == null || !gsan.matches("\\d{12}")) {
-        throw new IllegalArgumentException("GSAN must be 12 digits");
-    }
-    String urn = AccountSystem.CAN_GRADS.name() + ":" + type.name() + ":" + dataCenter + ":" + gsan;
+    String urn = AccountSystem.CAN_GRADS.name() + ":" + type.name() + ":" + gsan;
     return new ClientAccountId(urn, AccountSystem.CAN_GRADS, type);
 }
 ```
@@ -80,27 +75,16 @@ Create validation utility:
 ```java
 public class GradsAccountValidator {
 
-    public static final Set<String> VALID_DATA_CENTERS = Set.of("OCC", "QCC", "BCC");
-
     public static boolean isValidGradsAccount(ClientAccountId accountId) {
         return accountId.system() == AccountSystem.CAN_GRADS;
-    }
-
-    public static boolean isPadAccount(ClientAccountId accountId) {
-        return isValidGradsAccount(accountId) && accountId.type() == AccountType.PAD;
     }
 
     public static boolean isPapAccount(ClientAccountId accountId) {
         return isValidGradsAccount(accountId) && accountId.type() == AccountType.PAP;
     }
 
-    public static String extractDataCenter(ClientAccountId accountId) {
-        if (!isValidGradsAccount(accountId)) {
-            throw new IllegalArgumentException("Not a GRADS account");
-        }
-        String[] parts = accountId.urn().split(":");
-        // Format: CAN_GRADS:PAD:OCC:123456789012
-        return parts[2];  // Data center is the third segment
+    public static boolean isPdbAccount(ClientAccountId accountId) {
+        return isValidGradsAccount(accountId) && accountId.type() == AccountType.PDB;
     }
 
     public static String extractGsan(ClientAccountId accountId) {
@@ -108,7 +92,7 @@ public class GradsAccountValidator {
             throw new IllegalArgumentException("Not a GRADS account");
         }
         String[] parts = accountId.urn().split(":");
-        return parts[3];  // GSAN is the fourth segment
+        return parts[2];  // GSAN is the third segment (10 digits)
     }
 }
 ```
@@ -116,24 +100,20 @@ public class GradsAccountValidator {
 ### 1.3 Test Plan
 
 ```
-Test Case 1.1: Create valid PAD account
-- Input: CAN_GRADS:PAD:OCC:123456789012
+Test Case 1.1: Create valid PAP account
+- Input: CAN_GRADS:PAP:1234567890
 - Expected: Account created successfully
 
-Test Case 1.2: Create valid PAP account
-- Input: CAN_GRADS:PAP:QCC:987654321098
+Test Case 1.2: Create valid PDB account
+- Input: CAN_GRADS:PDB:9876543210
 - Expected: Account created successfully
 
-Test Case 1.3: Invalid data center
-- Input: CAN_GRADS:PAD:XXX:123456789012
+Test Case 1.3: Invalid GSAN (not 10 digits)
+- Input: CAN_GRADS:PAP:12345
 - Expected: IllegalArgumentException
 
-Test Case 1.4: Invalid GSAN (not 12 digits)
-- Input: CAN_GRADS:PAD:OCC:12345
-- Expected: IllegalArgumentException
-
-Test Case 1.5: Wrong account type for GRADS
-- Input: CAN_GRADS:DDA:OCC:123456789012
+Test Case 1.4: Wrong account type for GRADS
+- Input: CAN_GRADS:DDA:1234567890
 - Expected: IllegalArgumentException
 ```
 
@@ -144,11 +124,9 @@ Test Case 1.5: Wrong account type for GRADS
 ### 2.1 Design
 
 Generate GRADS accounts for all 6,000 Canadian (SRF) clients using TestDataRunner:
-- 3 PAD accounts per client (can be enrolled to receivable) = **18,000 PAD accounts**
-- 3 PAP accounts per client (cannot be enrolled to receivable) = **18,000 PAP accounts**
+- 3 PAP accounts per client (can be enrolled to receivable) = **18,000 PAP accounts**
+- 3 PDB accounts per client (deposit type, cannot be enrolled to receivable) = **18,000 PDB accounts**
 - **Total: 36,000 GRADS accounts**
-
-Data centers distributed evenly: OCC (Ontario), QCC (Quebec), BCC (British Columbia)
 
 ### 2.2 Development Tasks
 
@@ -159,9 +137,6 @@ Data centers distributed evenly: OCC (Ontario), QCC (Quebec), BCC (British Colum
 Add GRADS account generation for Canadian clients:
 
 ```java
-// Add constants for GRADS data centers
-private static final String[] GRADS_DATA_CENTERS = {"OCC", "QCC", "BCC"};
-
 // Add GRADS account generation method
 private void generateGradsAccounts(ClientId clientId) {
     // Only generate GRADS accounts for Canadian (SRF) clients
@@ -169,36 +144,34 @@ private void generateGradsAccounts(ClientId clientId) {
         return;
     }
 
-    // Generate 3 PAD accounts (one per data center)
+    // Generate 3 PAP accounts (Pre-Approved Payment - for receivable enrollment)
     for (int i = 0; i < 3; i++) {
-        String dataCenter = GRADS_DATA_CENTERS[i];
-        String gsan = String.format("%012d", random.nextLong(1000000000000L));
-
-        ClientAccountId padAccountId = new ClientAccountId(
-            AccountSystem.CAN_GRADS,
-            AccountType.PAD.name(),
-            dataCenter + ":" + gsan
-        );
-
-        ClientAccount padAccount = ClientAccount.create(
-            padAccountId, clientId, Currency.of("CAD"));
-        clientAccountRepository.save(padAccount);
-    }
-
-    // Generate 3 PAP accounts (one per data center)
-    for (int i = 0; i < 3; i++) {
-        String dataCenter = GRADS_DATA_CENTERS[i];
-        String gsan = String.format("%012d", random.nextLong(1000000000000L));
+        String gsan = String.format("%010d", random.nextLong(10000000000L));
 
         ClientAccountId papAccountId = new ClientAccountId(
             AccountSystem.CAN_GRADS,
             AccountType.PAP.name(),
-            dataCenter + ":" + gsan
+            gsan
         );
 
         ClientAccount papAccount = ClientAccount.create(
             papAccountId, clientId, Currency.of("CAD"));
         clientAccountRepository.save(papAccount);
+    }
+
+    // Generate 3 PDB accounts (Pre-Authorized Debit Batch - deposit type)
+    for (int i = 0; i < 3; i++) {
+        String gsan = String.format("%010d", random.nextLong(10000000000L));
+
+        ClientAccountId pdbAccountId = new ClientAccountId(
+            AccountSystem.CAN_GRADS,
+            AccountType.PDB.name(),
+            gsan
+        );
+
+        ClientAccount pdbAccount = ClientAccount.create(
+            pdbAccountId, clientId, Currency.of("CAD"));
+        clientAccountRepository.save(pdbAccount);
     }
 }
 
@@ -212,14 +185,14 @@ void generateTestData() {
     for (int i = 0; i < srfClients.size(); i++) {
         Client client = srfClients.get(i);
         generateGradsAccounts(client.clientId());
-        gradsAccountCount += 6; // 3 PAD + 3 PAP per client
+        gradsAccountCount += 6; // 3 PAP + 3 PDB per client
 
         if ((i + 1) % 1000 == 0) {
             log.info("Generated GRADS accounts for {} clients ({} accounts)", i + 1, gradsAccountCount);
         }
     }
 
-    log.info("  - GRADS Accounts (PAD + PAP): {}", gradsAccountCount);
+    log.info("  - GRADS Accounts (PAP + PDB): {}", gradsAccountCount);
     // ... rest of summary logging ...
 }
 ```
@@ -230,13 +203,13 @@ Ensure enums include GRADS values (from Phase 1):
 
 **File:** `kernel/src/main/java/com/knight/platform/sharedkernel/AccountSystem.java`
 ```java
-CAN_GRADS  // Canadian GRADS (Pre-Authorized Debits/Payments)
+CAN_GRADS  // Canadian GRADS (Pre-Authorized Payments)
 ```
 
 **File:** `kernel/src/main/java/com/knight/platform/sharedkernel/AccountType.java`
 ```java
-PAD,   // Pre-Authorized Debit (GRADS)
-PAP    // Pre-Authorized Payment (GRADS)
+PAP,   // Pre-Approved Payment (GRADS) - for receivable enrollment
+PDB    // Pre-Authorized Debit Batch (GRADS) - deposit type
 ```
 
 #### 2.2.3 Run Test Data Generation
@@ -252,32 +225,25 @@ After implementing the changes, regenerate test data:
 ### 2.3 Test Plan
 
 ```
-Test Case 2.1: Verify PAD accounts exist for Canadian clients
-- Query: SELECT COUNT(*) FROM client_accounts WHERE account_system = 'CAN_GRADS' AND account_type = 'PAD'
-- Expected: 18,000 PAD accounts (3 per 6,000 SRF clients)
-
-Test Case 2.2: Verify PAP accounts exist for Canadian clients
+Test Case 2.1: Verify PAP accounts exist for Canadian clients
 - Query: SELECT COUNT(*) FROM client_accounts WHERE account_system = 'CAN_GRADS' AND account_type = 'PAP'
 - Expected: 18,000 PAP accounts (3 per 6,000 SRF clients)
 
-Test Case 2.3: Verify data center distribution
-- Query: SELECT SUBSTRING(account_id, 15, 3) as data_center, COUNT(*)
-         FROM client_accounts
-         WHERE account_system = 'CAN_GRADS'
-         GROUP BY SUBSTRING(account_id, 15, 3)
-- Expected: ~12,000 accounts per data center (OCC, QCC, BCC)
+Test Case 2.2: Verify PDB accounts exist for Canadian clients
+- Query: SELECT COUNT(*) FROM client_accounts WHERE account_system = 'CAN_GRADS' AND account_type = 'PDB'
+- Expected: 18,000 PDB accounts (3 per 6,000 SRF clients)
 
-Test Case 2.4: Verify accounts are linked to SRF clients only
+Test Case 2.3: Verify accounts are linked to SRF clients only
 - Query: SELECT COUNT(*) FROM client_accounts ca
          JOIN clients c ON ca.client_id = c.client_id
          WHERE ca.account_system = 'CAN_GRADS' AND c.client_id LIKE 'srf:%'
 - Expected: 36,000 (all GRADS accounts belong to SRF clients)
 
-Test Case 2.5: Verify GSAN format (12 digits)
+Test Case 2.4: Verify GSAN format (10 digits)
 - Query: SELECT account_id FROM client_accounts
          WHERE account_system = 'CAN_GRADS'
-         AND LEN(SUBSTRING(account_id, 19, 100)) != 12
-- Expected: 0 rows (all GSANs are 12 digits)
+         AND LEN(SUBSTRING(account_id, CHARINDEX(':', account_id, 11) + 1, 100)) != 10
+- Expected: 0 rows (all GSANs are 10 digits)
 ```
 
 ---
@@ -289,14 +255,14 @@ Test Case 2.5: Verify GSAN format (12 digits)
 **Service Type:** `RECEIVABLES`
 
 **Enrollment Rules:**
-- Only PAD accounts can be enrolled to receivable service
-- At least one PAD account must be selected for enrollment
-- PAP accounts should be visible but disabled/grayed out with explanation
+- Only PAP accounts can be enrolled to receivable service
+- At least one PAP account must be selected for enrollment
+- PDB accounts should be visible but disabled/grayed out with explanation
 
 **Service Configuration:**
 ```json
 {
-  "enrolledAccounts": ["CAN_GRADS:PAD:OCC:123456789012"],
+  "enrolledAccounts": ["CAN_GRADS:PAP:1234567890"],
   "enrolledAt": "2024-01-15T10:30:00Z"
 }
 ```
@@ -308,8 +274,7 @@ Test Case 2.5: Verify GSAN format (12 digits)
 **File:** `domain/profiles/src/main/java/com/knight/domain/serviceprofiles/types/ServiceType.java` (new file)
 ```java
 public enum ServiceType {
-    RECEIVABLES("Receivable Service", "Manage receivables and indirect clients"),
-    PAYMENTS("Payment Service", "Process outbound payments");
+    RECEIVABLES("Receivable Service", "Manage receivables and indirect clients");
 
     private final String displayName;
     private final String description;
@@ -331,17 +296,17 @@ public enum ServiceType {
 Add validation for receivable enrollment:
 ```java
 public void enrollReceivableService(ProfileId profileId, List<ClientAccountId> accountIds) {
-    // Validate all accounts are PAD type
+    // Validate all accounts are PAP type
     for (ClientAccountId accountId : accountIds) {
-        if (!GradsAccountValidator.isPadAccount(accountId)) {
+        if (!GradsAccountValidator.isPapAccount(accountId)) {
             throw new IllegalArgumentException(
-                "Only PAD accounts can be enrolled to receivable service: " + accountId.urn());
+                "Only PAP accounts can be enrolled to receivable service: " + accountId.urn());
         }
     }
 
     if (accountIds.isEmpty()) {
         throw new IllegalArgumentException(
-            "At least one PAD account must be selected for receivable service enrollment");
+            "At least one PAP account must be selected for receivable service enrollment");
     }
 
     // Create service enrollment with account configuration
@@ -364,16 +329,14 @@ Add endpoints:
 @GetMapping("/profiles/{profileId}/available-services")
 public List<ServiceTypeDto> getAvailableServices(@PathVariable String profileId)
 
-// Get PAD accounts eligible for receivable enrollment
-@GetMapping("/profiles/{profileId}/pad-accounts")
-public List<AccountDto> getPadAccountsForProfile(@PathVariable String profileId)
-
 // Enroll profile to receivable service
 @PostMapping("/profiles/{profileId}/services/receivables")
 public ResponseEntity<Void> enrollReceivableService(
     @PathVariable String profileId,
     @RequestBody EnrollReceivableRequest request)
 ```
+
+Note: PAP accounts for receivable enrollment can be filtered from the existing profile accounts endpoint.
 
 **DTOs:**
 ```java
@@ -389,7 +352,7 @@ record EnrollReceivableRequest(List<String> accountIds) {}
 Update Services Tab to include:
 1. Dropdown menu listing available services (not yet enrolled)
 2. "Enroll Service" button that opens service-specific form
-3. For RECEIVABLES: Show popup with PAD account selection grid
+3. For RECEIVABLES: Show popup with PAP account selection grid
 
 **New Component:** Service Enrollment Dialog
 ```java
@@ -404,29 +367,29 @@ private void openReceivableEnrollmentDialog() {
     accountGrid.addColumn(AccountDto::getAccountType).setHeader("Type");
     accountGrid.addColumn(AccountDto::getStatus).setHeader("Status");
 
-    // Enable multi-select only for PAD accounts
+    // Enable multi-select only for PAP accounts
     accountGrid.setSelectionMode(Grid.SelectionMode.MULTI);
 
-    // Load accounts - PAD selectable, PAP disabled
+    // Load accounts - PAP selectable, PDB disabled
     List<AccountDto> accounts = profileService.getProfileAccounts(profileId);
     accountGrid.setItems(accounts);
 
-    // Disable selection for non-PAD accounts
+    // Disable selection for non-PAP accounts
     accountGrid.addSelectionListener(event -> {
         event.getAllSelectedItems().stream()
-            .filter(a -> !"PAD".equals(a.getAccountType()))
+            .filter(a -> !"PAP".equals(a.getAccountType()))
             .forEach(accountGrid::deselect);
     });
 
-    // Add note about PAD requirement
-    Span note = new Span("Note: Only PAD accounts can be enrolled to Receivable Service");
+    // Add note about PAP requirement
+    Span note = new Span("Note: Only PAP accounts can be enrolled to Receivable Service");
     note.getStyle().set("color", "var(--lumo-secondary-text-color)");
 
     // Enroll button
     Button enrollButton = new Button("Enroll", e -> {
         Set<AccountDto> selected = accountGrid.getSelectedItems();
         if (selected.isEmpty()) {
-            Notification.show("Please select at least one PAD account");
+            Notification.show("Please select at least one PAP account");
             return;
         }
         // Call API to enroll
@@ -445,19 +408,19 @@ private void openReceivableEnrollmentDialog() {
 ### 3.3 Test Plan
 
 ```
-Test Case 3.1: Enroll receivable service with PAD accounts
-- Precondition: Profile with PAD accounts enrolled
-- Action: Select PAD accounts and enroll to receivable service
+Test Case 3.1: Enroll receivable service with PAP accounts
+- Precondition: Profile with PAP accounts enrolled
+- Action: Select PAP accounts and enroll to receivable service
 - Expected: Service enrollment created, accounts linked to service
 
-Test Case 3.2: Attempt to enroll PAP account to receivable
-- Precondition: Profile with PAP accounts
-- Action: Try to select PAP account for receivable enrollment
-- Expected: PAP accounts not selectable (UI validation)
+Test Case 3.2: Attempt to enroll PDB account to receivable
+- Precondition: Profile with PDB accounts
+- Action: Try to select PDB account for receivable enrollment
+- Expected: PDB accounts not selectable (UI validation)
 
 Test Case 3.3: Attempt enrollment with no accounts
 - Action: Try to enroll receivable service without selecting accounts
-- Expected: Error message "At least one PAD account must be selected"
+- Expected: Error message "At least one PAP account must be selected"
 
 Test Case 3.4: Available services dropdown
 - Precondition: Profile not enrolled to any service
@@ -489,7 +452,123 @@ Test Case 3.5: Already enrolled service hidden
 
 ### 4.2 Development Tasks
 
-#### 4.2.1 Domain - Update IndirectClient
+#### 4.2.1 Domain - Value Objects
+
+**File:** `domain/clients/src/main/java/com/knight/domain/indirectclients/types/PersonId.java`
+```java
+/**
+ * Value object for person identifier.
+ */
+public record PersonId(UUID value) {
+
+    public PersonId {
+        Objects.requireNonNull(value, "PersonId value cannot be null");
+    }
+
+    public static PersonId generate() {
+        return new PersonId(UUID.randomUUID());
+    }
+
+    public static PersonId of(String value) {
+        return new PersonId(UUID.fromString(value));
+    }
+
+    @Override
+    public String toString() {
+        return value.toString();
+    }
+}
+```
+
+**File:** `domain/clients/src/main/java/com/knight/domain/indirectclients/types/Email.java`
+```java
+/**
+ * Value object for email address with validation.
+ */
+public record Email(String value) {
+
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+        "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+    );
+
+    public Email {
+        Objects.requireNonNull(value, "Email cannot be null");
+        value = value.trim().toLowerCase();
+        if (!EMAIL_PATTERN.matcher(value).matches()) {
+            throw new IllegalArgumentException("Invalid email format: " + value);
+        }
+    }
+
+    public static Email of(String value) {
+        return new Email(value);
+    }
+
+    @Override
+    public String toString() {
+        return value;
+    }
+}
+```
+
+**File:** `domain/clients/src/main/java/com/knight/domain/indirectclients/types/Phone.java`
+```java
+/**
+ * Value object for phone number with validation.
+ * Accepts digits, spaces, hyphens, and parentheses.
+ * Stores normalized as digits only.
+ */
+public record Phone(String value) {
+
+    // Allowed input: digits, spaces, hyphens, parentheses
+    private static final Pattern INPUT_PATTERN = Pattern.compile(
+        "^[0-9 \\-()]+$"
+    );
+
+    public Phone {
+        Objects.requireNonNull(value, "Phone cannot be null");
+
+        // Normalize multiple spaces to single space, then trim
+        String normalized = value.replaceAll("\\s+", " ").trim();
+
+        if (!INPUT_PATTERN.matcher(normalized).matches()) {
+            throw new IllegalArgumentException(
+                "Phone can only contain digits, spaces, hyphens, and parentheses: " + value);
+        }
+
+        // Store as digits only
+        value = normalized.replaceAll("[^0-9]", "");
+
+        if (value.length() < 7 || value.length() > 15) {
+            throw new IllegalArgumentException(
+                "Phone number must be between 7 and 15 digits: " + value);
+        }
+    }
+
+    public static Phone of(String value) {
+        return new Phone(value);
+    }
+
+    /**
+     * Returns the phone number formatted for display.
+     */
+    public String formatted() {
+        if (value.length() == 10) {
+            return String.format("(%s) %s-%s",
+                value.substring(0, 3),
+                value.substring(3, 6),
+                value.substring(6));
+        }
+        return value;
+    }
+
+    @Override
+    public String toString() {
+        return value;
+    }
+}
+```
+
+#### 4.2.2 Domain - Update IndirectClient
 
 **File:** `domain/clients/src/main/java/com/knight/domain/indirectclients/aggregate/IndirectClient.java`
 
@@ -503,21 +582,29 @@ public class IndirectClient {
     }
 
     public static class RelatedPerson {
-        private final String personId;
+        private final PersonId personId;
         private final String name;
-        private final PersonRole role;  // Changed from String to enum
-        private final String email;
-        private final String phone;     // Add phone field
+        private final PersonRole role;
+        private final Email email;       // Value object with validation
+        private final Phone phone;       // Value object with validation
         private final Instant addedAt;
 
-        public RelatedPerson(String name, PersonRole role, String email, String phone) {
-            this.personId = UUID.randomUUID().toString();
+        public RelatedPerson(String name, PersonRole role, Email email, Phone phone) {
+            this.personId = PersonId.generate();
             this.name = Objects.requireNonNull(name);
             this.role = Objects.requireNonNull(role);
-            this.email = email;
-            this.phone = phone;
+            this.email = email;          // Can be null
+            this.phone = phone;          // Can be null
             this.addedAt = Instant.now();
         }
+
+        // Getters
+        public PersonId personId() { return personId; }
+        public String name() { return name; }
+        public PersonRole role() { return role; }
+        public Email email() { return email; }
+        public Phone phone() { return phone; }
+        public Instant addedAt() { return addedAt; }
     }
 
     // Remove taxId field
@@ -534,7 +621,7 @@ public class IndirectClient {
 }
 ```
 
-#### 4.2.2 Backend - Repository and Service
+#### 4.2.3 Backend - Repository and Service
 
 **File:** `domain/clients/src/main/java/com/knight/domain/indirectclients/repository/IndirectClientRepository.java`
 ```java
@@ -571,6 +658,15 @@ public class IndirectClientService {
             cmd.businessName()
         );
 
+        // Add related persons if provided
+        if (cmd.relatedPersons() != null) {
+            for (CreateRelatedPersonCmd personCmd : cmd.relatedPersons()) {
+                Email email = personCmd.email() != null ? Email.of(personCmd.email()) : null;
+                Phone phone = personCmd.phone() != null ? Phone.of(personCmd.phone()) : null;
+                client.addRelatedPerson(personCmd.name(), personCmd.role(), email, phone);
+            }
+        }
+
         repository.save(client);
         return client.id();
     }
@@ -579,13 +675,32 @@ public class IndirectClientService {
         IndirectClient client = repository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Indirect client not found"));
 
-        client.addRelatedPerson(cmd.name(), cmd.role(), cmd.email(), cmd.phone());
+        Email email = cmd.email() != null ? Email.of(cmd.email()) : null;
+        Phone phone = cmd.phone() != null ? Phone.of(cmd.phone()) : null;
+
+        client.addRelatedPerson(cmd.name(), cmd.role(), email, phone);
         repository.save(client);
     }
 }
+
+// Command records
+record CreateIndirectClientCmd(
+    ClientId parentClientId,
+    ProfileId profileId,
+    ClientType clientType,
+    String businessName,
+    List<CreateRelatedPersonCmd> relatedPersons  // Optional, can include persons at creation
+) {}
+
+record CreateRelatedPersonCmd(
+    String name,
+    PersonRole role,
+    String email,   // Will be validated and converted to Email value object
+    String phone    // Will be validated and converted to Phone value object
+) {}
 ```
 
-#### 4.2.3 Backend - REST Endpoints
+#### 4.2.4 Backend - REST Endpoints
 
 **File:** `application/src/main/java/com/knight/application/rest/indirectclients/IndirectClientController.java` (new file)
 ```java
@@ -667,7 +782,7 @@ record RelatedPersonDto(
 ) {}
 ```
 
-#### 4.2.4 Portal - Indirect Clients Navigation
+#### 4.2.5 Portal - Indirect Clients Navigation
 
 **File:** `employee-portal/src/main/java/com/knight/portal/views/MainLayout.java`
 
@@ -682,7 +797,7 @@ SideNavItem indirectClientsItem = new SideNavItem(
 nav.addItem(indirectClientsItem);
 ```
 
-#### 4.2.5 Portal - Indirect Client Search View
+#### 4.2.6 Portal - Indirect Client Search View
 
 **File:** `employee-portal/src/main/java/com/knight/portal/views/IndirectClientSearchView.java` (new file)
 ```java
@@ -743,7 +858,7 @@ public class IndirectClientSearchView extends VerticalLayout {
 }
 ```
 
-#### 4.2.6 Portal - Create Indirect Client Wizard
+#### 4.2.7 Portal - Create Indirect Client Wizard
 
 **File:** `employee-portal/src/main/java/com/knight/portal/views/components/CreateIndirectClientWizard.java` (new file)
 
@@ -897,39 +1012,39 @@ Test Case 4.7: List indirect clients for parent
 
 ## Phase 5: Database Schema Updates
 
-### 5.1 Migration Script
+### 5.1 Schema (Consolidated in V1)
 
-**File:** `application/src/main/resources/db/migration/V2__indirect_clients_schema.sql`
+Indirect clients tables are included in `V1__initial_schema.sql`:
 
 ```sql
 -- Indirect Clients table
 CREATE TABLE indirect_clients (
-    id NVARCHAR(100) PRIMARY KEY,
-    parent_client_id NVARCHAR(100) NOT NULL,
-    profile_id NVARCHAR(200) NOT NULL,
-    client_type NVARCHAR(20) NOT NULL,  -- PERSON or BUSINESS
-    business_name NVARCHAR(255) NOT NULL,
-    status NVARCHAR(20) NOT NULL,  -- PENDING, ACTIVE, SUSPENDED
+    id UNIQUEIDENTIFIER PRIMARY KEY,              -- UUID
+    parent_client_id VARCHAR(100) NOT NULL,       -- URN string (references clients)
+    profile_id VARCHAR(200) NOT NULL,             -- URN string (references profiles)
+    client_type VARCHAR(20) NOT NULL,             -- PERSON or BUSINESS
+    business_name NVARCHAR(255) NOT NULL,         -- May contain Unicode
+    status VARCHAR(20) NOT NULL,                  -- PENDING, ACTIVE, SUSPENDED
     created_at DATETIME2 NOT NULL,
     updated_at DATETIME2 NOT NULL,
 
-    CONSTRAINT fk_indirect_client_parent FOREIGN KEY (parent_client_id)
+    CONSTRAINT FK_indirect_client_parent FOREIGN KEY (parent_client_id)
         REFERENCES clients(client_id),
-    CONSTRAINT fk_indirect_client_profile FOREIGN KEY (profile_id)
+    CONSTRAINT FK_indirect_client_profile FOREIGN KEY (profile_id)
         REFERENCES profiles(profile_id)
 );
 
 -- Related Persons table
 CREATE TABLE indirect_client_persons (
-    person_id NVARCHAR(100) PRIMARY KEY,
-    indirect_client_id NVARCHAR(100) NOT NULL,
-    name NVARCHAR(255) NOT NULL,
-    role NVARCHAR(20) NOT NULL,  -- ADMIN or CONTACT
-    email NVARCHAR(255),
-    phone NVARCHAR(50),
+    person_id UNIQUEIDENTIFIER PRIMARY KEY,       -- UUID
+    indirect_client_id UNIQUEIDENTIFIER NOT NULL, -- UUID (references indirect_clients)
+    name NVARCHAR(255) NOT NULL,                  -- May contain Unicode
+    role VARCHAR(20) NOT NULL,                    -- ADMIN or CONTACT
+    email VARCHAR(255),                           -- ASCII only
+    phone VARCHAR(20),                            -- Digits only (normalized)
     added_at DATETIME2 NOT NULL,
 
-    CONSTRAINT fk_person_indirect_client FOREIGN KEY (indirect_client_id)
+    CONSTRAINT FK_person_indirect_client FOREIGN KEY (indirect_client_id)
         REFERENCES indirect_clients(id) ON DELETE CASCADE
 );
 
@@ -948,12 +1063,12 @@ CREATE INDEX idx_indirect_client_persons_client ON indirect_client_persons(indir
 ```
 E2E Test 1: Complete Receivable Service Flow
 1. Create Canadian client with CDR account
-2. Create PAD and PAP accounts for client
+2. Create PAP and PDB accounts for client
 3. Create SERVICING profile for client
-4. Enroll PAD accounts to profile
-5. Enroll profile to RECEIVABLES service (select PAD accounts)
+4. Enroll PAP accounts to profile
+5. Enroll profile to RECEIVABLES service (select PAP accounts)
 6. Verify RECEIVABLES service is enrolled
-7. Verify PAP accounts cannot be enrolled
+7. Verify PDB accounts cannot be enrolled
 
 E2E Test 2: Indirect Client Creation Flow
 1. Setup: Client enrolled in receivable service
@@ -1002,13 +1117,15 @@ E2E Test 3: Service Enrollment Visibility
 ### New Files
 - [ ] `kernel/src/main/java/com/knight/platform/sharedkernel/GradsAccountValidator.java`
 - [ ] `domain/profiles/src/main/java/com/knight/domain/serviceprofiles/types/ServiceType.java`
+- [ ] `domain/clients/src/main/java/com/knight/domain/indirectclients/types/PersonId.java`
+- [ ] `domain/clients/src/main/java/com/knight/domain/indirectclients/types/Email.java`
+- [ ] `domain/clients/src/main/java/com/knight/domain/indirectclients/types/Phone.java`
 - [ ] `domain/clients/src/main/java/com/knight/domain/indirectclients/repository/IndirectClientRepository.java`
 - [ ] `domain/clients/src/main/java/com/knight/domain/indirectclients/service/IndirectClientService.java`
 - [ ] `application/src/main/java/com/knight/application/rest/indirectclients/IndirectClientController.java`
 - [ ] `application/src/main/java/com/knight/application/persistence/indirectclients/entity/IndirectClientEntity.java`
 - [ ] `application/src/main/java/com/knight/application/persistence/indirectclients/entity/RelatedPersonEntity.java`
 - [ ] `application/src/main/java/com/knight/application/persistence/indirectclients/repository/IndirectClientJpaRepository.java`
-- [ ] `application/src/main/resources/db/migration/V2__indirect_clients_schema.sql`
 - [ ] `employee-portal/src/main/java/com/knight/portal/views/IndirectClientSearchView.java`
 - [ ] `employee-portal/src/main/java/com/knight/portal/views/IndirectClientDetailView.java`
 - [ ] `employee-portal/src/main/java/com/knight/portal/views/components/CreateIndirectClientWizard.java`
@@ -1017,14 +1134,14 @@ E2E Test 3: Service Enrollment Visibility
 
 ### Modified Files
 - [ ] `kernel/src/main/java/com/knight/platform/sharedkernel/AccountSystem.java` (verify CAN_GRADS exists)
-- [ ] `kernel/src/main/java/com/knight/platform/sharedkernel/AccountType.java` (verify PAD/PAP exist)
+- [ ] `kernel/src/main/java/com/knight/platform/sharedkernel/AccountType.java` (verify PAP/PDB exist)
 - [ ] `kernel/src/main/java/com/knight/platform/sharedkernel/ClientAccountId.java` (add GRADS parsing)
 - [ ] `domain/clients/src/main/java/com/knight/domain/indirectclients/aggregate/IndirectClient.java` (remove taxId, add PersonRole enum)
 - [ ] `domain/profiles/src/main/java/com/knight/domain/serviceprofiles/service/ProfileApplicationService.java` (add receivable enrollment)
 - [ ] `application/src/main/java/com/knight/application/rest/serviceprofiles/ProfileController.java` (add service endpoints)
 - [ ] `employee-portal/src/main/java/com/knight/portal/views/MainLayout.java` (add nav item)
 - [ ] `employee-portal/src/main/java/com/knight/portal/views/ProfileDetailView.java` (add service enrollment UI)
-- [ ] `scripts/generate-test-data.sh` or SQL migration (add GRADS accounts)
+- [ ] `application/src/test/java/com/knight/application/testdata/TestDataRunner.java` (add GRADS accounts)
 
 ---
 
@@ -1034,7 +1151,6 @@ E2E Test 3: Service Enrollment Visibility
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/profiles/{id}/available-services` | Get services not yet enrolled |
-| GET | `/api/profiles/{id}/pad-accounts` | Get PAD accounts for receivable enrollment |
 | POST | `/api/profiles/{id}/services/receivables` | Enroll to receivable service |
 
 ### Indirect Client Endpoints (New)

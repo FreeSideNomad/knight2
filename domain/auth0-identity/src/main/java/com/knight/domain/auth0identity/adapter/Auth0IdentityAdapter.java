@@ -1,16 +1,23 @@
 package com.knight.domain.auth0identity.adapter;
 
+import com.knight.domain.auth0identity.adapter.dto.*;
 import com.knight.domain.auth0identity.api.Auth0IdentityService;
-import com.knight.domain.auth0identity.api.Auth0TokenService;
+import com.knight.domain.auth0identity.api.Auth0IntegrationException;
+import com.knight.domain.auth0identity.api.UserAlreadyExistsException;
 import com.knight.domain.auth0identity.api.events.Auth0UserBlocked;
 import com.knight.domain.auth0identity.api.events.Auth0UserCreated;
 import com.knight.domain.auth0identity.api.events.Auth0UserLinked;
 import com.knight.domain.auth0identity.config.Auth0Config;
 import com.knight.platform.sharedkernel.UserId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.Base64;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -21,28 +28,185 @@ import java.util.Optional;
 @Service
 public class Auth0IdentityAdapter implements Auth0IdentityService {
 
+    private static final Logger log = LoggerFactory.getLogger(Auth0IdentityAdapter.class);
+    private static final int PASSWORD_RESET_TTL_SECONDS = 604800; // 7 days
+
     private final Auth0Config config;
-    private final Auth0TokenService tokenService;
+    private final Auth0HttpClient httpClient;
     private final ApplicationEventPublisher eventPublisher;
+    private final SecureRandom secureRandom = new SecureRandom();
 
     public Auth0IdentityAdapter(
         Auth0Config config,
-        Auth0TokenService tokenService,
+        Auth0HttpClient httpClient,
         ApplicationEventPublisher eventPublisher
     ) {
         this.config = config;
-        this.tokenService = tokenService;
+        this.httpClient = httpClient;
         this.eventPublisher = eventPublisher;
     }
 
+    // ==================== User Provisioning ====================
+
+    @Override
+    public ProvisionUserResult provisionUser(ProvisionUserRequest request) {
+        log.info("Provisioning user: {}", request.email());
+
+        // 1. Check if user already exists
+        Optional<Auth0UserInfo> existing = getUserByEmail(request.email());
+        if (existing.isPresent()) {
+            throw new UserAlreadyExistsException(request.email(), existing.get().auth0UserId());
+        }
+
+        // 2. Generate temporary password
+        String tempPassword = generateSecurePassword();
+
+        // 3. Build user creation request
+        String fullName = buildFullName(request.firstName(), request.lastName());
+
+        var createRequest = new Auth0CreateUserRequest(
+            request.email(),
+            config.connection(),
+            tempPassword,
+            fullName,
+            request.firstName(),
+            request.lastName(),
+            false,  // emailVerifiedStatus - not verified yet
+            true,   // triggerEmailVerificationOnCreate - sends verification email
+            new Auth0CreateUserRequest.AppMetadata(
+                request.internalUserId(),
+                request.profileId(),
+                "knight_platform",
+                Instant.now().toString(),
+                "pending",
+                false
+            )
+        );
+
+        // 4. Create user in Auth0
+        Auth0UserResponse userResponse = httpClient.post(
+            "/users",
+            createRequest,
+            Auth0UserResponse.class
+        );
+
+        if (userResponse == null || userResponse.userId() == null) {
+            throw new Auth0IntegrationException("Failed to create user in Auth0");
+        }
+
+        String auth0UserId = userResponse.userId();
+        log.info("User created in Auth0: {}", auth0UserId);
+
+        // 5. Create password change ticket
+        var ticketRequest = new Auth0PasswordChangeTicketRequest(
+            auth0UserId,
+            config.getPasswordResetResultUrl(),
+            PASSWORD_RESET_TTL_SECONDS,
+            true  // Mark email as verified after password set
+        );
+
+        Auth0PasswordChangeTicketResponse ticketResponse = httpClient.post(
+            "/tickets/password-change",
+            ticketRequest,
+            Auth0PasswordChangeTicketResponse.class
+        );
+
+        String resetUrl = ticketResponse != null ? ticketResponse.ticket() : null;
+        log.info("Password reset ticket created for user: {}", auth0UserId);
+
+        // 6. Publish domain event
+        eventPublisher.publishEvent(new Auth0UserCreated(
+            auth0UserId,
+            request.email(),
+            fullName,
+            Instant.now()
+        ));
+
+        return new ProvisionUserResult(auth0UserId, resetUrl, Instant.now());
+    }
+
+    @Override
+    public OnboardingStatus getOnboardingStatus(String identityProviderUserId) {
+        log.debug("Getting onboarding status for: {}", identityProviderUserId);
+
+        Auth0UserResponse user = httpClient.get(
+            "/users/" + identityProviderUserId,
+            Auth0UserResponse.class
+        );
+
+        if (user == null) {
+            throw new Auth0IntegrationException("User not found: " + identityProviderUserId);
+        }
+
+        // Check MFA enrollments
+        Auth0MfaEnrollment[] enrollments = httpClient.get(
+            "/users/" + identityProviderUserId + "/enrollments",
+            Auth0MfaEnrollment[].class
+        );
+
+        boolean mfaEnrolled = enrollments != null && enrollments.length > 0;
+        boolean passwordSet = user.emailVerifiedStatus(); // Proxy: verified after password reset
+
+        OnboardingState state = determineOnboardingState(passwordSet, mfaEnrolled);
+
+        return new OnboardingStatus(
+            identityProviderUserId,
+            passwordSet,
+            mfaEnrolled,
+            state,
+            user.lastLogin() != null ? Instant.parse(user.lastLogin()) : null
+        );
+    }
+
+    @Override
+    public String resendPasswordResetEmail(String identityProviderUserId) {
+        log.info("Resending password reset email for: {}", identityProviderUserId);
+
+        var ticketRequest = new Auth0PasswordChangeTicketRequest(
+            identityProviderUserId,
+            config.getPasswordResetResultUrl(),
+            PASSWORD_RESET_TTL_SECONDS,
+            true
+        );
+
+        Auth0PasswordChangeTicketResponse ticketResponse = httpClient.post(
+            "/tickets/password-change",
+            ticketRequest,
+            Auth0PasswordChangeTicketResponse.class
+        );
+
+        return ticketResponse != null ? ticketResponse.ticket() : null;
+    }
+
+    // ==================== Basic CRUD Operations ====================
+
     @Override
     public String createUser(CreateAuth0UserRequest request) {
-        // TODO: Implement actual Auth0 Management API call
-        // POST https://{domain}/api/v2/users
-        // Headers: Authorization: Bearer {management_token}
-        // Body: { email, name, connection, email_verified, password }
+        log.info("Creating user: {}", request.email());
 
-        String auth0UserId = "auth0|" + java.util.UUID.randomUUID().toString();
+        var auth0Request = new Auth0CreateUserRequest(
+            request.email(),
+            request.connection(),
+            request.password(),
+            request.name(),
+            null,  // givenName
+            null,  // familyName
+            request.emailVerified(),
+            false, // triggerEmailVerificationOnCreate
+            null   // appMetadata
+        );
+
+        Auth0UserResponse response = httpClient.post(
+            "/users",
+            auth0Request,
+            Auth0UserResponse.class
+        );
+
+        if (response == null || response.userId() == null) {
+            throw new Auth0IntegrationException("Failed to create user in Auth0");
+        }
+
+        String auth0UserId = response.userId();
 
         eventPublisher.publishEvent(new Auth0UserCreated(
             auth0UserId,
@@ -56,29 +220,61 @@ public class Auth0IdentityAdapter implements Auth0IdentityService {
 
     @Override
     public Optional<Auth0UserInfo> getUser(String auth0UserId) {
-        // TODO: Implement actual Auth0 Management API call
-        // GET https://{domain}/api/v2/users/{id}
-        return Optional.empty();
+        log.debug("Getting user: {}", auth0UserId);
+
+        try {
+            Auth0UserResponse user = httpClient.get(
+                "/users/" + auth0UserId,
+                Auth0UserResponse.class
+            );
+            return Optional.ofNullable(user).map(this::mapToUserInfo);
+        } catch (Auth0IntegrationException e) {
+            log.debug("User not found: {}", auth0UserId);
+            return Optional.empty();
+        }
     }
 
     @Override
     public Optional<Auth0UserInfo> getUserByEmail(String email) {
-        // TODO: Implement actual Auth0 Management API call
-        // GET https://{domain}/api/v2/users-by-email?email={email}
-        return Optional.empty();
+        log.debug("Getting user by email: {}", email);
+
+        // Don't URL encode here - the HTTP client handles it
+        Auth0UserResponse[] users = httpClient.getWithQueryParam(
+            "/users-by-email",
+            "email",
+            email,
+            Auth0UserResponse[].class
+        );
+
+        if (users == null || users.length == 0) {
+            log.debug("No user found by email: {}", email);
+            return Optional.empty();
+        }
+
+        log.debug("Found user by email: {} -> {}", email, users[0].userId());
+        return Optional.of(mapToUserInfo(users[0]));
     }
 
     @Override
     public void updateUser(String auth0UserId, UpdateAuth0UserRequest request) {
-        // TODO: Implement actual Auth0 Management API call
-        // PATCH https://{domain}/api/v2/users/{id}
+        log.info("Updating user: {}", auth0UserId);
+
+        httpClient.patch(
+            "/users/" + auth0UserId,
+            request,
+            Auth0UserResponse.class
+        );
     }
 
     @Override
     public void blockUser(String auth0UserId) {
-        // TODO: Implement actual Auth0 Management API call
-        // PATCH https://{domain}/api/v2/users/{id}
-        // Body: { blocked: true }
+        log.info("Blocking user: {}", auth0UserId);
+
+        httpClient.patch(
+            "/users/" + auth0UserId,
+            Map.of("blocked", true),
+            Auth0UserResponse.class
+        );
 
         eventPublisher.publishEvent(new Auth0UserBlocked(
             auth0UserId,
@@ -88,34 +284,93 @@ public class Auth0IdentityAdapter implements Auth0IdentityService {
 
     @Override
     public void unblockUser(String auth0UserId) {
-        // TODO: Implement actual Auth0 Management API call
-        // PATCH https://{domain}/api/v2/users/{id}
-        // Body: { blocked: false }
+        log.info("Unblocking user: {}", auth0UserId);
+
+        httpClient.patch(
+            "/users/" + auth0UserId,
+            Map.of("blocked", false),
+            Auth0UserResponse.class
+        );
     }
 
     @Override
     public void deleteUser(String auth0UserId) {
-        // TODO: Implement actual Auth0 Management API call
-        // DELETE https://{domain}/api/v2/users/{id}
+        log.info("Deleting user: {}", auth0UserId);
+
+        httpClient.delete("/users/" + auth0UserId);
     }
 
     @Override
     public void sendPasswordResetEmail(String email) {
-        // TODO: Implement actual Auth0 Authentication API call
-        // POST https://{domain}/dbconnections/change_password
-        // Body: { client_id, email, connection }
+        log.info("Sending password reset email to: {}", email);
+
+        // Use the Authentication API endpoint
+        // This is different from the Management API
+        httpClient.post(
+            "/dbconnections/change_password",
+            Map.of(
+                "client_id", config.clientId(),
+                "email", email,
+                "connection", config.connection()
+            ),
+            String.class
+        );
     }
 
     @Override
     public void linkToInternalUser(String auth0UserId, UserId internalUserId) {
-        // TODO: Implement actual Auth0 Management API call to store user metadata
-        // PATCH https://{domain}/api/v2/users/{id}
-        // Body: { app_metadata: { internal_user_id: ... } }
+        log.info("Linking Auth0 user {} to internal user {}", auth0UserId, internalUserId.id());
+
+        httpClient.patch(
+            "/users/" + auth0UserId,
+            Map.of("app_metadata", Map.of("internal_user_id", internalUserId.id())),
+            Auth0UserResponse.class
+        );
 
         eventPublisher.publishEvent(new Auth0UserLinked(
             auth0UserId,
             internalUserId.id(),
             Instant.now()
         ));
+    }
+
+    // ==================== Helper Methods ====================
+
+    private OnboardingState determineOnboardingState(boolean passwordSet, boolean mfaEnrolled) {
+        if (!passwordSet) {
+            return OnboardingState.PENDING_PASSWORD;
+        } else if (!mfaEnrolled) {
+            return OnboardingState.PENDING_MFA;
+        } else {
+            return OnboardingState.COMPLETE;
+        }
+    }
+
+    private Auth0UserInfo mapToUserInfo(Auth0UserResponse response) {
+        return new Auth0UserInfo(
+            response.userId(),
+            response.email(),
+            response.name(),
+            response.emailVerifiedStatus(),
+            response.blocked(),
+            response.picture(),
+            response.lastLogin()
+        );
+    }
+
+    private String generateSecurePassword() {
+        // Generate a 24-character random password that meets Auth0's "excellent" policy
+        byte[] randomBytes = new byte[18];
+        secureRandom.nextBytes(randomBytes);
+        String base = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+        // Ensure we have special characters
+        return base + "!@#";
+    }
+
+    private String buildFullName(String firstName, String lastName) {
+        if (firstName == null && lastName == null) return "";
+        if (firstName == null) return lastName;
+        if (lastName == null) return firstName;
+        return firstName + " " + lastName;
     }
 }

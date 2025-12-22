@@ -39,10 +39,22 @@ public class IndirectClientApplicationService implements IndirectClientCommands,
         IndirectClient client = IndirectClient.create(
             id,
             cmd.parentClientId(),
+            cmd.profileId(),
             cmd.businessName(),
-            cmd.taxId(),
             "system" // createdBy - should come from security context
         );
+
+        // Add related persons if provided
+        if (cmd.relatedPersons() != null) {
+            for (RelatedPersonData personData : cmd.relatedPersons()) {
+                client.addRelatedPerson(
+                    personData.name(),
+                    personData.role(),
+                    personData.email(),
+                    personData.phone()
+                );
+            }
+        }
 
         repository.save(client);
 
@@ -63,19 +75,7 @@ public class IndirectClientApplicationService implements IndirectClientCommands,
             .orElseThrow(() -> new IllegalArgumentException(
                 "Indirect client not found: " + cmd.indirectClientId().urn()));
 
-        client.addRelatedPerson(cmd.name(), cmd.role(), cmd.email());
-
-        repository.save(client);
-    }
-
-    @Override
-    @Transactional
-    public void updateBusinessInfo(UpdateBusinessInfoCmd cmd) {
-        IndirectClient client = repository.findById(cmd.indirectClientId())
-            .orElseThrow(() -> new IllegalArgumentException(
-                "Indirect client not found: " + cmd.indirectClientId().urn()));
-
-        client.updateBusinessInfo(cmd.businessName(), cmd.taxId());
+        client.addRelatedPerson(cmd.name(), cmd.role(), cmd.email(), cmd.phone());
 
         repository.save(client);
     }

@@ -18,12 +18,12 @@ services:
     build: ./employee-gateway
     container_name: knight-gateway
     ports:
-      - "80:80"
+      - "8000:80"
     environment:
       - ENTRA_TENANT_ID=${ENTRA_TENANT_ID}
       - ENTRA_CLIENT_ID=${ENTRA_CLIENT_ID}
       - ENTRA_CLIENT_SECRET=${ENTRA_CLIENT_SECRET}
-      - ENTRA_REDIRECT_URI=http://localhost/oauth2/callback
+      - ENTRA_REDIRECT_URI=http://localhost:8000/oauth2/callback
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - SESSION_TTL_SECONDS=1200
@@ -47,7 +47,7 @@ services:
   portal:
     build: ./employee-portal
     ports:
-      - "8081:8081"
+      - "8001:8081"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - API_URL=http://platform:8080
@@ -62,17 +62,29 @@ services:
   platform:
     build: ./application
     ports:
-      - "8080:8080"
+      - "8002:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATASOURCE_URL=jdbc:sqlserver://sqlserver:1433;databaseName=knight;encrypt=true;trustServerCertificate=true
       - SPRING_DATASOURCE_USERNAME=sa
       - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-YourStrong@Passw0rd}
+      # Auth0 Configuration
+      - AUTH0_DOMAIN=${AUTH0_DOMAIN}
+      - AUTH0_M2M_CLIENT_ID=${AUTH0_M2M_CLIENT_ID}
+      - AUTH0_M2M_CLIENT_SECRET=${AUTH0_M2M_CLIENT_SECRET}
+      - AUTH0_API_AUDIENCE=${AUTH0_API_AUDIENCE}
+      - AUTH0_CONNECTION=${AUTH0_CONNECTION}
+      - AUTH0_PASSWORD_RESET_URL=${AUTH0_PASSWORD_RESET_URL}
+      # Kafka Configuration
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_PLATFORM_EVENTS_TOPIC=${KAFKA_PLATFORM_EVENTS_TOPIC:-platform-events}
     depends_on:
       sqlserver:
         condition: service_healthy
       sql-init:
         condition: service_completed_successfully
+      kafka:
+        condition: service_started
     networks:
       - knight-network
 
@@ -110,15 +122,21 @@ services:
     image: confluentinc/cp-kafka:7.5.0
     ports:
       - "9092:9092"
+      - "9094:9094"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      # Internal listener (9092) for knight2 services, External listener (9094) for okta-app containers
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://host.docker.internal:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      # Single broker settings
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
     networks:
       - knight-network
 

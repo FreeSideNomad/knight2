@@ -53,6 +53,29 @@ public class Client {
     }
 
     /**
+     * Factory method for reconstitution from persistence.
+     * This properly preserves all fields including final ones.
+     */
+    public static Client reconstitute(ClientId clientId, String name, ClientType clientType,
+                                       Address address, ClientStatus status,
+                                       Instant createdAt, Instant updatedAt) {
+        Client client = new Client(clientId, name, clientType, address);
+        client.status = status;
+        client.updatedAt = updatedAt;
+
+        // Override createdAt from persistence
+        try {
+            var createdAtField = Client.class.getDeclaredField("createdAt");
+            createdAtField.setAccessible(true);
+            createdAtField.set(client, createdAt);
+        } catch (Exception e) {
+            // Ignore - use default
+        }
+
+        return client;
+    }
+
+    /**
      * Updates the client's name.
      *
      * @param name the new name

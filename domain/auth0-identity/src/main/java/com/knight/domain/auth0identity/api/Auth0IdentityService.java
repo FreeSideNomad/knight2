@@ -2,6 +2,7 @@ package com.knight.domain.auth0identity.api;
 
 import com.knight.platform.sharedkernel.UserId;
 
+import java.time.Instant;
 import java.util.Optional;
 
 /**
@@ -10,6 +11,66 @@ import java.util.Optional;
  * Acts as an anti-corruption layer between the domain and Auth0.
  */
 public interface Auth0IdentityService {
+
+    // ==================== User Provisioning ====================
+
+    /**
+     * Provisions a new user in Auth0.
+     * Creates user with temporary password and triggers password reset email.
+     *
+     * @param request the provisioning request
+     * @return the provisioning result with Auth0 user ID and reset URL
+     */
+    ProvisionUserResult provisionUser(ProvisionUserRequest request);
+
+    record ProvisionUserRequest(
+        String email,
+        String firstName,
+        String lastName,
+        String internalUserId,
+        String profileId
+    ) {}
+
+    record ProvisionUserResult(
+        String identityProviderUserId,
+        String passwordResetUrl,
+        Instant provisionedAt
+    ) {}
+
+    // ==================== Onboarding Status ====================
+
+    /**
+     * Onboarding state enum - represents user's progress through onboarding.
+     */
+    enum OnboardingState {
+        PENDING_PASSWORD,   // User created, awaiting password set
+        PENDING_MFA,        // Password set, awaiting MFA enrollment
+        COMPLETE            // Fully onboarded
+    }
+
+    /**
+     * Gets the current onboarding status from Auth0.
+     * Checks password set and MFA enrollment status.
+     */
+    OnboardingStatus getOnboardingStatus(String identityProviderUserId);
+
+    record OnboardingStatus(
+        String identityProviderUserId,
+        boolean passwordSet,
+        boolean mfaEnrolled,
+        OnboardingState state,
+        Instant lastLogin
+    ) {}
+
+    /**
+     * Resends the password reset email.
+     *
+     * @param identityProviderUserId the Auth0 user ID
+     * @return the new password reset URL
+     */
+    String resendPasswordResetEmail(String identityProviderUserId);
+
+    // ==================== Basic CRUD Operations ====================
 
     /**
      * Creates a new user in Auth0.
@@ -79,7 +140,7 @@ public interface Auth0IdentityService {
      */
     void linkToInternalUser(String auth0UserId, UserId internalUserId);
 
-    // Request/Response records
+    // ==================== Request/Response Records ====================
 
     record CreateAuth0UserRequest(
         String email,

@@ -24,5 +24,6 @@
         <module>policy</module>
         <module>approvals</module>
         <module>auth0-identity</module>
+        <module>batch</module>
     </modules>
 </project>

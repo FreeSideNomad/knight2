@@ -7,8 +7,8 @@ import com.knight.domain.clients.repository.ClientAccountRepository;
 import com.knight.domain.clients.repository.ClientRepository;
 import com.knight.platform.sharedkernel.*;
 import com.github.javafaker.Faker;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,9 +34,12 @@ import java.util.Random;
  *
  * Usage:
  * ./scripts/generate-test-data.sh
+ *
+ * This test only runs when GENERATE_TEST_DATA environment variable is set to "true".
  */
 @SpringBootTest
 @Transactional
+@EnabledIfEnvironmentVariable(named = "GENERATE_TEST_DATA", matches = "true")
 public class TestDataRunner {
 
     private static final Logger log = LoggerFactory.getLogger(TestDataRunner.class);
@@ -65,7 +68,6 @@ public class TestDataRunner {
 
     @Test
     @Commit
-    @Disabled("Run manually via script")
     void generateTestData() {
         log.info("=================================================================");
         log.info("Starting Test Data Generation (using Domain Layer)");
@@ -106,6 +108,10 @@ public class TestDataRunner {
             }
             List<ClientAccount> accounts = generateAccounts(client.clientId(), accountCount);
             totalAccounts += accounts.size();
+
+            // Generate GRADS accounts for SRF clients
+            int gradsAccountCount = generateGradsAccounts(client);
+            totalAccounts += gradsAccountCount;
 
             if ((i + 1) % 100 == 0) {
                 log.info("Generated accounts for {} clients ({} accounts total)", i + 1, totalAccounts);
@@ -316,5 +322,48 @@ public class TestDataRunner {
 
         // Create account using domain factory method
         return ClientAccount.create(accountId, clientId, currency);
+    }
+
+    /**
+     * Generates GRADS accounts for Canadian (SRF) clients only.
+     * Creates 3 PAP accounts (receivable enrollment) and 3 PDB accounts (deposit type).
+     *
+     * @param client The client to generate GRADS accounts for
+     * @return The number of GRADS accounts created
+     */
+    private int generateGradsAccounts(Client client) {
+        if (!client.clientId().urn().startsWith("srf:")) {
+            return 0;
+        }
+
+        int accountsCreated = 0;
+
+        // Generate 3 PAP accounts (receivable enrollment)
+        for (int i = 0; i < 3; i++) {
+            String gsan = String.format("%010d", Math.abs(random.nextLong()) % 10000000000L);
+            ClientAccountId accountId = new ClientAccountId(
+                AccountSystem.CAN_GRADS,
+                AccountType.PAP.name(),
+                gsan
+            );
+            ClientAccount account = ClientAccount.create(accountId, client.clientId(), Currency.of("CAD"));
+            clientAccountRepository.save(account);
+            accountsCreated++;
+        }
+
+        // Generate 3 PDB accounts (deposit type)
+        for (int i = 0; i < 3; i++) {
+            String gsan = String.format("%010d", Math.abs(random.nextLong()) % 10000000000L);
+            ClientAccountId accountId = new ClientAccountId(
+                AccountSystem.CAN_GRADS,
+                AccountType.PDB.name(),
+                gsan
+            );
+            ClientAccount account = ClientAccount.create(accountId, client.clientId(), Currency.of("CAD"));
+            clientAccountRepository.save(account);
+            accountsCreated++;
+        }
+
+        return accountsCreated;
     }
 }

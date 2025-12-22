@@ -246,6 +246,11 @@ public class TestDataGenerator {
 
     /**
      * Generates a random account ID with proper format based on account system.
+     * Distribution:
+     * - 55% Canadian traditional (CAN_DDA, CAN_FCA, CAN_LOC, CAN_MTG)
+     * - 15% CAN_GRADS (ACH - PAP/PDB with 10-digit GSAN)
+     * - 20% US (US_FIN, US_FIS)
+     * - 10% OFI
      */
     private ClientAccountId generateAccountId() {
         AccountSystem[] canadianSystems = {
@@ -256,19 +261,37 @@ public class TestDataGenerator {
         };
         AccountSystem[] usSystems = {AccountSystem.US_FIN, AccountSystem.US_FIS};
 
-        // 70% Canadian, 20% US, 10% OFI
         double systemChoice = random.nextDouble();
 
-        if (systemChoice < 0.7) {
-            // Canadian account
+        if (systemChoice < 0.55) {
+            // Canadian traditional account
             return generateCanadianAccount(canadianSystems[random.nextInt(canadianSystems.length)]);
-        } else if (systemChoice < 0.9) {
+        } else if (systemChoice < 0.70) {
+            // CAN_GRADS ACH account (PAP/PDB)
+            return generateCanGradsAccount();
+        } else if (systemChoice < 0.90) {
             // US account
             return generateUSAccount(usSystems[random.nextInt(usSystems.length)]);
         } else {
             // OFI account
             return generateOFIAccount();
         }
+    }
+
+    /**
+     * Generates a CAN_GRADS ACH account ID (10-digit GSAN with PAP/PDB type).
+     * Format: 10-digit GSAN number
+     * Types: PAP (Pre-Authorized Payment) or PDB (Pre-Authorized Debit)
+     */
+    private ClientAccountId generateCanGradsAccount() {
+        // Generate 10-digit GSAN (Global Service Account Number)
+        String gsan = String.format("%010d", random.nextLong(10000000000L));
+
+        // ACH account types: PAP (payment) or PDB (debit)
+        String[] achTypes = {"PAP", "PDB"};
+        String accountType = achTypes[random.nextInt(achTypes.length)];
+
+        return new ClientAccountId(AccountSystem.CAN_GRADS, accountType, gsan);
     }
 
     /**

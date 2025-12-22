@@ -2,17 +2,20 @@ package com.knight.application.persistence.clients.repository;
 
 import com.knight.application.persistence.clients.entity.ClientAccountEntity;
 import com.knight.application.persistence.clients.mapper.ClientAccountMapper;
+import com.knight.application.persistence.indirectclients.repository.IndirectClientJpaRepository;
 import com.knight.domain.clients.aggregate.ClientAccount;
 import com.knight.domain.clients.api.PageResult;
 import com.knight.domain.clients.repository.ClientAccountRepository;
 import com.knight.platform.sharedkernel.ClientAccountId;
 import com.knight.platform.sharedkernel.ClientId;
+import com.knight.platform.sharedkernel.IndirectClientId;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * JPA implementation of the ClientAccountRepository interface.
@@ -21,12 +24,15 @@ import java.util.Optional;
 @Repository
 public class ClientAccountRepositoryAdapter implements ClientAccountRepository {
     private final ClientAccountJpaRepository jpaRepository;
+    private final IndirectClientJpaRepository indirectClientJpaRepository;
     private final ClientAccountMapper mapper;
 
     public ClientAccountRepositoryAdapter(
             ClientAccountJpaRepository jpaRepository,
+            IndirectClientJpaRepository indirectClientJpaRepository,
             ClientAccountMapper mapper) {
         this.jpaRepository = jpaRepository;
+        this.indirectClientJpaRepository = indirectClientJpaRepository;
         this.mapper = mapper;
     }
 
@@ -66,5 +72,20 @@ public class ClientAccountRepositoryAdapter implements ClientAccountRepository {
     public void save(ClientAccount account) {
         ClientAccountEntity entity = mapper.toEntity(account);
         jpaRepository.save(entity);
+    }
+
+    @Override
+    public List<ClientAccount> findByIndirectClientId(UUID indirectClientId) {
+        return jpaRepository.findByIndirectClientId(indirectClientId).stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<ClientAccount> findByIndirectClientId(IndirectClientId indirectClientId) {
+        // Look up the indirect client entity by URN to get its internal UUID
+        return indirectClientJpaRepository.findByIndirectClientUrn(indirectClientId.urn())
+                .map(entity -> findByIndirectClientId(entity.getId()))
+                .orElse(List.of());
     }
 }

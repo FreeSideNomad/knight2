@@ -33,7 +33,7 @@ echo ""
 echo "Step 1: Building Maven project..."
 echo "----------------------------------------"
 
-if ./mvnw clean package -DskipTests; then
+if ./mvnw clean package -DskipTests -Pproduction; then
     print_status "Maven build completed successfully"
 else
     print_error "Maven build failed"

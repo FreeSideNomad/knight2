@@ -269,6 +269,154 @@ class ProfileRepositoryAdapterTest {
         }
     }
 
+    // ==================== Paginated Search Methods ====================
+
+    @Nested
+    @DisplayName("Paginated Search Methods")
+    class PaginatedSearchTests {
+
+        @Test
+        @DisplayName("should search by primary client with no type filter")
+        void shouldSearchByPrimaryClientWithNoTypeFilter() {
+            Profile profile = createProfile("Profile 1", PRIMARY_CLIENT_ID);
+            repository.save(profile);
+
+            var result = repository.searchByPrimaryClient(PRIMARY_CLIENT_ID, null, 0, 10);
+
+            assertThat(result.content()).hasSize(1);
+            assertThat(result.totalElements()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("should search by primary client with empty type filter")
+        void shouldSearchByPrimaryClientWithEmptyTypeFilter() {
+            Profile profile = createProfile("Profile 1", PRIMARY_CLIENT_ID);
+            repository.save(profile);
+
+            var result = repository.searchByPrimaryClient(PRIMARY_CLIENT_ID, java.util.Set.of(), 0, 10);
+
+            assertThat(result.content()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("should search by primary client with type filter")
+        void shouldSearchByPrimaryClientWithTypeFilter() {
+            Profile servicing = createProfile("Servicing", PRIMARY_CLIENT_ID);
+            repository.save(servicing);
+
+            var result = repository.searchByPrimaryClient(PRIMARY_CLIENT_ID, java.util.Set.of("SERVICING"), 0, 10);
+
+            assertThat(result.content()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("should search by client with no type filter")
+        void shouldSearchByClientWithNoTypeFilter() {
+            Profile profile = createProfile("Profile", PRIMARY_CLIENT_ID);
+            repository.save(profile);
+
+            var result = repository.searchByClient(PRIMARY_CLIENT_ID, null, 0, 10);
+
+            assertThat(result.content()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("should search by client with type filter")
+        void shouldSearchByClientWithTypeFilter() {
+            Profile profile = createProfile("Profile", PRIMARY_CLIENT_ID);
+            repository.save(profile);
+
+            var result = repository.searchByClient(PRIMARY_CLIENT_ID, java.util.Set.of("SERVICING"), 0, 10);
+
+            assertThat(result.content()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("should search by primary client name with no type filter")
+        void shouldSearchByPrimaryClientNameWithNoTypeFilter() {
+            Profile profile = createProfile("Profile", PRIMARY_CLIENT_ID);
+            repository.save(profile);
+
+            // Uses wildcard search
+            var result = repository.searchByPrimaryClientName("srf:123", null, 0, 10);
+
+            assertThat(result.content()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("should search by primary client name with type filter")
+        void shouldSearchByPrimaryClientNameWithTypeFilter() {
+            Profile profile = createProfile("Profile", PRIMARY_CLIENT_ID);
+            repository.save(profile);
+
+            var result = repository.searchByPrimaryClientName("srf:123", java.util.Set.of("SERVICING"), 0, 10);
+
+            assertThat(result.content()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("should search by client name with no type filter")
+        void shouldSearchByClientNameWithNoTypeFilter() {
+            Profile profile = createProfile("Profile", PRIMARY_CLIENT_ID);
+            repository.save(profile);
+
+            var result = repository.searchByClientName("srf:123", null, 0, 10);
+
+            assertThat(result.content()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("should search by client name with type filter")
+        void shouldSearchByClientNameWithTypeFilter() {
+            Profile profile = createProfile("Profile", PRIMARY_CLIENT_ID);
+            repository.save(profile);
+
+            var result = repository.searchByClientName("srf:123", java.util.Set.of("SERVICING"), 0, 10);
+
+            assertThat(result.content()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("should paginate results correctly")
+        void shouldPaginateResultsCorrectly() {
+            // Create 1 profile and verify pagination structure
+            Profile profile = createProfile("Profile 1", PRIMARY_CLIENT_ID);
+            repository.save(profile);
+
+            var page = repository.searchByPrimaryClient(PRIMARY_CLIENT_ID, null, 0, 2);
+
+            assertThat(page.content()).hasSize(1);
+            assertThat(page.page()).isEqualTo(0);
+            assertThat(page.size()).isEqualTo(2);
+            assertThat(page.totalElements()).isEqualTo(1);
+        }
+    }
+
+    // ==================== Update Existing Profile ====================
+
+    @Nested
+    @DisplayName("Update Existing Profile")
+    class UpdateTests {
+
+        @Test
+        @DisplayName("should update existing profile instead of creating new")
+        void shouldUpdateExistingProfile() {
+            // Save initial profile
+            Profile original = createProfile("Original Name", PRIMARY_CLIENT_ID);
+            repository.save(original);
+
+            // Retrieve, modify, and save again
+            Profile retrieved = repository.findById(original.profileId()).orElseThrow();
+            retrieved.enrollService("NEW_SERVICE", "{}");
+            repository.save(retrieved);
+
+            // Verify only one profile exists
+            List<Profile> all = repository.findByPrimaryClient(PRIMARY_CLIENT_ID);
+            assertThat(all).hasSize(1);
+            assertThat(all.get(0).serviceEnrollments()).hasSize(1);
+        }
+    }
+
     // ==================== Helper Methods ====================
 
     private Profile createProfile(String name, ClientId primaryClientId) {

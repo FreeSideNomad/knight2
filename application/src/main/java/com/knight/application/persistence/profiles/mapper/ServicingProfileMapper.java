@@ -14,9 +14,13 @@ import com.knight.platform.sharedkernel.EnrollmentId;
 import com.knight.platform.sharedkernel.ProfileId;
 import org.mapstruct.Mapper;
 
-import java.lang.reflect.Field;
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -46,7 +50,7 @@ public interface ServicingProfileMapper {
         List<ClientEnrollmentEntity> clientEnrollments = new ArrayList<>();
         for (Profile.ClientEnrollment ce : domain.clientEnrollments()) {
             ClientEnrollmentEntity ceEntity = new ClientEnrollmentEntity();
-            ceEntity.setId(ce.enrollmentId().toString());
+            ceEntity.setId(ce.enrollmentId().value());
             ceEntity.setProfile(entity);
             ceEntity.setClientId(ce.clientId().urn());
             ceEntity.setPrimary(ce.isPrimary());
@@ -60,7 +64,7 @@ public interface ServicingProfileMapper {
         List<ServiceEnrollmentEntity> serviceEnrollments = new ArrayList<>();
         for (Profile.ServiceEnrollment se : domain.serviceEnrollments()) {
             ServiceEnrollmentEntity seEntity = new ServiceEnrollmentEntity();
-            seEntity.setEnrollmentId(se.enrollmentId().toString());
+            seEntity.setEnrollmentId(se.enrollmentId().value());
             seEntity.setProfile(entity);
             seEntity.setServiceType(se.serviceType());
             seEntity.setConfiguration(se.configuration());
@@ -74,9 +78,9 @@ public interface ServicingProfileMapper {
         List<AccountEnrollmentEntity> accountEnrollments = new ArrayList<>();
         for (Profile.AccountEnrollment ae : domain.accountEnrollments()) {
             AccountEnrollmentEntity aeEntity = new AccountEnrollmentEntity();
-            aeEntity.setEnrollmentId(ae.enrollmentId().toString());
+            aeEntity.setEnrollmentId(ae.enrollmentId().value());
             aeEntity.setProfile(entity);
-            aeEntity.setServiceEnrollmentId(ae.serviceEnrollmentId() != null ? ae.serviceEnrollmentId().toString() : null);
+            aeEntity.setServiceEnrollmentId(ae.serviceEnrollmentId() != null ? ae.serviceEnrollmentId().value() : null);
             aeEntity.setClientId(ae.clientId().urn());
             aeEntity.setAccountId(ae.accountId().urn());
             aeEntity.setStatus(ae.status().name());
@@ -89,8 +93,132 @@ public interface ServicingProfileMapper {
     }
 
     /**
+     * Updates an existing entity with values from the domain aggregate.
+     * This preserves JPA-managed collections to avoid orphan removal issues.
+     */
+    default void updateEntity(ProfileEntity entity, Profile domain) {
+        entity.setName(domain.name());
+        entity.setProfileType(domain.profileType().name());
+        entity.setStatus(domain.status().name());
+        entity.setUpdatedAt(domain.updatedAt());
+
+        // Update client enrollments - sync the collections
+        syncClientEnrollments(entity, domain);
+
+        // Update service enrollments - sync the collections
+        syncServiceEnrollments(entity, domain);
+
+        // Update account enrollments - sync the collections
+        syncAccountEnrollments(entity, domain);
+    }
+
+    private void syncClientEnrollments(ProfileEntity entity, Profile domain) {
+        // Build map of existing entities by UUID (UUID.equals handles case-insensitivity)
+        Map<UUID, ClientEnrollmentEntity> existingMap = new HashMap<>();
+        for (ClientEnrollmentEntity ce : entity.getClientEnrollments()) {
+            existingMap.put(ce.getId(), ce);
+        }
+
+        // Build set of domain UUIDs
+        Set<UUID> domainIds = new HashSet<>();
+        for (Profile.ClientEnrollment ce : domain.clientEnrollments()) {
+            domainIds.add(ce.enrollmentId().value());
+        }
+
+        // Remove entities not in domain (UUID.equals is case-insensitive)
+        entity.getClientEnrollments().removeIf(ce -> !domainIds.contains(ce.getId()));
+
+        // Add or update entities from domain
+        for (Profile.ClientEnrollment ce : domain.clientEnrollments()) {
+            UUID id = ce.enrollmentId().value();
+            ClientEnrollmentEntity ceEntity = existingMap.get(id);
+
+            if (ceEntity == null) {
+                // New enrollment - add it
+                ceEntity = new ClientEnrollmentEntity();
+                ceEntity.setId(id);
+                ceEntity.setProfile(entity);
+                entity.getClientEnrollments().add(ceEntity);
+            }
+
+            // Update fields
+            ceEntity.setClientId(ce.clientId().urn());
+            ceEntity.setPrimary(ce.isPrimary());
+            ceEntity.setAccountEnrollmentType(ce.accountEnrollmentType().name());
+            ceEntity.setEnrolledAt(ce.enrolledAt());
+        }
+    }
+
+    private void syncServiceEnrollments(ProfileEntity entity, Profile domain) {
+        // Build map of existing entities by UUID
+        Map<UUID, ServiceEnrollmentEntity> existingMap = new HashMap<>();
+        for (ServiceEnrollmentEntity se : entity.getServiceEnrollments()) {
+            existingMap.put(se.getEnrollmentId(), se);
+        }
+
+        // Build set of domain UUIDs
+        Set<UUID> domainIds = new HashSet<>();
+        for (Profile.ServiceEnrollment se : domain.serviceEnrollments()) {
+            domainIds.add(se.enrollmentId().value());
+        }
+
+        entity.getServiceEnrollments().removeIf(se -> !domainIds.contains(se.getEnrollmentId()));
+
+        for (Profile.ServiceEnrollment se : domain.serviceEnrollments()) {
+            UUID id = se.enrollmentId().value();
+            ServiceEnrollmentEntity seEntity = existingMap.get(id);
+
+            if (seEntity == null) {
+                seEntity = new ServiceEnrollmentEntity();
+                seEntity.setEnrollmentId(id);
+                seEntity.setProfile(entity);
+                entity.getServiceEnrollments().add(seEntity);
+            }
+
+            seEntity.setServiceType(se.serviceType());
+            seEntity.setConfiguration(se.configuration());
+            seEntity.setStatus(se.status().name());
+            seEntity.setEnrolledAt(se.enrolledAt());
+        }
+    }
+
+    private void syncAccountEnrollments(ProfileEntity entity, Profile domain) {
+        // Build map of existing entities by UUID
+        Map<UUID, AccountEnrollmentEntity> existingMap = new HashMap<>();
+        for (AccountEnrollmentEntity ae : entity.getAccountEnrollments()) {
+            existingMap.put(ae.getEnrollmentId(), ae);
+        }
+
+        // Build set of domain UUIDs
+        Set<UUID> domainIds = new HashSet<>();
+        for (Profile.AccountEnrollment ae : domain.accountEnrollments()) {
+            domainIds.add(ae.enrollmentId().value());
+        }
+
+        entity.getAccountEnrollments().removeIf(ae -> !domainIds.contains(ae.getEnrollmentId()));
+
+        for (Profile.AccountEnrollment ae : domain.accountEnrollments()) {
+            UUID id = ae.enrollmentId().value();
+            AccountEnrollmentEntity aeEntity = existingMap.get(id);
+
+            if (aeEntity == null) {
+                aeEntity = new AccountEnrollmentEntity();
+                aeEntity.setEnrollmentId(id);
+                aeEntity.setProfile(entity);
+                entity.getAccountEnrollments().add(aeEntity);
+            }
+
+            aeEntity.setServiceEnrollmentId(ae.serviceEnrollmentId() != null ? ae.serviceEnrollmentId().value() : null);
+            aeEntity.setClientId(ae.clientId().urn());
+            aeEntity.setAccountId(ae.accountId().urn());
+            aeEntity.setStatus(ae.status().name());
+            aeEntity.setEnrolledAt(ae.enrolledAt());
+        }
+    }
+
+    /**
      * Converts entity to Profile domain aggregate.
-     * Uses reflection to reconstruct the aggregate from persisted state.
+     * Uses the Profile.reconstitute() factory method to properly reconstruct the aggregate.
      */
     default Profile toDomain(ProfileEntity entity) {
         if (entity == null) {
@@ -101,58 +229,42 @@ public interface ServicingProfileMapper {
             // Parse IDs and profile type
             ProfileId profileId = ProfileId.fromUrn(entity.getProfileId());
             ProfileType profileType = ProfileType.valueOf(entity.getProfileType());
+            ProfileStatus status = ProfileStatus.valueOf(entity.getStatus());
 
-            // Reconstruct client enrollment requests for creating the profile
-            List<Profile.ClientEnrollmentRequest> enrollmentRequests = new ArrayList<>();
-            for (ClientEnrollmentEntity ceEntity : entity.getClientEnrollments()) {
-                // For reconstruction, we pass empty account lists - we'll set them via reflection
-                enrollmentRequests.add(new Profile.ClientEnrollmentRequest(
-                    ClientId.of(ceEntity.getClientId()),
-                    ceEntity.isPrimary(),
-                    AccountEnrollmentType.valueOf(ceEntity.getAccountEnrollmentType()),
-                    List.of()  // Empty - accounts will be set separately via reflection
-                ));
-            }
-
-            // Create profile using factory
-            Profile profile = Profile.createWithAccounts(
-                profileType,
-                entity.getName(),
-                enrollmentRequests,
-                entity.getCreatedBy()
-            );
-
-            // Use reflection to set the persisted values
-            setField(profile, "profileId", profileId);
-            setField(profile, "status", ProfileStatus.valueOf(entity.getStatus()));
-            setField(profile, "createdAt", entity.getCreatedAt());
-            setField(profile, "updatedAt", entity.getUpdatedAt());
-
-            // Reconstruct client enrollments with actual enrolledAt times
+            // Reconstruct client enrollments with their original IDs
             List<Profile.ClientEnrollment> clientEnrollments = new ArrayList<>();
             for (ClientEnrollmentEntity ceEntity : entity.getClientEnrollments()) {
                 Profile.ClientEnrollment ce = reconstructClientEnrollment(ceEntity);
                 clientEnrollments.add(ce);
             }
-            setField(profile, "clientEnrollments", clientEnrollments);
 
-            // Reconstruct service enrollments
+            // Reconstruct service enrollments with their original IDs
             List<Profile.ServiceEnrollment> serviceEnrollments = new ArrayList<>();
             for (ServiceEnrollmentEntity seEntity : entity.getServiceEnrollments()) {
                 Profile.ServiceEnrollment se = reconstructServiceEnrollment(seEntity);
                 serviceEnrollments.add(se);
             }
-            setField(profile, "serviceEnrollments", serviceEnrollments);
 
-            // Reconstruct account enrollments
+            // Reconstruct account enrollments with their original IDs
             List<Profile.AccountEnrollment> accountEnrollments = new ArrayList<>();
             for (AccountEnrollmentEntity aeEntity : entity.getAccountEnrollments()) {
                 Profile.AccountEnrollment ae = reconstructAccountEnrollment(aeEntity);
                 accountEnrollments.add(ae);
             }
-            setField(profile, "accountEnrollments", accountEnrollments);
 
-            return profile;
+            // Use reconstitute factory method - no reflection needed for final fields
+            return Profile.reconstitute(
+                profileId,
+                profileType,
+                entity.getName(),
+                entity.getCreatedBy(),
+                status,
+                clientEnrollments,
+                serviceEnrollments,
+                accountEnrollments,
+                entity.getCreatedAt(),
+                entity.getUpdatedAt()
+            );
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to map ProfileEntity to Profile", e);
@@ -160,29 +272,35 @@ public interface ServicingProfileMapper {
     }
 
     private Profile.ClientEnrollment reconstructClientEnrollment(ClientEnrollmentEntity entity) throws Exception {
-        Profile.ClientEnrollment ce = new Profile.ClientEnrollment(
+        // Use the private reconstruction constructor to avoid final field issues
+        Constructor<Profile.ClientEnrollment> constructor = Profile.ClientEnrollment.class.getDeclaredConstructor(
+            EnrollmentId.class, ClientId.class, boolean.class, AccountEnrollmentType.class, java.time.Instant.class
+        );
+        constructor.setAccessible(true);
+
+        return constructor.newInstance(
+            EnrollmentId.of(entity.getId()),
             ClientId.of(entity.getClientId()),
             entity.isPrimary(),
-            AccountEnrollmentType.valueOf(entity.getAccountEnrollmentType())
+            AccountEnrollmentType.valueOf(entity.getAccountEnrollmentType()),
+            entity.getEnrolledAt()
         );
-
-        // Override the auto-generated values with persisted values
-        setNestedField(ce, "enrollmentId", EnrollmentId.of(entity.getId()));
-        setNestedField(ce, "enrolledAt", entity.getEnrolledAt());
-
-        return ce;
     }
 
     private Profile.ServiceEnrollment reconstructServiceEnrollment(ServiceEnrollmentEntity entity) throws Exception {
-        Profile.ServiceEnrollment se = new Profile.ServiceEnrollment(
-            entity.getServiceType(), entity.getConfiguration());
+        // Use the private reconstruction constructor to avoid final field issues
+        Constructor<Profile.ServiceEnrollment> constructor = Profile.ServiceEnrollment.class.getDeclaredConstructor(
+            EnrollmentId.class, String.class, String.class, ProfileStatus.class, java.time.Instant.class
+        );
+        constructor.setAccessible(true);
 
-        // Override the generated values with persisted ones
-        setNestedField(se, "enrollmentId", EnrollmentId.of(entity.getEnrollmentId()));
-        setNestedField(se, "status", ProfileStatus.valueOf(entity.getStatus()));
-        setNestedField(se, "enrolledAt", entity.getEnrolledAt());
-
-        return se;
+        return constructor.newInstance(
+            EnrollmentId.of(entity.getEnrollmentId()),
+            entity.getServiceType(),
+            entity.getConfiguration(),
+            ProfileStatus.valueOf(entity.getStatus()),
+            entity.getEnrolledAt()
+        );
     }
 
     private Profile.AccountEnrollment reconstructAccountEnrollment(AccountEnrollmentEntity entity) throws Exception {
@@ -191,28 +309,20 @@ public interface ServicingProfileMapper {
             ? EnrollmentId.of(entity.getServiceEnrollmentId())
             : null;
 
-        Profile.AccountEnrollment ae = new Profile.AccountEnrollment(
+        // Use the private reconstruction constructor to avoid final field issues
+        Constructor<Profile.AccountEnrollment> constructor = Profile.AccountEnrollment.class.getDeclaredConstructor(
+            EnrollmentId.class, EnrollmentId.class, ClientId.class, ClientAccountId.class, ProfileStatus.class, java.time.Instant.class
+        );
+        constructor.setAccessible(true);
+
+        return constructor.newInstance(
+            EnrollmentId.of(entity.getEnrollmentId()),
             serviceEnrollmentId,
             ClientId.of(entity.getClientId()),
-            ClientAccountId.of(entity.getAccountId())
+            ClientAccountId.of(entity.getAccountId()),
+            ProfileStatus.valueOf(entity.getStatus()),
+            entity.getEnrolledAt()
         );
-
-        setNestedField(ae, "enrollmentId", EnrollmentId.of(entity.getEnrollmentId()));
-        setNestedField(ae, "status", ProfileStatus.valueOf(entity.getStatus()));
-        setNestedField(ae, "enrolledAt", entity.getEnrolledAt());
-
-        return ae;
     }
 
-    private void setField(Profile profile, String fieldName, Object value) throws Exception {
-        Field field = Profile.class.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(profile, value);
-    }
-
-    private void setNestedField(Object obj, String fieldName, Object value) throws Exception {
-        Field field = obj.getClass().getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(obj, value);
-    }
 }

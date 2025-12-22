@@ -87,3 +87,17 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+
+# Auth0 Configuration
+auth0:
+  domain: ${AUTH0_DOMAIN:dbc-test.auth0.com}
+  client-id: ${AUTH0_M2M_CLIENT_ID:}
+  client-secret: ${AUTH0_M2M_CLIENT_SECRET:}
+  audience: ${AUTH0_API_AUDIENCE:https://auth-gateway.local/api}
+  management-audience: https://${AUTH0_DOMAIN:dbc-test.auth0.com}/api/v2/
+  connection: ${AUTH0_CONNECTION:Username-Password-Authentication}
+  password-reset-result-url: ${AUTH0_PASSWORD_RESET_URL:http://localhost:8080/}
+
+# Platform Events
+kafka:
+  platform-events-topic: ${KAFKA_PLATFORM_EVENTS_TOPIC:platform-events}

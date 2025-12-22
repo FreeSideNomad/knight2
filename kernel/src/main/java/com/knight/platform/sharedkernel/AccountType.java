@@ -9,5 +9,6 @@ public enum AccountType {
     LOC,
     MTG,
     PAD,
-    PAP
+    PAP,
+    PDB
 }

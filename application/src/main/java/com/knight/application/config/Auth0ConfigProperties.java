@@ -12,12 +12,13 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "auth0")
 public class Auth0ConfigProperties {
 
-    private String domain = "knight.auth0.com";
+    private String domain = "dbc-test.auth0.com";
     private String clientId = "";
     private String clientSecret = "";
     private String audience = "";
     private String managementAudience = "";
     private String connection = "Username-Password-Authentication";
+    private String passwordResetResultUrl = "http://localhost:8080/";
 
     @Bean
     public Auth0Config auth0Config() {
@@ -27,7 +28,8 @@ public class Auth0ConfigProperties {
             clientSecret,
             audience,
             managementAudience,
-            connection
+            connection,
+            passwordResetResultUrl
         );
     }
 
@@ -43,4 +45,6 @@ public class Auth0ConfigProperties {
     public void setManagementAudience(String managementAudience) { this.managementAudience = managementAudience; }
     public String getConnection() { return connection; }
     public void setConnection(String connection) { this.connection = connection; }
+    public String getPasswordResetResultUrl() { return passwordResetResultUrl; }
+    public void setPasswordResetResultUrl(String passwordResetResultUrl) { this.passwordResetResultUrl = passwordResetResultUrl; }
 }

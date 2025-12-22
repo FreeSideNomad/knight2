@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * JPA entity for ServiceEnrollment within Profile.
@@ -18,8 +19,8 @@ import java.time.Instant;
 public class ServiceEnrollmentEntity {
 
     @Id
-    @Column(name = "enrollment_id", nullable = false, length = 100)
-    private String enrollmentId;
+    @Column(name = "enrollment_id", nullable = false, columnDefinition = "UNIQUEIDENTIFIER")
+    private UUID enrollmentId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "profile_id", nullable = false)

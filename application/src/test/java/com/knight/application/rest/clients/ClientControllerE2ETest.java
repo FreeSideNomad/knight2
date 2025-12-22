@@ -456,6 +456,50 @@ class ClientControllerE2ETest {
     }
 
     @Nested
+    @DisplayName("GET /api/clients/{clientId}/accounts - Get client accounts")
+    class GetClientAccountsTests {
+
+        @Test
+        @DisplayName("should return empty list when client has no accounts")
+        void shouldReturnEmptyListForClientWithNoAccounts() throws Exception {
+            mockMvc.perform(get("/api/clients/srf:123456789/accounts")
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content").isEmpty())
+                .andExpect(jsonPath("$.totalElements").value(0));
+        }
+
+        @Test
+        @DisplayName("should return 404 for non-existing client")
+        void shouldReturn404ForNonExistingClient() throws Exception {
+            mockMvc.perform(get("/api/clients/srf:999999999/accounts")
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("should return 400 for invalid client ID format")
+        void shouldReturn400ForInvalidClientId() throws Exception {
+            mockMvc.perform(get("/api/clients/invalid-format/accounts")
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("should paginate account results")
+        void shouldPaginateResults() throws Exception {
+            mockMvc.perform(get("/api/clients/srf:123456789/accounts")
+                    .param("page", "0")
+                    .param("size", "10")
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(10));
+        }
+    }
+
+    @Nested
     @DisplayName("Simulating frontend search scenarios")
     class FrontendSearchScenarios {
 

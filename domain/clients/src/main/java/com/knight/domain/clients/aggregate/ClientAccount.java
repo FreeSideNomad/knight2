@@ -1,16 +1,24 @@
 package com.knight.domain.clients.aggregate;
 
 import com.knight.platform.sharedkernel.AccountStatus;
+import com.knight.platform.sharedkernel.AccountSystem;
 import com.knight.platform.sharedkernel.ClientAccountId;
 import com.knight.platform.sharedkernel.ClientId;
 import com.knight.platform.sharedkernel.Currency;
+import com.knight.platform.sharedkernel.IndirectClientId;
 
 import java.time.Instant;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * ClientAccount aggregate root.
- * Represents a bank account belonging to a client.
+ * Represents a bank account belonging to a client or indirect client.
+ *
+ * For OFI accounts linked to IndirectClients:
+ * - clientId is null
+ * - indirectClientId references the owning IndirectClient
+ * - accountHolderName stores the name of the account holder at the external bank
  *
  * Business rules:
  * - Accounts start as ACTIVE when created
@@ -20,16 +28,21 @@ import java.util.Objects;
 public class ClientAccount {
 
     private final ClientAccountId accountId;
-    private final ClientId clientId;
+    private final ClientId clientId;          // Null for OFI accounts linked to IndirectClient
+    private final UUID indirectClientId;      // Set for OFI accounts linked to IndirectClient
     private final Currency currency;
+    private final String accountHolderName;   // For OFI accounts
     private AccountStatus status;
     private final Instant createdAt;
     private Instant updatedAt;
 
-    private ClientAccount(ClientAccountId accountId, ClientId clientId, Currency currency) {
+    private ClientAccount(ClientAccountId accountId, ClientId clientId, UUID indirectClientId,
+                         Currency currency, String accountHolderName) {
         this.accountId = Objects.requireNonNull(accountId, "accountId cannot be null");
-        this.clientId = Objects.requireNonNull(clientId, "clientId cannot be null");
+        this.clientId = clientId;  // Can be null for OFI accounts
+        this.indirectClientId = indirectClientId;  // Can be null for regular accounts
         this.currency = Objects.requireNonNull(currency, "currency cannot be null");
+        this.accountHolderName = accountHolderName;  // Can be null
         this.status = AccountStatus.ACTIVE;
         this.createdAt = Instant.now();
         this.updatedAt = this.createdAt;
@@ -45,7 +58,26 @@ public class ClientAccount {
      * @throws NullPointerException if any parameter is null
      */
     public static ClientAccount create(ClientAccountId accountId, ClientId clientId, Currency currency) {
-        return new ClientAccount(accountId, clientId, currency);
+        Objects.requireNonNull(clientId, "clientId cannot be null for regular accounts");
+        return new ClientAccount(accountId, clientId, null, currency, null);
+    }
+
+    /**
+     * Creates a new OFI account linked to an IndirectClient.
+     *
+     * @param accountId the unique account identifier (must be OFI account type)
+     * @param indirectClientId the indirect client who owns this account
+     * @param currency the currency of the account
+     * @param accountHolderName the name of the account holder at the external bank (optional)
+     * @return a new ClientAccount instance
+     */
+    public static ClientAccount createOfiAccount(ClientAccountId accountId, UUID indirectClientId,
+                                                  Currency currency, String accountHolderName) {
+        Objects.requireNonNull(indirectClientId, "indirectClientId cannot be null for OFI accounts");
+        if (accountId.accountSystem() != AccountSystem.OFI) {
+            throw new IllegalArgumentException("OFI accounts must use AccountSystem.OFI");
+        }
+        return new ClientAccount(accountId, null, indirectClientId, currency, accountHolderName);
     }
 
     /**
@@ -53,23 +85,26 @@ public class ClientAccount {
      * This factory method is used by the persistence layer to restore domain objects.
      *
      * @param accountId the unique account identifier
-     * @param clientId the client who owns this account
+     * @param clientId the client who owns this account (null for OFI accounts)
+     * @param indirectClientId the indirect client who owns this account (null for regular accounts)
      * @param currency the currency of the account
+     * @param accountHolderName the account holder name (for OFI accounts)
      * @param status the account status
      * @param createdAt the creation timestamp
      * @param updatedAt the last update timestamp
      * @return a reconstructed ClientAccount instance
-     * @throws NullPointerException if any parameter is null
      */
     public static ClientAccount reconstruct(
             ClientAccountId accountId,
             ClientId clientId,
+            UUID indirectClientId,
             Currency currency,
+            String accountHolderName,
             AccountStatus status,
             Instant createdAt,
             Instant updatedAt) {
 
-        ClientAccount account = new ClientAccount(accountId, clientId, currency);
+        ClientAccount account = new ClientAccount(accountId, clientId, indirectClientId, currency, accountHolderName);
         account.status = Objects.requireNonNull(status, "status cannot be null");
         // Override the auto-set timestamps with persisted values
         // Use reflection workaround since fields are final
@@ -121,8 +156,16 @@ public class ClientAccount {
         return clientId;
     }
 
+    public UUID indirectClientId() {
+        return indirectClientId;
+    }
+
     public Currency currency() {
         return currency;
+    }
+
+    public String accountHolderName() {
+        return accountHolderName;
     }
 
     public AccountStatus status() {
@@ -135,5 +178,26 @@ public class ClientAccount {
 
     public Instant updatedAt() {
         return updatedAt;
+    }
+
+    /**
+     * Returns true if this is an OFI account linked to an IndirectClient.
+     */
+    public boolean isOfiAccount() {
+        return accountId.accountSystem() == AccountSystem.OFI;
+    }
+
+    /**
+     * Returns true if this account is linked to a direct Client.
+     */
+    public boolean isClientAccount() {
+        return clientId != null;
+    }
+
+    /**
+     * Returns true if this account is linked to an IndirectClient.
+     */
+    public boolean isIndirectClientAccount() {
+        return indirectClientId != null;
     }
 }

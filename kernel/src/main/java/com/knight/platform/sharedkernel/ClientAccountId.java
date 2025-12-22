@@ -28,7 +28,7 @@ public record ClientAccountId(
     private static final Pattern OFI_IBAN_PATTERN = Pattern.compile("^[A-Z0-9]{8,11}:[A-Z0-9]{1,34}$");
     private static final Pattern OFI_US_PATTERN = Pattern.compile("^\\d{9}:[A-Z0-9]{1,17}$");
     private static final Pattern OFI_SWIFT_PATTERN = Pattern.compile("^[A-Z0-9]{8,11}:[A-Z0-9]{1,34}$");
-    private static final Pattern CAN_GRADS_PATTERN = Pattern.compile("^(OCC|QCC|BCC)\\d{12}$");
+    private static final Pattern CAN_GRADS_PATTERN = Pattern.compile("^\\d{10}$");
 
     public ClientAccountId {
         if (accountSystem == null) {
@@ -92,8 +92,8 @@ public record ClientAccountId(
             case CAN_GRADS -> {
                 try {
                     AccountType type = AccountType.valueOf(accountType);
-                    if (type != AccountType.PAD && type != AccountType.PAP) {
-                        throw new IllegalArgumentException("CAN_GRADS supports PAD and PAP");
+                    if (type != AccountType.PAP && type != AccountType.PDB) {
+                        throw new IllegalArgumentException("CAN_GRADS supports PAP and PDB");
                     }
                 } catch (IllegalArgumentException e) {
                     throw new IllegalArgumentException("Invalid account type for " + accountSystem + ": " + accountType);
@@ -101,7 +101,7 @@ public record ClientAccountId(
 
                 if (!CAN_GRADS_PATTERN.matcher(accountNumberSegments).matches()) {
                     throw new IllegalArgumentException(
-                        "Invalid GRADS Account: Must start with OCC, QCC, or BCC followed by 12 digits");
+                        "Invalid GRADS Account: Must be 10 digits");
                 }
             }
         }

@@ -38,6 +38,26 @@ public class ApprovalWorkflow {
             this.approvedAt = Instant.now();
         }
 
+        /**
+         * Reconstitutes an Approval from persistence.
+         */
+        public static Approval reconstitute(String approvalId, String approverUserId,
+                                            Decision decision, String comments, Instant approvedAt) {
+            Approval approval = new Approval(approverUserId, decision, comments);
+            try {
+                java.lang.reflect.Field idField = Approval.class.getDeclaredField("approvalId");
+                idField.setAccessible(true);
+                idField.set(approval, approvalId);
+
+                java.lang.reflect.Field approvedAtField = Approval.class.getDeclaredField("approvedAt");
+                approvedAtField.setAccessible(true);
+                approvedAtField.set(approval, approvedAt);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to reconstitute Approval", e);
+            }
+            return approval;
+        }
+
         public String approvalId() { return approvalId; }
         public String approverUserId() { return approverUserId; }
         public Decision decision() { return decision; }
@@ -128,6 +148,38 @@ public class ApprovalWorkflow {
         }
         this.status = Status.EXPIRED;
         this.completedAt = Instant.now();
+    }
+
+    /**
+     * Reconstitutes an ApprovalWorkflow from persistence.
+     */
+    public static ApprovalWorkflow reconstitute(String id, String resourceType, String resourceId,
+                                                 int requiredApprovals, Status status,
+                                                 List<Approval> approvals, Instant initiatedAt,
+                                                 String initiatedBy, Instant completedAt) {
+        ApprovalWorkflow workflow = new ApprovalWorkflow(id, resourceType, resourceId, requiredApprovals, initiatedBy);
+        try {
+            java.lang.reflect.Field statusField = ApprovalWorkflow.class.getDeclaredField("status");
+            statusField.setAccessible(true);
+            statusField.set(workflow, status);
+
+            java.lang.reflect.Field approvalsField = ApprovalWorkflow.class.getDeclaredField("approvals");
+            approvalsField.setAccessible(true);
+            List<Approval> approvalList = (List<Approval>) approvalsField.get(workflow);
+            approvalList.clear();
+            approvalList.addAll(approvals);
+
+            java.lang.reflect.Field initiatedAtField = ApprovalWorkflow.class.getDeclaredField("initiatedAt");
+            initiatedAtField.setAccessible(true);
+            initiatedAtField.set(workflow, initiatedAt);
+
+            java.lang.reflect.Field completedAtField = ApprovalWorkflow.class.getDeclaredField("completedAt");
+            completedAtField.setAccessible(true);
+            completedAtField.set(workflow, completedAt);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to reconstitute ApprovalWorkflow", e);
+        }
+        return workflow;
     }
 
     // Getters

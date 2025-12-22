@@ -5,17 +5,17 @@
 
 -- Clients (with address, no taxId/phoneNumber/emailAddress)
 CREATE TABLE clients (
-    client_id NVARCHAR(100) PRIMARY KEY,
-    name NVARCHAR(255) NOT NULL,
-    client_type NVARCHAR(20) NOT NULL,
-    status NVARCHAR(20) NOT NULL,
-    -- Address fields
+    client_id VARCHAR(100) PRIMARY KEY,           -- URN string (e.g., srf:123456)
+    name NVARCHAR(255) NOT NULL,                  -- May contain Unicode
+    client_type VARCHAR(20) NOT NULL,             -- PERSON, BUSINESS
+    status VARCHAR(20) NOT NULL,                  -- ACTIVE, INACTIVE, etc.
+    -- Address fields (may contain Unicode)
     address_line1 NVARCHAR(255),
     address_line2 NVARCHAR(255),
     city NVARCHAR(100),
     state_province NVARCHAR(100),
-    zip_postal_code NVARCHAR(20),
-    country_code NVARCHAR(10),
+    zip_postal_code VARCHAR(20),
+    country_code VARCHAR(10),
     created_at DATETIME2 NOT NULL,
     updated_at DATETIME2 NOT NULL
 );
@@ -23,43 +23,92 @@ CREATE TABLE clients (
 CREATE INDEX idx_clients_name ON clients(name);
 CREATE INDEX idx_clients_type ON clients(client_type);
 
--- Client Accounts
-CREATE TABLE client_accounts (
-    account_id NVARCHAR(100) PRIMARY KEY,
-    client_id NVARCHAR(100) NOT NULL,
-    account_system NVARCHAR(50) NOT NULL,
-    account_type NVARCHAR(50) NOT NULL,
-    currency NVARCHAR(3) NOT NULL,
-    status NVARCHAR(20) NOT NULL,
-    created_at DATETIME2 NOT NULL,
-    updated_at DATETIME2 NOT NULL,
-    CONSTRAINT FK_client_accounts_client FOREIGN KEY (client_id)
-        REFERENCES clients(client_id)
-);
-
-CREATE INDEX idx_client_accounts_client ON client_accounts(client_id);
-
 -- Profiles (no client_id column - derived from profile_client_enrollments)
 CREATE TABLE profiles (
-    profile_id NVARCHAR(200) PRIMARY KEY,
-    name NVARCHAR(255) NOT NULL,
-    profile_type NVARCHAR(20) NOT NULL,
-    status NVARCHAR(20) NOT NULL,
+    profile_id VARCHAR(200) PRIMARY KEY,          -- URN string
+    name NVARCHAR(255) NOT NULL,                  -- May contain Unicode
+    profile_type VARCHAR(20) NOT NULL,            -- SERVICING, ONLINE
+    status VARCHAR(20) NOT NULL,
     created_at DATETIME2 NOT NULL,
-    created_by NVARCHAR(255) NOT NULL,
+    created_by NVARCHAR(255) NOT NULL,            -- May contain Unicode
     updated_at DATETIME2 NOT NULL
 );
 
 CREATE INDEX idx_profiles_type ON profiles(profile_type);
 CREATE INDEX idx_profiles_name ON profiles(name);
 
+-- =====================================================
+-- INDIRECT CLIENTS (for Receivable Service)
+-- =====================================================
+
+-- Indirect Clients table
+CREATE TABLE indirect_clients (
+    id UNIQUEIDENTIFIER PRIMARY KEY,              -- UUID (database key)
+    indirect_client_urn VARCHAR(200) NOT NULL UNIQUE, -- Domain ID URN (indirect:{clientUrn}:{seq})
+    parent_client_id VARCHAR(100) NOT NULL,       -- URN string (references clients)
+    profile_id VARCHAR(200) NOT NULL,             -- URN string (references profiles)
+    client_type VARCHAR(20) NOT NULL,             -- PERSON or BUSINESS
+    business_name NVARCHAR(255) NOT NULL,         -- May contain Unicode
+    status VARCHAR(20) NOT NULL,                  -- PENDING, ACTIVE, SUSPENDED
+    created_at DATETIME2 NOT NULL,
+    updated_at DATETIME2 NOT NULL,
+
+    CONSTRAINT FK_indirect_client_parent FOREIGN KEY (parent_client_id)
+        REFERENCES clients(client_id),
+    CONSTRAINT FK_indirect_client_profile FOREIGN KEY (profile_id)
+        REFERENCES profiles(profile_id)
+);
+
+CREATE INDEX idx_indirect_clients_urn ON indirect_clients(indirect_client_urn);
+CREATE INDEX idx_indirect_clients_parent ON indirect_clients(parent_client_id);
+CREATE INDEX idx_indirect_clients_profile ON indirect_clients(profile_id);
+
+-- Related Persons table
+CREATE TABLE indirect_client_persons (
+    person_id UNIQUEIDENTIFIER PRIMARY KEY,       -- UUID
+    indirect_client_id UNIQUEIDENTIFIER NOT NULL, -- UUID (references indirect_clients)
+    name NVARCHAR(255) NOT NULL,                  -- May contain Unicode
+    role VARCHAR(20) NOT NULL,                    -- ADMIN or CONTACT
+    email VARCHAR(255),                           -- ASCII only
+    phone VARCHAR(20),                            -- Digits only (normalized)
+    added_at DATETIME2 NOT NULL,
+
+    CONSTRAINT FK_person_indirect_client FOREIGN KEY (indirect_client_id)
+        REFERENCES indirect_clients(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_indirect_client_persons_client ON indirect_client_persons(indirect_client_id);
+
+-- Client Accounts (supports both regular accounts and OFI accounts)
+CREATE TABLE client_accounts (
+    account_id VARCHAR(100) PRIMARY KEY,          -- URN string (e.g., CAN_GRADS:PAP:1234567890)
+    client_id VARCHAR(100),                       -- URN string (FK conceptually, nullable for OFI accounts)
+    indirect_client_id UNIQUEIDENTIFIER,          -- UUID reference to indirect_clients (for OFI accounts)
+    account_system VARCHAR(50) NOT NULL,          -- CDR, SRF, CAN_GRADS, OFI, etc.
+    account_type VARCHAR(50) NOT NULL,            -- DDA, PAP, PDB, CAN, IBAN, etc.
+    currency CHAR(3) NOT NULL,                    -- ISO 4217 (CAD, USD)
+    account_holder_name NVARCHAR(255),            -- For OFI accounts: name of account holder
+    status VARCHAR(20) NOT NULL,
+    created_at DATETIME2 NOT NULL,
+    updated_at DATETIME2 NOT NULL,
+    CONSTRAINT FK_client_accounts_client FOREIGN KEY (client_id)
+        REFERENCES clients(client_id),
+    CONSTRAINT FK_client_accounts_indirect_client FOREIGN KEY (indirect_client_id)
+        REFERENCES indirect_clients(id)
+);
+
+CREATE INDEX idx_client_accounts_client ON client_accounts(client_id);
+CREATE INDEX idx_client_accounts_system ON client_accounts(account_system);
+CREATE INDEX idx_client_accounts_indirect_client ON client_accounts(indirect_client_id)
+    WHERE indirect_client_id IS NOT NULL;
+
 -- Profile Client Enrollments (exactly one must have is_primary=true per profile)
 CREATE TABLE profile_client_enrollments (
-    id NVARCHAR(100) PRIMARY KEY,
-    profile_id NVARCHAR(200) NOT NULL,
-    client_id NVARCHAR(100) NOT NULL,
+    id UNIQUEIDENTIFIER PRIMARY KEY,              -- UUID
+    profile_id VARCHAR(200) NOT NULL,
+    client_id VARCHAR(100) NOT NULL,
     is_primary BIT NOT NULL DEFAULT 0,
-    account_enrollment_type NVARCHAR(20) NOT NULL,
+    account_enrollment_type VARCHAR(20) NOT NULL, -- ALL, SELECTED
     enrolled_at DATETIME2 NOT NULL,
     CONSTRAINT FK_profile_client_enrollments_profile FOREIGN KEY (profile_id)
         REFERENCES profiles(profile_id),
@@ -72,26 +121,27 @@ CREATE INDEX idx_profile_client_enrollments_primary ON profile_client_enrollment
 
 -- Service Enrollments
 CREATE TABLE service_enrollments (
-    enrollment_id NVARCHAR(100) PRIMARY KEY,
-    profile_id NVARCHAR(200) NOT NULL,
-    service_type NVARCHAR(100) NOT NULL,
-    configuration NVARCHAR(MAX),
-    status NVARCHAR(20) NOT NULL,
+    enrollment_id UNIQUEIDENTIFIER PRIMARY KEY,   -- UUID
+    profile_id VARCHAR(200) NOT NULL,
+    service_type VARCHAR(100) NOT NULL,           -- RECEIVABLES, etc.
+    configuration NVARCHAR(MAX),                  -- JSON configuration
+    status VARCHAR(20) NOT NULL,
     enrolled_at DATETIME2 NOT NULL,
     CONSTRAINT FK_service_enrollments_profile FOREIGN KEY (profile_id)
         REFERENCES profiles(profile_id)
 );
 
 CREATE INDEX idx_service_enrollments_profile ON service_enrollments(profile_id);
+CREATE INDEX idx_service_enrollments_type ON service_enrollments(service_type);
 
 -- Account Enrollments (service_enrollment_id nullable for profile-level enrollments)
 CREATE TABLE account_enrollments (
-    enrollment_id NVARCHAR(100) PRIMARY KEY,
-    profile_id NVARCHAR(200) NOT NULL,
-    service_enrollment_id NVARCHAR(100),
-    client_id NVARCHAR(100) NOT NULL,
-    account_id NVARCHAR(100) NOT NULL,
-    status NVARCHAR(20) NOT NULL,
+    enrollment_id UNIQUEIDENTIFIER PRIMARY KEY,   -- UUID
+    profile_id VARCHAR(200) NOT NULL,
+    service_enrollment_id UNIQUEIDENTIFIER,       -- UUID (nullable for profile-level)
+    client_id VARCHAR(100) NOT NULL,
+    account_id VARCHAR(100) NOT NULL,
+    status VARCHAR(20) NOT NULL,
     enrolled_at DATETIME2 NOT NULL,
     CONSTRAINT FK_account_enrollments_profile FOREIGN KEY (profile_id)
         REFERENCES profiles(profile_id),
@@ -104,19 +154,114 @@ CREATE INDEX idx_account_enrollments_service ON account_enrollments(service_enro
 CREATE INDEX idx_account_enrollments_account ON account_enrollments(account_id);
 CREATE INDEX idx_account_enrollments_client ON account_enrollments(client_id);
 
--- Users (linked to Profile via profile_id)
+-- =====================================================
+-- USERS (with Auth0 integration fields)
+-- =====================================================
+
 CREATE TABLE users (
-    user_id NVARCHAR(100) PRIMARY KEY,
-    email NVARCHAR(255) NOT NULL UNIQUE,
-    user_type NVARCHAR(20) NOT NULL,
-    identity_provider NVARCHAR(20) NOT NULL,
-    profile_id NVARCHAR(200) NOT NULL,
-    status NVARCHAR(20) NOT NULL,
-    lock_reason NVARCHAR(500),
-    deactivation_reason NVARCHAR(500),
+    user_id UNIQUEIDENTIFIER PRIMARY KEY,         -- UUID
+    email VARCHAR(255) NOT NULL UNIQUE,           -- ASCII only
+    first_name NVARCHAR(100),                     -- May contain Unicode
+    last_name NVARCHAR(100),                      -- May contain Unicode
+    user_type VARCHAR(20) NOT NULL,               -- CLIENT_USER, INDIRECT_USER, EMPLOYEE
+    identity_provider VARCHAR(20) NOT NULL,       -- ANP, AUTH0, ENTRA_ID
+    identity_provider_user_id VARCHAR(255),       -- External provider ID
+    profile_id VARCHAR(200) NOT NULL,
+    status VARCHAR(20) NOT NULL,                  -- PENDING_CREATION, ACTIVE, LOCKED, etc.
+    password_set BIT NOT NULL DEFAULT 0,
+    mfa_enrolled BIT NOT NULL DEFAULT 0,
+    last_synced_at DATETIME2,
+    lock_reason NVARCHAR(500),                    -- May contain Unicode
+    deactivation_reason NVARCHAR(500),            -- May contain Unicode
     created_at DATETIME2 NOT NULL,
+    created_by NVARCHAR(255),
     updated_at DATETIME2 NOT NULL
 );
 
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_profile ON users(profile_id);
+CREATE UNIQUE INDEX idx_users_idp_user_id ON users(identity_provider_user_id)
+    WHERE identity_provider_user_id IS NOT NULL;
+
+-- User Roles Table (many-to-many relationship)
+CREATE TABLE user_roles (
+    user_id UNIQUEIDENTIFIER NOT NULL,
+    role VARCHAR(20) NOT NULL,
+    assigned_at DATETIME2 NOT NULL,
+    assigned_by NVARCHAR(255) NOT NULL,
+
+    PRIMARY KEY (user_id, role),
+    CONSTRAINT FK_user_roles_user FOREIGN KEY (user_id)
+        REFERENCES users(user_id) ON DELETE CASCADE,
+    CONSTRAINT CHK_user_role CHECK (role IN (
+        'SECURITY_ADMIN',
+        'SERVICE_ADMIN',
+        'READER',
+        'CREATOR',
+        'APPROVER'
+    ))
+);
+
+CREATE INDEX idx_user_roles_user ON user_roles(user_id);
+CREATE INDEX idx_user_roles_role ON user_roles(role);
+
+-- =====================================================
+-- PERMISSION POLICIES
+-- =====================================================
+
+CREATE TABLE permission_policies (
+    id UNIQUEIDENTIFIER PRIMARY KEY,
+    profile_id VARCHAR(200) NOT NULL,
+    subject_type VARCHAR(20) NOT NULL,          -- USER, GROUP, ROLE
+    subject_identifier VARCHAR(255) NOT NULL,   -- UUID or role name
+    action_pattern VARCHAR(500) NOT NULL,       -- Action URN pattern
+    resource_pattern VARCHAR(1000) NOT NULL DEFAULT '*',  -- Resource pattern
+    effect VARCHAR(10) NOT NULL DEFAULT 'ALLOW', -- ALLOW, DENY
+    description NVARCHAR(500),
+    created_at DATETIME2 NOT NULL,
+    created_by NVARCHAR(255) NOT NULL,
+    updated_at DATETIME2 NOT NULL,
+
+    CONSTRAINT FK_permission_policies_profile FOREIGN KEY (profile_id)
+        REFERENCES profiles(profile_id),
+    CONSTRAINT CHK_permission_effect CHECK (effect IN ('ALLOW', 'DENY')),
+    CONSTRAINT CHK_permission_subject_type CHECK (subject_type IN ('USER', 'GROUP', 'ROLE'))
+);
+
+CREATE INDEX idx_permission_policies_profile ON permission_policies(profile_id);
+CREATE INDEX idx_permission_policies_subject ON permission_policies(subject_type, subject_identifier);
+CREATE INDEX idx_permission_policies_action ON permission_policies(action_pattern);
+
+-- User Groups Table (for group-based policies)
+CREATE TABLE user_groups (
+    group_id UNIQUEIDENTIFIER PRIMARY KEY,
+    profile_id VARCHAR(200) NOT NULL,
+    name NVARCHAR(100) NOT NULL,
+    description NVARCHAR(500),
+    created_at DATETIME2 NOT NULL,
+    created_by NVARCHAR(255) NOT NULL,
+    updated_at DATETIME2 NOT NULL,
+
+    CONSTRAINT FK_user_groups_profile FOREIGN KEY (profile_id)
+        REFERENCES profiles(profile_id),
+    CONSTRAINT UQ_user_groups_name UNIQUE(profile_id, name)
+);
+
+CREATE INDEX idx_user_groups_profile ON user_groups(profile_id);
+
+-- User Group Members Table
+CREATE TABLE user_group_members (
+    group_id UNIQUEIDENTIFIER NOT NULL,
+    user_id UNIQUEIDENTIFIER NOT NULL,
+    added_at DATETIME2 NOT NULL,
+    added_by NVARCHAR(255) NOT NULL,
+
+    PRIMARY KEY (group_id, user_id),
+    CONSTRAINT FK_user_group_members_group FOREIGN KEY (group_id)
+        REFERENCES user_groups(group_id) ON DELETE CASCADE,
+    CONSTRAINT FK_user_group_members_user FOREIGN KEY (user_id)
+        REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_user_group_members_group ON user_group_members(group_id);
+CREATE INDEX idx_user_group_members_user ON user_group_members(user_id);

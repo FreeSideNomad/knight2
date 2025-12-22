@@ -1,6 +1,7 @@
 package com.knight.domain.users.api.events;
 
 import java.time.Instant;
+import java.util.Set;
 
 /**
  * Domain event published when a user is created.
@@ -8,7 +9,11 @@ import java.time.Instant;
 public record UserCreated(
     String userId,
     String email,
+    String firstName,
+    String lastName,
     String userType,
     String identityProvider,
+    String profileId,
+    Set<String> roles,
     Instant createdAt
 ) {}

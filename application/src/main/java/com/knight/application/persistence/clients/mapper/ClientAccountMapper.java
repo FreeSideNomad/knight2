@@ -28,10 +28,12 @@ public interface ClientAccountMapper {
 
         ClientAccountEntity entity = new ClientAccountEntity();
         entity.setAccountId(domain.accountId().urn());
-        entity.setClientId(domain.clientId().urn());
+        entity.setClientId(domain.clientId() != null ? domain.clientId().urn() : null);
+        entity.setIndirectClientId(domain.indirectClientId());
         entity.setAccountSystem(domain.accountId().accountSystem().name());
         entity.setAccountType(domain.accountId().accountType());
         entity.setCurrency(domain.currency().code());
+        entity.setAccountHolderName(domain.accountHolderName());
         entity.setStatus(domain.status());
         entity.setCreatedAt(domain.createdAt());
         entity.setUpdatedAt(domain.updatedAt());
@@ -53,14 +55,16 @@ public interface ClientAccountMapper {
 
         // Reconstruct value objects from their string representations
         ClientAccountId accountId = ClientAccountId.of(entity.getAccountId());
-        ClientId clientId = ClientId.of(entity.getClientId());
+        ClientId clientId = entity.getClientId() != null ? ClientId.of(entity.getClientId()) : null;
         Currency currency = Currency.of(entity.getCurrency());
 
         // Use the domain's reconstruct factory method to restore the object
         return ClientAccount.reconstruct(
             accountId,
             clientId,
+            entity.getIndirectClientId(),
             currency,
+            entity.getAccountHolderName(),
             entity.getStatus(),
             entity.getCreatedAt(),
             entity.getUpdatedAt()

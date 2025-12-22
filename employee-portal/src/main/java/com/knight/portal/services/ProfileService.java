@@ -238,4 +238,29 @@ public class ProfileService {
             throw new RuntimeException("Failed to remove secondary client: " + e.getMessage(), e);
         }
     }
+
+    // ==================== Service Enrollment ====================
+
+    /**
+     * Enroll a service to a profile with optional account linking.
+     */
+    public EnrollServiceResponse enrollService(String profileId, EnrollServiceRequest request) {
+        try {
+            Map<String, Object> response = restClient.post()
+                    .uri("/api/profiles/{profileId}/services", profileId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(request)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<Map<String, Object>>() {});
+
+            if (response == null) {
+                throw new RuntimeException("No response from service enrollment");
+            }
+
+            return objectMapper.convertValue(response, EnrollServiceResponse.class);
+        } catch (Exception e) {
+            System.err.println("Error enrolling service: " + e.getMessage());
+            throw new RuntimeException("Failed to enroll service: " + e.getMessage(), e);
+        }
+    }
 }

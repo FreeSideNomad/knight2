@@ -1,9 +1,7 @@
 package com.knight.domain.serviceprofiles.service;
 
-import com.knight.domain.clients.aggregate.Client;
 import com.knight.domain.clients.aggregate.ClientAccount;
 import com.knight.domain.clients.repository.ClientAccountRepository;
-import com.knight.domain.clients.repository.ClientRepository;
 import com.knight.domain.serviceprofiles.aggregate.Profile;
 import com.knight.domain.serviceprofiles.types.AccountEnrollmentType;
 import com.knight.domain.serviceprofiles.types.ProfileType;
@@ -14,6 +12,8 @@ import com.knight.domain.serviceprofiles.repository.ServicingProfileRepository;
 import com.knight.platform.sharedkernel.AccountStatus;
 import com.knight.platform.sharedkernel.ClientAccountId;
 import com.knight.platform.sharedkernel.ClientId;
+import com.knight.platform.sharedkernel.ClientNameResolver;
+import com.knight.platform.sharedkernel.IndirectClientId;
 import com.knight.platform.sharedkernel.ProfileId;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -32,19 +32,19 @@ import java.util.Set;
 public class ProfileApplicationService implements ProfileCommands, ProfileQueries {
 
     private final ServicingProfileRepository repository;
-    private final ClientRepository clientRepository;
     private final ClientAccountRepository clientAccountRepository;
+    private final ClientNameResolver clientNameResolver;
     private final ApplicationEventPublisher eventPublisher;
 
     public ProfileApplicationService(
         ServicingProfileRepository repository,
-        ClientRepository clientRepository,
         ClientAccountRepository clientAccountRepository,
+        ClientNameResolver clientNameResolver,
         ApplicationEventPublisher eventPublisher
     ) {
         this.repository = repository;
-        this.clientRepository = clientRepository;
         this.clientAccountRepository = clientAccountRepository;
+        this.clientNameResolver = clientNameResolver;
         this.eventPublisher = eventPublisher;
     }
 
@@ -75,9 +75,7 @@ public class ProfileApplicationService implements ProfileCommands, ProfileQuerie
         // Resolve profile name (default to primary client name if not provided)
         String profileName = cmd.name();
         if (profileName == null || profileName.isBlank()) {
-            Client primaryClient = clientRepository.findById(primaryClientId)
-                .orElseThrow(() -> new IllegalArgumentException("Primary client not found: " + primaryClientId.urn()));
-            profileName = primaryClient.name();
+            profileName = resolveClientName(primaryClientId);
         }
 
         List<Profile.ClientEnrollmentRequest> enrollmentRequests = new ArrayList<>();
@@ -87,11 +85,7 @@ public class ProfileApplicationService implements ProfileCommands, ProfileQuerie
 
             if (selection.enrollmentType() == AccountEnrollmentType.AUTOMATIC) {
                 // Fetch all active accounts for client
-                accountIds = clientAccountRepository.findByClientId(selection.clientId())
-                    .stream()
-                    .filter(acc -> acc.status() == AccountStatus.ACTIVE)
-                    .map(ClientAccount::accountId)
-                    .toList();
+                accountIds = findActiveAccountsForClient(selection.clientId());
             } else {
                 // Use provided account IDs (MANUAL)
                 accountIds = selection.accountIds() != null ? selection.accountIds() : List.of();
@@ -269,6 +263,46 @@ public class ProfileApplicationService implements ProfileCommands, ProfileQuerie
         );
     }
 
+    /**
+     * Resolves the client name using the ClientNameResolver.
+     * Throws exception if client is not found.
+     */
+    private String resolveClientName(ClientId clientId) {
+        return clientNameResolver.resolveName(clientId)
+            .orElseThrow(() -> new IllegalArgumentException("Client not found: " + clientId.urn()));
+    }
+
+    /**
+     * Safely resolves the client name, returning "Unknown" if client is not found.
+     * Used for display purposes where failure shouldn't break the operation.
+     */
+    private String resolveClientNameSafe(ClientId clientId) {
+        return clientNameResolver.resolveNameOrDefault(clientId, "Unknown");
+    }
+
+    /**
+     * Finds all active accounts for a client.
+     * Handles both regular clients and indirect clients.
+     */
+    private List<ClientAccountId> findActiveAccountsForClient(ClientId clientId) {
+        List<ClientAccount> accounts;
+        String urn = clientId.urn();
+
+        if (urn.startsWith("indirect:")) {
+            // This is an indirect client - use the indirect client lookup
+            IndirectClientId indirectClientId = IndirectClientId.fromUrn(urn);
+            accounts = clientAccountRepository.findByIndirectClientId(indirectClientId);
+        } else {
+            // Regular client
+            accounts = clientAccountRepository.findByClientId(clientId);
+        }
+
+        return accounts.stream()
+            .filter(acc -> acc.status() == AccountStatus.ACTIVE)
+            .map(ClientAccount::accountId)
+            .toList();
+    }
+
     // ==================== Secondary Client Management ====================
 
     @Override
@@ -280,11 +314,7 @@ public class ProfileApplicationService implements ProfileCommands, ProfileQuerie
         List<ClientAccountId> accountIds;
         if (cmd.enrollmentType() == AccountEnrollmentType.AUTOMATIC) {
             // Fetch all active accounts for client
-            accountIds = clientAccountRepository.findByClientId(cmd.clientId())
-                .stream()
-                .filter(acc -> acc.status() == AccountStatus.ACTIVE)
-                .map(ClientAccount::accountId)
-                .toList();
+            accountIds = findActiveAccountsForClient(cmd.clientId());
         } else {
             // Use provided account IDs (MANUAL)
             accountIds = cmd.accountIds() != null ? cmd.accountIds() : List.of();
@@ -346,9 +376,7 @@ public class ProfileApplicationService implements ProfileCommands, ProfileQuerie
 
         List<ClientEnrollmentInfo> clientInfos = profile.clientEnrollments().stream()
             .map(ce -> {
-                String clientName = clientRepository.findById(ce.clientId())
-                    .map(Client::name)
-                    .orElse("Unknown");
+                String clientName = resolveClientNameSafe(ce.clientId());
                 return new ClientEnrollmentInfo(
                     ce.clientId().urn(),
                     clientName,

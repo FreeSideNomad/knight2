@@ -1,7 +1,13 @@
 package com.knight.domain.indirectclients.api.commands;
 
+import com.knight.domain.indirectclients.types.PersonRole;
+import com.knight.domain.indirectclients.types.Email;
+import com.knight.domain.indirectclients.types.Phone;
 import com.knight.platform.sharedkernel.ClientId;
 import com.knight.platform.sharedkernel.IndirectClientId;
+import com.knight.platform.sharedkernel.ProfileId;
+
+import java.util.List;
 
 /**
  * Command interface for Indirect Client Management.
@@ -13,8 +19,16 @@ public interface IndirectClientCommands {
 
     record CreateIndirectClientCmd(
         ClientId parentClientId,
+        ProfileId profileId,
         String businessName,
-        String taxId
+        List<RelatedPersonData> relatedPersons
+    ) {}
+
+    record RelatedPersonData(
+        String name,
+        PersonRole role,
+        Email email,
+        Phone phone
     ) {}
 
     void addRelatedPerson(AddRelatedPersonCmd cmd);
@@ -22,15 +36,8 @@ public interface IndirectClientCommands {
     record AddRelatedPersonCmd(
         IndirectClientId indirectClientId,
         String name,
-        String role,
-        String email
-    ) {}
-
-    void updateBusinessInfo(UpdateBusinessInfoCmd cmd);
-
-    record UpdateBusinessInfoCmd(
-        IndirectClientId indirectClientId,
-        String businessName,
-        String taxId
+        PersonRole role,
+        Email email,
+        Phone phone
     ) {}
 }
