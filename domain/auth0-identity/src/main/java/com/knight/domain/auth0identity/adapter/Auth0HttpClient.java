@@ -59,14 +59,17 @@ public class Auth0HttpClient {
     }
 
     public <T> T getWithQueryParam(String uri, String paramName, String paramValue, Class<T> responseType) {
-        log.debug("GET {} with {}={}", uri, paramName, paramValue);
+        // Auth0 expects the email NOT to be URL-encoded in the query parameter
+        // Use URI.create to build the URI without additional encoding
+        String fullUri = uri + "?" + paramName + "=" + paramValue;
+        log.debug("GET {}", fullUri);
         T result = restClient.get()
-            .uri(uriBuilder -> uriBuilder.path(uri).queryParam(paramName, paramValue).build())
+            .uri(fullUri)
             .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenService.getManagementApiToken())
             .retrieve()
-            .onStatus(HttpStatusCode::isError, (request, response) -> handleError("GET", uri, response))
+            .onStatus(HttpStatusCode::isError, (request, response) -> handleError("GET", fullUri, response))
             .body(responseType);
-        log.debug("GET {} returned: {}", uri, result);
+        log.debug("GET {} returned: {}", fullUri, result);
         return result;
     }
 
