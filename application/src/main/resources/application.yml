@@ -101,3 +101,16 @@ auth0:
 # Platform Events
 kafka:
   platform-events-topic: ${KAFKA_PLATFORM_EVENTS_TOPIC:platform-events}
+
+# JWT Authentication Configuration
+jwt:
+  enabled: ${JWT_ENABLED:true}
+  entra:
+    enabled: ${JWT_ENTRA_ENABLED:true}
+    tenant-id: ${ENTRA_TENANT_ID:}
+    client-id: ${ENTRA_CLIENT_ID:}
+  portal:
+    enabled: ${JWT_PORTAL_ENABLED:true}
+    issuer: ${JWT_PORTAL_ISSUER:http://localhost:8081}
+    jwks-uri: ${JWT_PORTAL_JWKS_URI:http://localhost:8081/.well-known/jwks.json}
+    audience: knight-platform-api

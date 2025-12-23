@@ -6,7 +6,7 @@ import com.knight.portal.services.dto.ClientAccount;
 import com.knight.portal.services.dto.ClientDetail;
 import com.knight.portal.services.dto.ClientSearchResult;
 import com.knight.portal.services.dto.PageResult;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -21,10 +21,8 @@ public class ClientService {
     private final RestClient restClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public ClientService(@Value("${api.base-url:http://localhost:8080}") String baseUrl) {
-        this.restClient = RestClient.builder()
-                .baseUrl(baseUrl)
-                .build();
+    public ClientService(@Qualifier("apiRestClient") RestClient restClient) {
+        this.restClient = restClient;
     }
 
     /**

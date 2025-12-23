@@ -51,6 +51,8 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=local
       - API_URL=http://platform:8080
+      # JWT Configuration
+      - JWT_ISSUER=http://portal:8081
     depends_on:
       platform:
         condition: service_started
@@ -76,6 +78,14 @@ services:
       # Kafka Configuration
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - KAFKA_PLATFORM_EVENTS_TOPIC=${KAFKA_PLATFORM_EVENTS_TOPIC:-platform-events}
+      # JWT Configuration
+      - JWT_ENABLED=true
+      - JWT_ENTRA_ENABLED=true
+      - ENTRA_TENANT_ID=${ENTRA_TENANT_ID}
+      - ENTRA_CLIENT_ID=${ENTRA_CLIENT_ID}
+      - JWT_PORTAL_ENABLED=true
+      - JWT_PORTAL_ISSUER=http://portal:8081
+      - JWT_PORTAL_JWKS_URI=http://portal:8081/.well-known/jwks.json
     depends_on:
       sqlserver:
         condition: service_healthy

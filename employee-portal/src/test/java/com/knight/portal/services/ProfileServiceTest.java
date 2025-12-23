@@ -6,35 +6,27 @@ import com.knight.portal.services.dto.ProfileSummary;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 
 /**
  * Unit tests for ProfileService.
- * Tests REST client interactions using MockRestServiceServer.
+ * Tests DTO mapping and error handling.
  */
 @ExtendWith(MockitoExtension.class)
 class ProfileServiceTest {
 
     private ProfileService profileService;
-    private MockRestServiceServer mockServer;
 
     private static final String BASE_URL = "http://localhost:8080";
 
     @BeforeEach
     void setUp() {
-        RestClient.Builder builder = RestClient.builder().baseUrl(BASE_URL);
-        mockServer = MockRestServiceServer.bindTo(builder).build();
-        profileService = new ProfileService(BASE_URL);
+        RestClient restClient = RestClient.builder().baseUrl(BASE_URL).build();
+        profileService = new ProfileService(restClient);
     }
 
     // ==================== Get Client Profiles ====================
@@ -44,19 +36,17 @@ class ProfileServiceTest {
     class GetClientProfilesTests {
 
         @Test
-        @DisplayName("should get client profiles")
-        void shouldGetClientProfiles() {
-            // This is a simplified test - in real scenario we'd use MockRestServiceServer properly
-            // For now, we're just testing the service doesn't throw on construction
-            ProfileService service = new ProfileService("http://localhost:8080");
-            assertThat(service).isNotNull();
+        @DisplayName("should handle construction correctly")
+        void shouldHandleConstructionCorrectly() {
+            assertThat(profileService).isNotNull();
         }
 
         @Test
         @DisplayName("should return empty list on error")
         void shouldReturnEmptyListOnError() {
             // Test that errors are handled gracefully
-            ProfileService service = new ProfileService("http://invalid-host:9999");
+            RestClient restClient = RestClient.builder().baseUrl("http://invalid-host:9999").build();
+            ProfileService service = new ProfileService(restClient);
             List<ProfileSummary> profiles = service.getClientProfiles("srf:123");
 
             // Should return empty list, not throw
@@ -105,7 +95,8 @@ class ProfileServiceTest {
         @Test
         @DisplayName("should throw on API error")
         void shouldThrowOnApiError() {
-            ProfileService service = new ProfileService("http://invalid-host:9999");
+            RestClient restClient = RestClient.builder().baseUrl("http://invalid-host:9999").build();
+            ProfileService service = new ProfileService(restClient);
 
             CreateProfileRequest request = new CreateProfileRequest();
             request.setProfileType("SERVICING");

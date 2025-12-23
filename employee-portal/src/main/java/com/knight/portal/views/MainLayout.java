@@ -1,16 +1,19 @@
 package com.knight.portal.views;
 
+import com.knight.portal.model.UserInfo;
 import com.knight.portal.security.AuthenticatedUser;
 import com.knight.portal.views.components.Breadcrumb;
+import com.knight.portal.views.components.UserInfoDialog;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.menubar.MenuBar;
+import com.vaadin.flow.component.menubar.MenuBarVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -21,7 +24,7 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 
 /**
  * Main layout for the Employee Portal application.
- * Provides a header with application title, user information, and logout button.
+ * Provides a header with application title, user information dropdown, and navigation.
  * Uses Vaadin's AppLayout component for consistent page structure.
  */
 public class MainLayout extends AppLayout implements RouterLayout {
@@ -88,40 +91,93 @@ public class MainLayout extends AppLayout implements RouterLayout {
     }
 
     /**
-     * Create the user menu with display name and logout button.
+     * Create the user menu with dropdown containing About and Logout options.
      */
     private HorizontalLayout createUserMenu() {
         String displayName = authenticatedUser.getDisplayName();
+        UserInfo.AuthSource authSource = authenticatedUser.getAuthSource();
 
-        // User name display
+        // Create menu bar for dropdown
+        MenuBar menuBar = new MenuBar();
+        menuBar.addThemeVariants(MenuBarVariant.LUMO_TERTIARY_INLINE);
+
+        // Create the menu item with user icon and name
+        HorizontalLayout userDisplay = new HorizontalLayout();
+        userDisplay.setAlignItems(FlexComponent.Alignment.CENTER);
+        userDisplay.setSpacing(false);
+        userDisplay.addClassNames(LumoUtility.Gap.SMALL);
+
         Icon userIcon = VaadinIcon.USER.create();
         userIcon.addClassNames(LumoUtility.IconSize.SMALL);
 
         Span userName = new Span(displayName);
         userName.addClassNames(LumoUtility.FontWeight.MEDIUM);
 
-        HorizontalLayout userInfo = new HorizontalLayout(userIcon, userName);
-        userInfo.setAlignItems(FlexComponent.Alignment.CENTER);
-        userInfo.setSpacing(false);
-        userInfo.addClassNames(LumoUtility.Gap.SMALL);
+        Icon dropdownIcon = VaadinIcon.CHEVRON_DOWN_SMALL.create();
+        dropdownIcon.addClassNames(LumoUtility.IconSize.SMALL);
 
-        // Logout button
-        Button logoutButton = new Button("Logout", new Icon(VaadinIcon.SIGN_OUT));
-        logoutButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        logoutButton.addClickListener(e -> {
-            authenticatedUser.logout();
-        });
+        userDisplay.add(userIcon, userName, dropdownIcon);
 
-        // Combine user info and logout button
-        HorizontalLayout userMenu = new HorizontalLayout(userInfo, logoutButton);
-        userMenu.setAlignItems(FlexComponent.Alignment.CENTER);
-        userMenu.setSpacing(true);
-        userMenu.addClassNames(
-                LumoUtility.Gap.MEDIUM,
-                LumoUtility.Padding.Horizontal.MEDIUM
+        MenuItem userMenuItem = menuBar.addItem(userDisplay);
+
+        // Add submenu items
+        userMenuItem.getSubMenu().addItem(createAboutMenuItem(), e -> showAboutDialog());
+        userMenuItem.getSubMenu().addItem(createLogoutMenuItem(), e -> authenticatedUser.logout());
+
+        // Add auth source indicator (small text below menu)
+        Span authSourceLabel = new Span(authSource.getDisplayName());
+        authSourceLabel.addClassNames(
+                LumoUtility.FontSize.XXSMALL,
+                LumoUtility.TextColor.SECONDARY
         );
 
-        return userMenu;
+        // Wrap in layout
+        VerticalLayout userMenuLayout = new VerticalLayout(menuBar, authSourceLabel);
+        userMenuLayout.setSpacing(false);
+        userMenuLayout.setPadding(false);
+        userMenuLayout.setAlignItems(FlexComponent.Alignment.END);
+
+        HorizontalLayout wrapper = new HorizontalLayout(userMenuLayout);
+        wrapper.setAlignItems(FlexComponent.Alignment.CENTER);
+        wrapper.addClassNames(LumoUtility.Padding.Horizontal.MEDIUM);
+
+        return wrapper;
+    }
+
+    /**
+     * Create the About menu item with icon.
+     */
+    private HorizontalLayout createAboutMenuItem() {
+        Icon icon = VaadinIcon.INFO_CIRCLE.create();
+        icon.addClassNames(LumoUtility.IconSize.SMALL);
+        Span text = new Span("About / JWT Info");
+
+        HorizontalLayout layout = new HorizontalLayout(icon, text);
+        layout.setAlignItems(FlexComponent.Alignment.CENTER);
+        layout.setSpacing(true);
+        return layout;
+    }
+
+    /**
+     * Create the Logout menu item with icon.
+     */
+    private HorizontalLayout createLogoutMenuItem() {
+        Icon icon = VaadinIcon.SIGN_OUT.create();
+        icon.addClassNames(LumoUtility.IconSize.SMALL);
+        Span text = new Span("Logout");
+
+        HorizontalLayout layout = new HorizontalLayout(icon, text);
+        layout.setAlignItems(FlexComponent.Alignment.CENTER);
+        layout.setSpacing(true);
+        return layout;
+    }
+
+    /**
+     * Show the About dialog with user and JWT information.
+     */
+    private void showAboutDialog() {
+        UserInfoDialog dialog = new UserInfoDialog(authenticatedUser);
+        dialog.open();
     }
 
     /**

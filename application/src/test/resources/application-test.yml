@@ -28,6 +28,10 @@ spring:
   kafka:
     bootstrap-servers: localhost:9092
 
+# JWT disabled for tests (no authentication required)
+jwt:
+  enabled: false
+
 # Logging for Tests
 logging:
   level:

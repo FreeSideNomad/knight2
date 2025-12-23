@@ -6,7 +6,7 @@ import com.knight.portal.services.dto.AddUserRequest;
 import com.knight.portal.services.dto.AddUserResponse;
 import com.knight.portal.services.dto.ProfileUser;
 import com.knight.portal.services.dto.UserDetail;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -25,10 +25,8 @@ public class UserService {
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
 
-    public UserService(@Value("${api.base-url:http://localhost:8080}") String baseUrl) {
-        this.restClient = RestClient.builder()
-                .baseUrl(baseUrl)
-                .build();
+    public UserService(@Qualifier("apiRestClient") RestClient restClient) {
+        this.restClient = restClient;
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
     }

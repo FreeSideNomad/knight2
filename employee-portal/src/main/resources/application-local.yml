@@ -8,3 +8,13 @@ spring:
       ldif: classpath:ldap/test-users.ldif
       validation:
         enabled: false
+
+# JWT Configuration
+jwt:
+  issuer: ${JWT_ISSUER:http://localhost:8081}
+  audience: knight-platform-api
+  token-validity-seconds: 3600
+
+# API Configuration
+api:
+  base-url: ${API_URL:http://localhost:8080}

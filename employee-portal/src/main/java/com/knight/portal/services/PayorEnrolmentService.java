@@ -3,7 +3,7 @@ package com.knight.portal.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.knight.portal.services.dto.*;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
@@ -26,13 +26,11 @@ public class PayorEnrolmentService {
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
 
-    public PayorEnrolmentService(@Value("${api.base-url:http://localhost:8080}") String baseUrl) {
-        this.restClient = RestClient.builder()
-                .baseUrl(baseUrl)
-                .build();
-        this.webClient = WebClient.builder()
-                .baseUrl(baseUrl)
-                .build();
+    public PayorEnrolmentService(
+            @Qualifier("apiRestClient") RestClient restClient,
+            @Qualifier("apiWebClient") WebClient webClient) {
+        this.restClient = restClient;
+        this.webClient = webClient;
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
     }

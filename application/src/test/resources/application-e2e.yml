@@ -26,6 +26,10 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
+# JWT disabled for E2E tests (no authentication required)
+jwt:
+  enabled: false
+
 # Logging for E2E Tests
 logging:
   level:

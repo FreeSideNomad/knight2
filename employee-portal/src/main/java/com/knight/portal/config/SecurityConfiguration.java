@@ -28,9 +28,10 @@ public class SecurityConfiguration {
         // Set the authentication manager for LDAP authentication
         http.authenticationManager(authenticationManager);
 
-        // Allow actuator endpoints without authentication
+        // Allow public endpoints without authentication
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/**").permitAll()
+                .requestMatchers("/.well-known/**").permitAll()
         );
 
         // Configure Vaadin security with login view

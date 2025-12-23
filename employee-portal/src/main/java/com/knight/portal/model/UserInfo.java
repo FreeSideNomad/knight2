@@ -1,10 +1,11 @@
 package com.knight.portal.model;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 
 /**
- * User information extracted from LDAP authentication.
+ * User information extracted from authentication (LDAP or Gateway/Entra).
  */
 public record UserInfo(
         String username,
@@ -14,8 +15,38 @@ public record UserInfo(
         String lastName,
         String employeeId,
         String department,
-        Collection<String> roles
+        Collection<String> roles,
+        AuthSource authSource,
+        Map<String, Object> jwtClaims
 ) {
+    /**
+     * Authentication source.
+     */
+    public enum AuthSource {
+        LDAP("LDAP"),
+        GATEWAY_ENTRA("Entra ID (Gateway)"),
+        PORTAL_JWT("Portal JWT");
+
+        private final String displayName;
+
+        AuthSource(String displayName) {
+            this.displayName = displayName;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
+    }
+
+    /**
+     * Constructor for backward compatibility (LDAP users without JWT claims).
+     */
+    public UserInfo(String username, String email, String displayName,
+                    String firstName, String lastName, String employeeId,
+                    String department, Collection<String> roles) {
+        this(username, email, displayName, firstName, lastName, employeeId,
+             department, roles, AuthSource.LDAP, Map.of());
+    }
     /**
      * Get user initials for avatar display.
      */

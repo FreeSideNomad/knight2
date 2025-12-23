@@ -32,6 +32,10 @@ spring:
     consumer:
       auto-startup: false
 
+# JWT disabled for unit tests (no authentication required)
+jwt:
+  enabled: false
+
 # Logging for Tests
 logging:
   level:
