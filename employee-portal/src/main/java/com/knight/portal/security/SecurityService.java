@@ -1,85 +1,59 @@
 package com.knight.portal.security;
 
 import com.knight.portal.model.UserInfo;
-import com.vaadin.flow.server.VaadinServletRequest;
+import com.knight.portal.security.ldap.LdapAuthenticatedUser;
+import com.vaadin.flow.component.UI;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.stream.Collectors;
+
 /**
- * Service for accessing current user information in Vaadin views
+ * Service for accessing current user information from LDAP authentication.
  */
 @Service
 public class SecurityService {
 
     /**
-     * Get current authenticated user info
+     * Get current authenticated user info.
      */
     public UserInfo getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth instanceof JwtAuthenticationToken jwtAuth) {
-            return jwtAuth.getUserInfo();
+
+        if (auth != null && auth.getPrincipal() instanceof LdapAuthenticatedUser ldapUser) {
+            return new UserInfo(
+                    ldapUser.getUsername(),
+                    ldapUser.getEmail(),
+                    ldapUser.getDisplayName(),
+                    ldapUser.getFirstName(),
+                    ldapUser.getLastName(),
+                    ldapUser.getEmployeeId(),
+                    ldapUser.getDepartment(),
+                    ldapUser.getAuthorities().stream()
+                            .map(GrantedAuthority::getAuthority)
+                            .collect(Collectors.toSet())
+            );
         }
         return null;
     }
 
     /**
-     * Get current JWT token
-     */
-    public String getCurrentToken() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth instanceof JwtAuthenticationToken jwtAuth) {
-            return jwtAuth.getToken();
-        }
-        return null;
-    }
-
-    /**
-     * Check if user is authenticated
+     * Check if user is authenticated.
      */
     public boolean isAuthenticated() {
-        return getCurrentUser() != null;
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.isAuthenticated()
+                && !(auth instanceof AnonymousAuthenticationToken);
     }
 
     /**
-     * Get HTTP header value from current request
+     * Logout the current user.
      */
-    public String getHeader(String name) {
-        var request = VaadinServletRequest.getCurrent();
-        if (request != null) {
-            return request.getHeader(name);
-        }
-        return null;
-    }
-
-    /**
-     * Get all relevant auth headers as a map
-     */
-    public java.util.Map<String, String> getAuthHeaders() {
-        var headers = new java.util.LinkedHashMap<String, String>();
-        var request = VaadinServletRequest.getCurrent();
-
-        if (request != null) {
-            String[] headerNames = {
-                    "Authorization",
-                    "X-Auth-User-Id",
-                    "X-Auth-User-Email",
-                    "X-Auth-User-Name",
-                    "X-Auth-Session-Id"
-            };
-
-            for (String name : headerNames) {
-                String value = request.getHeader(name);
-                if (value != null) {
-                    // Truncate Authorization header for display
-                    if (name.equals("Authorization") && value.length() > 50) {
-                        value = value.substring(0, 50) + "...";
-                    }
-                    headers.put(name, value);
-                }
-            }
-        }
-
-        return headers;
+    public void logout() {
+        SecurityContextHolder.clearContext();
+        UI.getCurrent().getPage().setLocation("/login");
     }
 }

@@ -1,0 +1,14 @@
+# Production profile with Active Directory LDAP
+
+ldap:
+  ad:
+    domain: ${AD_DOMAIN}           # e.g., corp.knight.com
+    url: ${AD_LDAP_URL}            # e.g., ldaps://ad.corp.knight.com:636
+    root-dn: ${AD_ROOT_DN:}        # e.g., dc=corp,dc=knight,dc=com
+    search-filter: (sAMAccountName={0})
+
+logging:
+  level:
+    com.knight.portal: INFO
+    org.springframework.security: WARN
+    org.springframework.ldap: WARN

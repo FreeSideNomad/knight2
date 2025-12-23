@@ -4,16 +4,12 @@ server:
 spring:
   application:
     name: employee-portal
+  # Profile is set via SPRING_PROFILES_ACTIVE env var
+  # Use 'local' for dev, 'docker' for container, 'prod' for production
 
 # API backend configuration
 api:
   base-url: ${API_URL:http://localhost:8080}
-
-# JWT Configuration (tokens come from nginx gateway)
-jwt:
-  issuer: ${JWT_ISSUER:https://login.microsoftonline.com/common/v2.0}
-  audience: ${JWT_AUDIENCE:}
-  jwks-url: ${JWT_JWKS_URL:https://login.microsoftonline.com/common/discovery/v2.0/keys}
 
 # Vaadin configuration
 vaadin:
@@ -28,6 +24,7 @@ logging:
   level:
     com.knight.portal: DEBUG
     org.springframework.security: DEBUG
+    org.springframework.ldap: DEBUG
 
 # Actuator
 management:

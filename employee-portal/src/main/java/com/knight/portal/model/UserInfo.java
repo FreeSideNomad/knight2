@@ -1,76 +1,68 @@
 package com.knight.portal.model;
 
-import java.time.Instant;
-import java.util.Map;
+import java.util.Collection;
+import java.util.Set;
 
 /**
- * User information extracted from JWT token and headers
+ * User information extracted from LDAP authentication.
  */
 public record UserInfo(
-        String userId,
+        String username,
         String email,
-        String name,
-        String preferredUsername,
-        Instant tokenIssuedAt,
-        Instant tokenExpiresAt,
-        String issuer,
-        String audience,
-        String scope,
-        Map<String, Object> customClaims
+        String displayName,
+        String firstName,
+        String lastName,
+        String employeeId,
+        String department,
+        Collection<String> roles
 ) {
     /**
-     * Get display name with fallback to email
+     * Get user initials for avatar display.
+     */
+    public String getInitials() {
+        if (firstName != null && !firstName.isBlank() && lastName != null && !lastName.isBlank()) {
+            return (firstName.substring(0, 1) + lastName.substring(0, 1)).toUpperCase();
+        }
+        if (displayName != null && !displayName.isBlank()) {
+            String[] parts = displayName.split("\\s+");
+            if (parts.length >= 2) {
+                return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1)).toUpperCase();
+            }
+            return displayName.substring(0, Math.min(2, displayName.length())).toUpperCase();
+        }
+        if (username != null && !username.isBlank()) {
+            return username.substring(0, Math.min(2, username.length())).toUpperCase();
+        }
+        return "?";
+    }
+
+    /**
+     * Get display name with fallback to username or email.
      */
     public String getDisplayName() {
-        if (name != null && !name.isBlank()) {
-            return name;
+        if (displayName != null && !displayName.isBlank()) {
+            return displayName;
         }
-        if (preferredUsername != null && !preferredUsername.isBlank()) {
-            return preferredUsername;
+        if (firstName != null && lastName != null) {
+            return firstName + " " + lastName;
+        }
+        if (username != null && !username.isBlank()) {
+            return username;
         }
         return email != null ? email : "Unknown User";
     }
 
     /**
-     * Get user initials for avatar
+     * Check if user has a specific role.
      */
-    public String getInitials() {
-        String displayName = getDisplayName();
-        if (displayName == null || displayName.isBlank()) {
-            return "?";
-        }
-
-        String[] parts = displayName.split("\\s+");
-        if (parts.length >= 2) {
-            return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1)).toUpperCase();
-        }
-        return displayName.substring(0, Math.min(2, displayName.length())).toUpperCase();
+    public boolean hasRole(String role) {
+        return roles != null && roles.contains(role);
     }
 
     /**
-     * Get token lifetime in seconds
+     * Check if user has admin role.
      */
-    public long getTokenLifetimeSeconds() {
-        if (tokenIssuedAt != null && tokenExpiresAt != null) {
-            return tokenExpiresAt.getEpochSecond() - tokenIssuedAt.getEpochSecond();
-        }
-        return 0;
-    }
-
-    /**
-     * Get remaining token time in seconds
-     */
-    public long getRemainingSeconds() {
-        if (tokenExpiresAt != null) {
-            return tokenExpiresAt.getEpochSecond() - Instant.now().getEpochSecond();
-        }
-        return 0;
-    }
-
-    /**
-     * Check if token is expired
-     */
-    public boolean isTokenExpired() {
-        return getRemainingSeconds() <= 0;
+    public boolean isAdmin() {
+        return hasRole("ROLE_ADMINS");
     }
 }

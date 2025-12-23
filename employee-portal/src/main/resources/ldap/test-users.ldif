@@ -1,0 +1,87 @@
+# Root entry
+dn: dc=knight,dc=com
+objectclass: top
+objectclass: dcObject
+objectclass: organization
+o: Knight Corporation
+dc: knight
+
+# People organizational unit
+dn: ou=people,dc=knight,dc=com
+objectclass: top
+objectclass: organizationalUnit
+ou: people
+
+# Groups organizational unit
+dn: ou=groups,dc=knight,dc=com
+objectclass: top
+objectclass: organizationalUnit
+ou: groups
+
+# Admin user
+dn: uid=admin,ou=people,dc=knight,dc=com
+objectclass: top
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+cn: Admin User
+sn: User
+givenName: Admin
+uid: admin
+mail: admin@knight.com
+userPassword: admin123
+employeeNumber: EMP001
+department: IT
+
+# Regular user
+dn: uid=john.doe,ou=people,dc=knight,dc=com
+objectclass: top
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+cn: John Doe
+sn: Doe
+givenName: John
+uid: john.doe
+mail: john.doe@knight.com
+userPassword: password123
+employeeNumber: EMP002
+department: Operations
+
+# Manager user
+dn: uid=jane.smith,ou=people,dc=knight,dc=com
+objectclass: top
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+cn: Jane Smith
+sn: Smith
+givenName: Jane
+uid: jane.smith
+mail: jane.smith@knight.com
+userPassword: password123
+employeeNumber: EMP003
+department: Management
+
+# Admin group
+dn: cn=admins,ou=groups,dc=knight,dc=com
+objectclass: top
+objectclass: groupOfNames
+cn: admins
+member: uid=admin,ou=people,dc=knight,dc=com
+
+# Users group
+dn: cn=users,ou=groups,dc=knight,dc=com
+objectclass: top
+objectclass: groupOfNames
+cn: users
+member: uid=admin,ou=people,dc=knight,dc=com
+member: uid=john.doe,ou=people,dc=knight,dc=com
+member: uid=jane.smith,ou=people,dc=knight,dc=com
+
+# Managers group
+dn: cn=managers,ou=groups,dc=knight,dc=com
+objectclass: top
+objectclass: groupOfNames
+cn: managers
+member: uid=jane.smith,ou=people,dc=knight,dc=com

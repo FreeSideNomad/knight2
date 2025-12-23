@@ -1,0 +1,10 @@
+# Local development profile with embedded LDAP server
+
+spring:
+  ldap:
+    embedded:
+      base-dn: dc=knight,dc=com
+      port: 8389
+      ldif: classpath:ldap/test-users.ldif
+      validation:
+        enabled: false

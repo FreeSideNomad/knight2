@@ -2,7 +2,6 @@ package com.knight.portal.security;
 
 import com.knight.portal.model.UserInfo;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.server.VaadinServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -10,7 +9,7 @@ import java.util.Optional;
 
 /**
  * Service to access authenticated user information.
- * Delegates to SecurityService for JWT-based authentication.
+ * Delegates to SecurityService for LDAP-based authentication.
  */
 @Service
 @Slf4j
@@ -63,7 +62,7 @@ public class AuthenticatedUser {
     }
 
     /**
-     * Logout the current user by redirecting to the gateway logout endpoint.
+     * Logout the current user.
      */
     public void logout() {
         UI.getCurrent().getPage().setLocation("/logout");

@@ -24,8 +24,8 @@ services:
       - ENTRA_CLIENT_ID=${ENTRA_CLIENT_ID}
       - ENTRA_CLIENT_SECRET=${ENTRA_CLIENT_SECRET}
       - ENTRA_REDIRECT_URI=http://localhost:8000/oauth2/callback
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
       - SESSION_TTL_SECONDS=1200
       - SESSION_COOKIE_NAME=KNIGHT_SESSION
       - BACKEND_URL=http://portal:8081
@@ -49,13 +49,11 @@ services:
     ports:
       - "8001:8081"
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_PROFILES_ACTIVE=local
       - API_URL=http://platform:8080
-      - JWT_ISSUER=https://login.microsoftonline.com/${ENTRA_TENANT_ID}/v2.0
-      - JWT_AUDIENCE=api://${ENTRA_CLIENT_ID}
-      - JWT_JWKS_URL=https://login.microsoftonline.com/${ENTRA_TENANT_ID}/discovery/v2.0/keys
     depends_on:
-      - platform
+      platform:
+        condition: service_started
     networks:
       - knight-network
 

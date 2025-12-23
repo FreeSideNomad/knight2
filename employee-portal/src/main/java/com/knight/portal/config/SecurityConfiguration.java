@@ -1,40 +1,43 @@
 package com.knight.portal.config;
 
-import com.knight.portal.security.JwtAuthenticationFilter;
-import com.vaadin.flow.spring.security.VaadinWebSecurity;
+import com.knight.portal.views.LoginView;
+import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.SecurityFilterChain;
 
+/**
+ * Security configuration for LDAP authentication with Vaadin 24.9+.
+ * Uses VaadinSecurityConfigurer for Vaadin-specific security settings.
+ */
 @Configuration
 @EnableWebSecurity
-public class SecurityConfiguration extends VaadinWebSecurity {
+public class SecurityConfiguration {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final AuthenticationManager authenticationManager;
 
-    public SecurityConfiguration(JwtAuthenticationFilter jwtAuthenticationFilter) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    public SecurityConfiguration(AuthenticationManager authenticationManager) {
+        this.authenticationManager = authenticationManager;
     }
 
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
-        // Add JWT filter before username/password authentication
-        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-
-        // Session management - allow Vaadin sessions
-        http.sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
-
-        // CSRF is handled by nginx proxy
-        http.csrf(csrf -> csrf.disable());
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        // Set the authentication manager for LDAP authentication
+        http.authenticationManager(authenticationManager);
 
         // Allow actuator endpoints without authentication
-        http.authorizeHttpRequests(auth ->
-                auth.requestMatchers("/actuator/**").permitAll());
+        http.authorizeHttpRequests(auth -> auth
+                .requestMatchers("/actuator/**").permitAll()
+        );
 
-        // Apply Vaadin security defaults
-        super.configure(http);
+        // Configure Vaadin security with login view
+        http.with(VaadinSecurityConfigurer.vaadin(), configurer -> {
+            configurer.loginView(LoginView.class);
+        });
+
+        return http.build();
     }
 }
