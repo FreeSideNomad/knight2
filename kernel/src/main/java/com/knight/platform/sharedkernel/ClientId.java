@@ -14,11 +14,11 @@ public sealed interface ClientId permits BankClientId, IndirectClientId {
 
         if (urn.startsWith("srf:") || urn.startsWith("cdr:")) {
             return BankClientId.of(urn);
-        } else if (urn.startsWith("indirect:")) {
+        } else if (urn.startsWith("ind:")) {
             return IndirectClientId.fromUrn(urn);
         }
 
         throw new IllegalArgumentException(
-            "Invalid ClientId URN format. Expected prefixes: srf:, cdr:, or indirect:");
+            "Invalid ClientId URN format. Expected prefixes: srf:, cdr:, or ind:");
     }
 }

@@ -31,6 +31,11 @@ public class JwtProperties {
      */
     private PortalConfig portal = new PortalConfig();
 
+    /**
+     * Auth0 JWT configuration for external client authentication.
+     */
+    private Auth0Config auth0 = new Auth0Config();
+
     @Getter
     @Setter
     public static class EntraConfig {
@@ -86,5 +91,38 @@ public class JwtProperties {
          * Whether Portal JWT authentication is enabled.
          */
         private boolean enabled = true;
+    }
+
+    @Getter
+    @Setter
+    public static class Auth0Config {
+        /**
+         * Auth0 domain (e.g., "dbc-test.auth0.com").
+         */
+        private String domain;
+
+        /**
+         * Expected API audience for Auth0 tokens.
+         */
+        private String audience;
+
+        /**
+         * Whether Auth0 JWT authentication is enabled.
+         */
+        private boolean enabled = true;
+
+        /**
+         * Get the issuer URL for Auth0.
+         */
+        public String getIssuerUri() {
+            return "https://" + domain + "/";
+        }
+
+        /**
+         * Get the JWKS URI for Auth0.
+         */
+        public String getJwksUri() {
+            return "https://" + domain + "/.well-known/jwks.json";
+        }
     }
 }

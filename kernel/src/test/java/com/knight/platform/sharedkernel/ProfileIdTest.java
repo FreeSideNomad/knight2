@@ -35,13 +35,15 @@ class ProfileIdTest {
         }
 
         @Test
-        @DisplayName("Should create ProfileId with IndirectClientId")
+        @DisplayName("Should create ProfileId with IndirectClientId - profile_id matches client_id")
         void shouldCreateWithIndirectClientId() {
-            IndirectClientId indirectId = IndirectClientId.of(new SrfClientId("123456789"), 1);
-            ProfileId profileId = ProfileId.of("servicing", indirectId);
+            IndirectClientId indirectId = IndirectClientId.generate();
+            ProfileId profileId = ProfileId.of("indirect", indirectId);
 
             assertThat(profileId.clientId()).isEqualTo(indirectId);
-            assertThat(profileId.urn()).isEqualTo("servicing:indirect:srf:123456789:1");
+            // For indirect clients, profile_id matches client_id (ind:{UUID})
+            assertThat(profileId.urn()).isEqualTo(indirectId.urn());
+            assertThat(profileId.urn()).startsWith("ind:");
         }
 
         @Test
@@ -109,10 +111,12 @@ class ProfileIdTest {
         @Test
         @DisplayName("Should parse ProfileId from URN with IndirectClientId")
         void shouldParseFromUrnWithIndirectClientId() {
-            ProfileId profileId = ProfileId.fromUrn("servicing:indirect:srf:123456789:1");
+            IndirectClientId indirectId = IndirectClientId.generate();
+            ProfileId originalProfile = ProfileId.of("servicing", indirectId);
+            ProfileId profileId = ProfileId.fromUrn(originalProfile.urn());
 
             assertThat(profileId.clientId()).isInstanceOf(IndirectClientId.class);
-            assertThat(profileId.urn()).isEqualTo("servicing:indirect:srf:123456789:1");
+            assertThat(profileId.urn()).isEqualTo(originalProfile.urn());
         }
 
         @Test
@@ -292,28 +296,30 @@ class ProfileIdTest {
     }
 
     @Nested
-    @DisplayName("Complex Scenarios Tests")
-    class ComplexScenariosTests {
+    @DisplayName("UUID-based IndirectClientId Tests")
+    class UuidBasedIndirectClientIdTests {
 
         @Test
-        @DisplayName("Should handle ProfileId with nested IndirectClientId")
-        void shouldHandleNestedIndirectClientId() {
-            SrfClientId srfClientId = new SrfClientId("123456789");
-            IndirectClientId firstLevel = IndirectClientId.of(srfClientId, 1);
-            IndirectClientId secondLevel = IndirectClientId.of(firstLevel, 2);
-            ProfileId profileId = ProfileId.of("servicing", secondLevel);
+        @DisplayName("Should handle ProfileId with UUID-based IndirectClientId - profile_id matches client_id")
+        void shouldHandleUuidBasedIndirectClientId() {
+            IndirectClientId indirectId = IndirectClientId.generate();
+            ProfileId profileId = ProfileId.of("indirect", indirectId);
 
-            assertThat(profileId.urn()).isEqualTo("servicing:indirect:indirect:srf:123456789:1:2");
+            // For indirect clients, profile_id matches client_id (ind:{UUID})
+            assertThat(profileId.urn()).isEqualTo(indirectId.urn());
+            assertThat(profileId.urn()).startsWith("ind:");
+            assertThat(profileId.clientId()).isEqualTo(indirectId);
         }
 
         @Test
-        @DisplayName("Should parse ProfileId with nested IndirectClientId from URN")
-        void shouldParseNestedIndirectClientIdFromUrn() {
-            ProfileId profileId = ProfileId.fromUrn("servicing:indirect:indirect:srf:123456789:1:2");
+        @DisplayName("Should parse ProfileId with UUID-based IndirectClientId from URN")
+        void shouldParseUuidBasedIndirectClientIdFromUrn() {
+            IndirectClientId indirectId = IndirectClientId.generate();
+            ProfileId originalProfile = ProfileId.of("indirect", indirectId);
+            ProfileId parsedProfile = ProfileId.fromUrn(originalProfile.urn());
 
-            assertThat(profileId.clientId()).isInstanceOf(IndirectClientId.class);
-            IndirectClientId indirectId = (IndirectClientId) profileId.clientId();
-            assertThat(indirectId.clientId()).isInstanceOf(IndirectClientId.class);
+            assertThat(parsedProfile.clientId()).isInstanceOf(IndirectClientId.class);
+            assertThat(parsedProfile).isEqualTo(originalProfile);
         }
     }
 }

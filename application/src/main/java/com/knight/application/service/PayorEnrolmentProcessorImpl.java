@@ -65,9 +65,8 @@ public class PayorEnrolmentProcessorImpl implements PayorEnrolmentProcessor {
 
         ClientId parentClientId = sourceProfile.primaryClientId();
 
-        // 2. Generate next sequence for indirect client
-        int nextSequence = indirectClientRepository.getNextSequenceForClient(parentClientId);
-        IndirectClientId indirectClientId = IndirectClientId.of(parentClientId, nextSequence);
+        // 2. Generate UUID-based IndirectClientId
+        IndirectClientId indirectClientId = IndirectClientId.generate();
 
         // 3. Create IndirectClient first (linked to source online profile)
         IndirectClient indirectClient = IndirectClient.create(
@@ -109,7 +108,16 @@ public class PayorEnrolmentProcessorImpl implements PayorEnrolmentProcessor {
                 String firstName = nameParts[0];
                 String lastName = nameParts.length > 1 ? nameParts[1] : "";
 
+                // Generate loginId from email (everything before @)
+                String loginId = person.email().split("@")[0].replaceAll("[^a-zA-Z0-9_]", "_");
+                if (loginId.length() < 3) {
+                    loginId = loginId + "_user";
+                } else if (loginId.length() > 50) {
+                    loginId = loginId.substring(0, 50);
+                }
+
                 UserId userId = userCommands.createUser(new UserCommands.CreateUserCmd(
+                        loginId,
                         person.email(),
                         firstName,
                         lastName,
@@ -141,8 +149,8 @@ public class PayorEnrolmentProcessorImpl implements PayorEnrolmentProcessor {
     }
 
     @Override
-    public boolean existsByBusinessName(ProfileId profileId, String businessName) {
-        return indirectClientRepository.existsByProfileIdAndBusinessName(profileId, businessName);
+    public boolean existsByBusinessName(ProfileId parentProfileId, String name) {
+        return indirectClientRepository.existsByParentProfileIdAndName(parentProfileId, name);
     }
 
     @Override

@@ -541,11 +541,11 @@ class ProfileTest {
         @Test
         @DisplayName("should create indirect profile with correct ID format")
         void shouldCreateIndirectProfileWithCorrectIdFormat() {
-            IndirectClientId indirectClientId = IndirectClientId.of(PRIMARY_CLIENT_ID, 1);
+            IndirectClientId indirectClientId = IndirectClientId.generate();
 
             Profile profile = Profile.createIndirectProfile(indirectClientId, "Payor Profile", "admin");
 
-            assertThat(profile.profileId().urn()).isEqualTo("indirect:indirect:srf:123456789:1");
+            assertThat(profile.profileId().urn()).startsWith("ind:");
             assertThat(profile.profileType()).isEqualTo(ProfileType.INDIRECT);
             assertThat(profile.name()).isEqualTo("Payor Profile");
             assertThat(profile.createdBy()).isEqualTo("admin");
@@ -554,13 +554,13 @@ class ProfileTest {
         @Test
         @DisplayName("should enroll indirect client as primary")
         void shouldEnrollIndirectClientAsPrimary() {
-            IndirectClientId indirectClientId = IndirectClientId.of(PRIMARY_CLIENT_ID, 5);
+            IndirectClientId indirectClientId = IndirectClientId.generate();
 
             Profile profile = Profile.createIndirectProfile(indirectClientId, "Test", "admin");
 
             assertThat(profile.clientEnrollments()).hasSize(1);
             ClientEnrollment enrollment = profile.clientEnrollments().get(0);
-            assertThat(enrollment.clientId().urn()).isEqualTo("indirect:srf:123456789:5");
+            assertThat(enrollment.clientId().urn()).isEqualTo(indirectClientId.urn());
             assertThat(enrollment.isPrimary()).isTrue();
             assertThat(enrollment.accountEnrollmentType()).isEqualTo(AccountEnrollmentType.MANUAL);
         }
@@ -568,11 +568,11 @@ class ProfileTest {
         @Test
         @DisplayName("should return indirect client as primary client ID")
         void shouldReturnIndirectClientAsPrimaryClientId() {
-            IndirectClientId indirectClientId = IndirectClientId.of(PRIMARY_CLIENT_ID, 3);
+            IndirectClientId indirectClientId = IndirectClientId.generate();
 
             Profile profile = Profile.createIndirectProfile(indirectClientId, "Test", "admin");
 
-            assertThat(profile.primaryClientId().urn()).isEqualTo("indirect:srf:123456789:3");
+            assertThat(profile.primaryClientId().urn()).isEqualTo(indirectClientId.urn());
         }
     }
 

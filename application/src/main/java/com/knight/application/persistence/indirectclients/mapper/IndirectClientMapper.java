@@ -5,25 +5,26 @@ import com.knight.application.persistence.indirectclients.entity.RelatedPersonEn
 import com.knight.domain.indirectclients.aggregate.IndirectClient;
 import com.knight.domain.indirectclients.types.Email;
 import com.knight.domain.indirectclients.types.PersonId;
+import com.knight.domain.indirectclients.types.PersonRole;
 import com.knight.domain.indirectclients.types.Phone;
 import com.knight.platform.sharedkernel.ClientId;
 import com.knight.platform.sharedkernel.IndirectClientId;
 import com.knight.platform.sharedkernel.ProfileId;
 import org.springframework.stereotype.Component;
 
-import java.util.UUID;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class IndirectClientMapper {
 
     public IndirectClientEntity toEntity(IndirectClient domain) {
         IndirectClientEntity entity = new IndirectClientEntity();
-        entity.setId(UUID.randomUUID());  // Generate DB key
-        entity.setIndirectClientUrn(domain.id().urn());  // Domain ID as URN
+        entity.setClientId(domain.id().urn());  // ind:{UUID} as PK
         entity.setParentClientId(domain.parentClientId().urn());
-        entity.setProfileId(domain.profileId().urn());
+        entity.setParentProfileId(domain.parentProfileId().urn());
         entity.setClientType(domain.clientType().name());
-        entity.setBusinessName(domain.businessName());
+        entity.setName(domain.name());
         entity.setExternalReference(domain.externalReference());
         entity.setStatus(domain.status().name());
         entity.setCreatedAt(domain.createdAt());
@@ -45,6 +46,40 @@ public class IndirectClientMapper {
         return entity;
     }
 
-    // Note: toDomain would require reflection or a builder pattern since IndirectClient
-    // has a private constructor. For now, we'll handle reconstruction in the repository adapter.
+    public IndirectClient toDomain(IndirectClientEntity entity) {
+        IndirectClientId id = IndirectClientId.fromUrn(entity.getClientId());
+        ClientId parentClientId = ClientId.of(entity.getParentClientId());
+        ProfileId parentProfileId = ProfileId.fromUrn(entity.getParentProfileId());
+        IndirectClient.ClientType clientType = IndirectClient.ClientType.valueOf(entity.getClientType());
+        IndirectClient.Status status = IndirectClient.Status.valueOf(entity.getStatus());
+
+        List<IndirectClient.RelatedPerson> relatedPersons = entity.getRelatedPersons().stream()
+            .map(this::toRelatedPerson)
+            .collect(Collectors.toList());
+
+        return IndirectClient.reconstitute(
+            id,
+            parentClientId,
+            parentProfileId,
+            clientType,
+            entity.getName(),
+            entity.getExternalReference(),
+            status,
+            relatedPersons,
+            entity.getCreatedAt(),
+            "system",  // createdBy not stored in entity
+            entity.getUpdatedAt()
+        );
+    }
+
+    private IndirectClient.RelatedPerson toRelatedPerson(RelatedPersonEntity entity) {
+        return new IndirectClient.RelatedPerson(
+            PersonId.of(entity.getPersonId()),
+            entity.getName(),
+            PersonRole.valueOf(entity.getRole()),
+            entity.getEmail() != null ? Email.of(entity.getEmail()) : null,
+            entity.getPhone() != null ? Phone.of(entity.getPhone()) : null,
+            entity.getAddedAt()
+        );
+    }
 }

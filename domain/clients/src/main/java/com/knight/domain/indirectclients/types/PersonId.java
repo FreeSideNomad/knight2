@@ -20,6 +20,10 @@ public record PersonId(UUID value) {
         return new PersonId(UUID.fromString(value));
     }
 
+    public static PersonId of(UUID value) {
+        return new PersonId(value);
+    }
+
     @Override
     public String toString() {
         return value.toString();

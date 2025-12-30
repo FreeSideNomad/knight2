@@ -34,7 +34,7 @@ public class IndirectClientService {
     public List<IndirectClientSummary> getByParentClient(String clientId) {
         try {
             List<Map<String, Object>> response = restClient.get()
-                    .uri("/api/indirect-clients/by-client/{clientId}", clientId)
+                    .uri("/api/v1/bank/indirect-clients/by-client/{clientId}", clientId)
                     .retrieve()
                     .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {});
 
@@ -58,8 +58,8 @@ public class IndirectClientService {
         try {
             List<Map<String, Object>> response = restClient.get()
                     .uri(uriBuilder -> uriBuilder
-                        .path("/api/indirect-clients/by-profile")
-                        .queryParam("profileId", profileId)
+                        .path("/api/v1/bank/indirect-clients/by-profile")
+                        .queryParam("parentProfileId", profileId)
                         .build())
                     .retrieve()
                     .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {});
@@ -83,7 +83,7 @@ public class IndirectClientService {
     public IndirectClientDetail getDetail(String indirectClientId) {
         try {
             Map<String, Object> response = restClient.get()
-                    .uri("/api/indirect-clients/{id}", indirectClientId)
+                    .uri("/api/v1/bank/indirect-clients/{id}", indirectClientId)
                     .retrieve()
                     .body(new ParameterizedTypeReference<Map<String, Object>>() {});
 
@@ -104,7 +104,7 @@ public class IndirectClientService {
     public CreateIndirectClientResponse create(CreateIndirectClientRequest request) {
         try {
             return restClient.post()
-                    .uri("/api/indirect-clients")
+                    .uri("/api/v1/bank/indirect-clients")
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(request)
                     .retrieve()
@@ -121,7 +121,7 @@ public class IndirectClientService {
     public void addRelatedPerson(String indirectClientId, RelatedPersonRequest request) {
         try {
             restClient.post()
-                    .uri("/api/indirect-clients/{id}/persons", indirectClientId)
+                    .uri("/api/v1/bank/indirect-clients/{id}/persons", indirectClientId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(request)
                     .retrieve()
@@ -138,7 +138,7 @@ public class IndirectClientService {
     public void updateRelatedPerson(String indirectClientId, String personId, RelatedPersonRequest request) {
         try {
             restClient.put()
-                    .uri("/api/indirect-clients/{id}/persons/{personId}", indirectClientId, personId)
+                    .uri("/api/v1/bank/indirect-clients/{id}/persons/{personId}", indirectClientId, personId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(request)
                     .retrieve()
@@ -155,7 +155,7 @@ public class IndirectClientService {
     public void removeRelatedPerson(String indirectClientId, String personId) {
         try {
             restClient.delete()
-                    .uri("/api/indirect-clients/{id}/persons/{personId}", indirectClientId, personId)
+                    .uri("/api/v1/bank/indirect-clients/{id}/persons/{personId}", indirectClientId, personId)
                     .retrieve()
                     .toBodilessEntity();
         } catch (Exception e) {
@@ -170,7 +170,7 @@ public class IndirectClientService {
     public IndirectClientDetail.OfiAccount addOfiAccount(String indirectClientId, AddOfiAccountRequest request) {
         try {
             Map<String, Object> response = restClient.post()
-                    .uri("/api/indirect-clients/{id}/accounts", indirectClientId)
+                    .uri("/api/v1/bank/indirect-clients/{id}/accounts", indirectClientId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(request)
                     .retrieve()
@@ -192,7 +192,7 @@ public class IndirectClientService {
     public List<IndirectClientDetail.OfiAccount> getOfiAccounts(String indirectClientId) {
         try {
             List<Map<String, Object>> response = restClient.get()
-                    .uri("/api/indirect-clients/{id}/accounts", indirectClientId)
+                    .uri("/api/v1/bank/indirect-clients/{id}/accounts", indirectClientId)
                     .retrieve()
                     .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {});
 
@@ -215,7 +215,7 @@ public class IndirectClientService {
     public void deactivateOfiAccount(String indirectClientId, String accountId) {
         try {
             restClient.delete()
-                    .uri("/api/indirect-clients/{id}/accounts/{accountId}", indirectClientId, accountId)
+                    .uri("/api/v1/bank/indirect-clients/{id}/accounts/{accountId}", indirectClientId, accountId)
                     .retrieve()
                     .toBodilessEntity();
         } catch (Exception e) {

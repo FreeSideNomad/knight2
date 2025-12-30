@@ -41,8 +41,11 @@ public class UserRepositoryAdapter implements UserRepository {
             entity.setPasswordSet(user.passwordSet());
             entity.setMfaEnrolled(user.mfaEnrolled());
             entity.setLastSyncedAt(user.lastSyncedAt());
+            entity.setLastLoggedInAt(user.lastLoggedInAt());
             entity.setStatus(user.status().name());
-            entity.setLockReason(user.lockReason());
+            entity.setLockType(user.lockType().name());
+            entity.setLockedBy(user.lockedBy());
+            entity.setLockedAt(user.lockedAt());
             entity.setDeactivationReason(user.deactivationReason());
             entity.setUpdatedAt(user.updatedAt());
 

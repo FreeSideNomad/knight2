@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -24,7 +23,7 @@ class ClientAccountTest {
         "12345:123456789012"
     );
     private static final Currency TEST_CURRENCY = Currency.CAD;
-    private static final UUID TEST_INDIRECT_CLIENT_ID = UUID.randomUUID();
+    private static final String TEST_INDIRECT_CLIENT_ID = "ind:12345678-1234-1234-1234-123456789012";
 
     @Nested
     @DisplayName("create() - regular bank account")

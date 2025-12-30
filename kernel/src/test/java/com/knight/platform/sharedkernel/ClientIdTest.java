@@ -224,12 +224,13 @@ class ClientIdTest {
         }
 
         @Test
-        @DisplayName("Should create IndirectClientId from indirect: URN")
+        @DisplayName("Should create IndirectClientId from ind: URN")
         void shouldCreateIndirectClientId() {
-            ClientId clientId = ClientId.of("indirect:srf:123456789:1");
+            IndirectClientId indirectId = IndirectClientId.generate();
+            ClientId clientId = ClientId.of(indirectId.urn());
 
             assertThat(clientId).isInstanceOf(IndirectClientId.class);
-            assertThat(clientId.urn()).isEqualTo("indirect:srf:123456789:1");
+            assertThat(clientId.urn()).isEqualTo(indirectId.urn());
         }
 
         @Test
@@ -245,7 +246,7 @@ class ClientIdTest {
         void shouldThrowWhenUrnHasInvalidPrefix() {
             assertThatThrownBy(() -> ClientId.of("unknown:123456"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Invalid ClientId URN format. Expected prefixes: srf:, cdr:, or indirect:");
+                .hasMessage("Invalid ClientId URN format. Expected prefixes: srf:, cdr:, or ind:");
         }
     }
 }

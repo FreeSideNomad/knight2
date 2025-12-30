@@ -8,6 +8,7 @@ import java.util.Set;
  */
 public record UserCreated(
     String userId,
+    String loginId,
     String email,
     String firstName,
     String lastName,

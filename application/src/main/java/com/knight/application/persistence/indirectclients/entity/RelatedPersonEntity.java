@@ -20,7 +20,7 @@ public class RelatedPersonEntity {
     private UUID personId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "indirect_client_id", nullable = false)
+    @JoinColumn(name = "indirect_client_id", referencedColumnName = "client_id", nullable = false)
     private IndirectClientEntity indirectClient;
 
     @Column(name = "name", nullable = false, length = 255)

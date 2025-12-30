@@ -113,7 +113,7 @@ class PermissionPolicyControllerE2ETest {
         @Test
         @DisplayName("should return empty list when no policies exist")
         void shouldReturnEmptyListWhenNoPolicies() throws Exception {
-            mockMvc.perform(get("/api/profiles/{profileId}/permission-policies", profileId.urn()))
+            mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/permission-policies", profileId.urn()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$").isArray())
@@ -134,13 +134,13 @@ class PermissionPolicyControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles/{profileId}/permission-policies", profileId.urn())
+            mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/permission-policies", profileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andExpect(status().isCreated());
 
             // List policies
-            mockMvc.perform(get("/api/profiles/{profileId}/permission-policies", profileId.urn()))
+            mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/permission-policies", profileId.urn()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].action").value("payments.*"))
@@ -155,7 +155,7 @@ class PermissionPolicyControllerE2ETest {
         @Test
         @DisplayName("should return 404 when policy not found")
         void shouldReturn404WhenPolicyNotFound() throws Exception {
-            mockMvc.perform(get("/api/profiles/{profileId}/permission-policies/{policyId}",
+            mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/permission-policies/{policyId}",
                     profileId.urn(), "00000000-0000-0000-0000-000000000000"))
                 .andExpect(status().isNotFound());
         }
@@ -174,7 +174,7 @@ class PermissionPolicyControllerE2ETest {
                 }
                 """;
 
-            MvcResult createResult = mockMvc.perform(post("/api/profiles/{profileId}/permission-policies", profileId.urn())
+            MvcResult createResult = mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/permission-policies", profileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andExpect(status().isCreated())
@@ -184,7 +184,7 @@ class PermissionPolicyControllerE2ETest {
             String policyId = created.get("id").asText();
 
             // Get the policy
-            mockMvc.perform(get("/api/profiles/{profileId}/permission-policies/{policyId}",
+            mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/permission-policies/{policyId}",
                     profileId.urn(), policyId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(policyId))
@@ -206,7 +206,7 @@ class PermissionPolicyControllerE2ETest {
                 }
                 """;
 
-            MvcResult createResult = mockMvc.perform(post("/api/profiles/{profileId}/permission-policies", profileId.urn())
+            MvcResult createResult = mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/permission-policies", profileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andExpect(status().isCreated())
@@ -216,7 +216,7 @@ class PermissionPolicyControllerE2ETest {
             String policyId = created.get("id").asText();
 
             // Try to get with wrong profile ID
-            mockMvc.perform(get("/api/profiles/{profileId}/permission-policies/{policyId}",
+            mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/permission-policies/{policyId}",
                     "servicing:srf:999999999", policyId))
                 .andExpect(status().isNotFound());
         }
@@ -239,7 +239,7 @@ class PermissionPolicyControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles/{profileId}/permission-policies", profileId.urn())
+            mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/permission-policies", profileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andExpect(status().isCreated())
@@ -267,7 +267,7 @@ class PermissionPolicyControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles/{profileId}/permission-policies", profileId.urn())
+            mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/permission-policies", profileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andExpect(status().isCreated())
@@ -293,7 +293,7 @@ class PermissionPolicyControllerE2ETest {
                 }
                 """;
 
-            MvcResult createResult = mockMvc.perform(post("/api/profiles/{profileId}/permission-policies", profileId.urn())
+            MvcResult createResult = mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/permission-policies", profileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andExpect(status().isCreated())
@@ -313,7 +313,7 @@ class PermissionPolicyControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(put("/api/profiles/{profileId}/permission-policies/{policyId}",
+            mockMvc.perform(put("/api/v1/bank/profiles/{profileId}/permission-policies/{policyId}",
                     profileId.urn(), policyId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(updateRequest))
@@ -334,7 +334,7 @@ class PermissionPolicyControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(put("/api/profiles/{profileId}/permission-policies/{policyId}",
+            mockMvc.perform(put("/api/v1/bank/profiles/{profileId}/permission-policies/{policyId}",
                     profileId.urn(), "00000000-0000-0000-0000-000000000000")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(updateRequest))
@@ -360,7 +360,7 @@ class PermissionPolicyControllerE2ETest {
                 }
                 """;
 
-            MvcResult createResult = mockMvc.perform(post("/api/profiles/{profileId}/permission-policies", profileId.urn())
+            MvcResult createResult = mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/permission-policies", profileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andExpect(status().isCreated())
@@ -370,12 +370,12 @@ class PermissionPolicyControllerE2ETest {
             String policyId = created.get("id").asText();
 
             // Delete the policy
-            mockMvc.perform(delete("/api/profiles/{profileId}/permission-policies/{policyId}",
+            mockMvc.perform(delete("/api/v1/bank/profiles/{profileId}/permission-policies/{policyId}",
                     profileId.urn(), policyId))
                 .andExpect(status().isNoContent());
 
             // Verify it's deleted
-            mockMvc.perform(get("/api/profiles/{profileId}/permission-policies/{policyId}",
+            mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/permission-policies/{policyId}",
                     profileId.urn(), policyId))
                 .andExpect(status().isNotFound());
         }
@@ -383,7 +383,7 @@ class PermissionPolicyControllerE2ETest {
         @Test
         @DisplayName("should return 404 when deleting non-existent policy")
         void shouldReturn404WhenDeletingNonExistentPolicy() throws Exception {
-            mockMvc.perform(delete("/api/profiles/{profileId}/permission-policies/{policyId}",
+            mockMvc.perform(delete("/api/v1/bank/profiles/{profileId}/permission-policies/{policyId}",
                     profileId.urn(), "00000000-0000-0000-0000-000000000000"))
                 .andExpect(status().isNotFound());
         }
@@ -403,7 +403,7 @@ class PermissionPolicyControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles/{profileId}/authorize", profileId.urn())
+            mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/authorize", profileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(request))
                 .andExpect(status().isBadRequest())
@@ -425,7 +425,7 @@ class PermissionPolicyControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles/{profileId}/permission-policies", profileId.urn())
+            mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/permission-policies", profileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andExpect(status().isCreated());
@@ -438,7 +438,7 @@ class PermissionPolicyControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles/{profileId}/authorize", profileId.urn())
+            mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/authorize", profileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(request)
                     .header("X-User-Id", "550e8400-e29b-41d4-a716-446655440000")
@@ -455,7 +455,7 @@ class PermissionPolicyControllerE2ETest {
         @Test
         @DisplayName("should return 400 when missing roles header")
         void shouldReturn400WhenMissingRolesHeader() throws Exception {
-            mockMvc.perform(get("/api/profiles/{profileId}/users/{userId}/permissions",
+            mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/users/{userId}/permissions",
                     profileId.urn(), "550e8400-e29b-41d4-a716-446655440000"))
                 .andExpect(status().isBadRequest());
         }
@@ -474,13 +474,13 @@ class PermissionPolicyControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles/{profileId}/permission-policies", profileId.urn())
+            mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/permission-policies", profileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andExpect(status().isCreated());
 
             // Get permissions
-            mockMvc.perform(get("/api/profiles/{profileId}/users/{userId}/permissions",
+            mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/users/{userId}/permissions",
                     profileId.urn(), "550e8400-e29b-41d4-a716-446655440000")
                     .header("X-User-Roles", "USER,VIEWER"))
                 .andExpect(status().isOk())

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - Auth Gateway</title>
+    <link rel="stylesheet" href="/login/css/styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="logo">
+                <div class="logo-icon">AG</div>
+                <span>Auth Gateway</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="login-card">
+            <!-- Screen 1: Email Entry -->
+            <div id="screen-email" class="screen active">
+                <div class="login-card-header">
+                    <h1>Sign in</h1>
+                    <p>Enter your email to continue</p>
+                </div>
+                <div class="login-card-body">
+                    <div id="email-error" class="message message-error" style="display: none;"></div>
+
+                    <form id="email-form">
+                        <div class="form-group">
+                            <label for="email" class="form-label">Email address</label>
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                class="form-input"
+                                placeholder="name@company.com"
+                                required
+                                autocomplete="email"
+                                autofocus
+                            >
+                        </div>
+                        <button type="submit" id="email-submit" class="btn btn-primary">
+                            <span class="btn-text">Continue</span>
+                            <span class="spinner" style="display: none;"></span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Screen 2: OTP Verification (New Users) -->
+            <div id="screen-otp" class="screen">
+                <div class="login-card-header">
+                    <h1>Check your email</h1>
+                    <p>We sent a verification code to <strong id="otp-email"></strong></p>
+                </div>
+                <div class="login-card-body">
+                    <div id="otp-error" class="message message-error" style="display: none;"></div>
+                    <div id="otp-success" class="message message-success" style="display: none;"></div>
+
+                    <form id="otp-form">
+                        <div class="form-group">
+                            <label class="form-label">Enter 6-digit code</label>
+                            <div class="otp-container">
+                                <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="0">
+                                <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="1">
+                                <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="2">
+                                <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="3">
+                                <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="4">
+                                <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="5">
+                            </div>
+                        </div>
+                        <button type="submit" id="otp-submit" class="btn btn-primary">
+                            <span class="btn-text">Verify</span>
+                            <span class="spinner" style="display: none;"></span>
+                        </button>
+                    </form>
+
+                    <div class="countdown">
+                        Code expires in <strong id="otp-countdown">5:00</strong>
+                    </div>
+
+                    <div class="help-link">
+                        <a href="#" id="resend-code">Didn't receive the code? Resend</a>
+                    </div>
+                    <div class="help-link">
+                        <a href="#" id="change-email">Use a different email</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 3: Password Setup (New Users) -->
+            <div id="screen-password" class="screen">
+                <div class="login-card-header">
+                    <h1>Create your password</h1>
+                    <p>Set a secure password for your account</p>
+                </div>
+                <div class="login-card-body">
+                    <div id="password-error" class="message message-error" style="display: none;"></div>
+
+                    <form id="password-form">
+                        <div class="form-group">
+                            <label for="password" class="form-label">Password</label>
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                class="form-input"
+                                placeholder="Enter password"
+                                required
+                                autocomplete="new-password"
+                                minlength="12"
+                            >
+                            <p class="form-hint">At least 12 characters with uppercase, lowercase, numbers, and special character (!@#$%)</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirm-password" class="form-label">Confirm Password</label>
+                            <input
+                                type="password"
+                                id="confirm-password"
+                                name="confirm-password"
+                                class="form-input"
+                                placeholder="Confirm password"
+                                required
+                                autocomplete="new-password"
+                            >
+                        </div>
+                        <button type="submit" id="password-submit" class="btn btn-primary">
+                            <span class="btn-text">Create Account</span>
+                            <span class="spinner" style="display: none;"></span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Screen 4: MFA Method Selection (Guardian only) -->
+            <div id="screen-mfa-select" class="screen">
+                <div class="login-card-header">
+                    <h1>Set up Auth0 Guardian</h1>
+                    <p>Secure your account with push notifications</p>
+                </div>
+                <div class="login-card-body">
+                    <div id="mfa-select-error" class="message message-error" style="display: none;"></div>
+
+                    <div class="mfa-options">
+                        <button type="button" id="select-guardian" class="mfa-option-btn">
+                            <div class="mfa-option-icon">📱</div>
+                            <div class="mfa-option-content">
+                                <div class="mfa-option-title">Auth0 Guardian</div>
+                                <div class="mfa-option-desc">Approve login with a push notification on your phone</div>
+                            </div>
+                        </button>
+                    </div>
+
+                    <p style="margin-top: var(--spacing-lg); font-size: 0.85rem; color: var(--color-text-muted); text-align: center;">
+                        Download the Auth0 Guardian app from the App Store or Google Play
+                    </p>
+                </div>
+            </div>
+
+            <!-- Screen 5: TOTP Enrollment -->
+            <div id="screen-mfa-totp" class="screen">
+                <div class="login-card-header">
+                    <h1>Set up Authenticator App</h1>
+                    <p>Scan the QR code with your authenticator app</p>
+                </div>
+                <div class="login-card-body">
+                    <div id="mfa-totp-error" class="message message-error" style="display: none;"></div>
+
+                    <div id="mfa-qr-container" style="text-align: center; margin-bottom: var(--spacing-lg);">
+                        <div id="mfa-qr-code" style="display: inline-block; padding: var(--spacing-md); background: white; border-radius: 8px;"></div>
+                        <p style="margin-top: var(--spacing-sm); font-size: 0.85rem; color: var(--color-text-muted);">
+                            Use Google Authenticator, Authy, or any TOTP app
+                        </p>
+                    </div>
+
+                    <div id="mfa-secret-container" style="margin-bottom: var(--spacing-lg); text-align: center;">
+                        <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: var(--spacing-xs);">
+                            Can't scan? Enter this code manually:
+                        </p>
+                        <code id="mfa-secret" style="font-family: monospace; font-size: 0.9rem; background: var(--color-bg-secondary); padding: var(--spacing-xs) var(--spacing-sm); border-radius: 4px; word-break: break-all;"></code>
+                    </div>
+
+                    <form id="mfa-totp-form">
+                        <div class="form-group">
+                            <label class="form-label">Enter 6-digit code from your app</label>
+                            <div class="otp-container" id="mfa-otp-container">
+                                <input type="text" class="otp-input mfa-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="0">
+                                <input type="text" class="otp-input mfa-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="1">
+                                <input type="text" class="otp-input mfa-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="2">
+                                <input type="text" class="otp-input mfa-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="3">
+                                <input type="text" class="otp-input mfa-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="4">
+                                <input type="text" class="otp-input mfa-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="5">
+                            </div>
+                        </div>
+                        <button type="submit" id="mfa-totp-submit" class="btn btn-primary">
+                            <span class="btn-text">Verify &amp; Complete Setup</span>
+                            <span class="spinner" style="display: none;"></span>
+                        </button>
+                    </form>
+
+                    <div class="help-link" style="margin-top: var(--spacing-md);">
+                        <a href="#" id="mfa-back-to-select">Choose a different method</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 6: Guardian Enrollment -->
+            <div id="screen-mfa-guardian" class="screen">
+                <div class="login-card-header">
+                    <h1>Set up Auth0 Guardian</h1>
+                    <p>Scan the QR code with the Auth0 Guardian app</p>
+                </div>
+                <div class="login-card-body">
+                    <div id="mfa-guardian-error" class="message message-error" style="display: none;"></div>
+
+                    <div id="guardian-qr-container" style="text-align: center; margin-bottom: var(--spacing-lg);">
+                        <div id="guardian-qr-code" style="display: inline-block; padding: var(--spacing-md); background: white; border-radius: 8px;"></div>
+                        <p style="margin-top: var(--spacing-sm); font-size: 0.85rem; color: var(--color-text-muted);">
+                            Download Auth0 Guardian from the App Store or Google Play
+                        </p>
+                    </div>
+
+                    <div style="text-align: center; margin-bottom: var(--spacing-lg);">
+                        <p style="font-size: 0.9rem; color: var(--color-text-muted);">
+                            After scanning, approve the enrollment request in the Guardian app
+                        </p>
+                    </div>
+
+                    <div id="guardian-waiting" style="text-align: center;">
+                        <div class="spinner" style="display: inline-block; margin-bottom: var(--spacing-sm);"></div>
+                        <p id="guardian-status">Waiting for enrollment...</p>
+                    </div>
+
+                    <div class="help-link" style="margin-top: var(--spacing-md);">
+                        <a href="#" id="guardian-back-to-select">Choose a different method</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 7: Password Login (Returning Users) -->
+            <div id="screen-login" class="screen">
+                <div class="login-card-header">
+                    <h1>Welcome back</h1>
+                    <p>Enter your password to continue</p>
+                </div>
+                <div class="login-card-body">
+                    <div id="login-error" class="message message-error" style="display: none;"></div>
+
+                    <div class="user-info" style="background: var(--gray-50); padding: var(--spacing-md); border-radius: var(--radius-md); margin-bottom: var(--spacing-lg); display: flex; align-items: center; gap: var(--spacing-md);">
+                        <div style="width: 40px; height: 40px; background: var(--rbc-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">
+                            <span id="login-user-initial">U</span>
+                        </div>
+                        <div>
+                            <div id="login-user-email" style="font-weight: 500; color: var(--gray-900);"></div>
+                            <a href="#" id="login-change-user" style="font-size: 0.85rem; color: var(--rbc-blue);">Not you?</a>
+                        </div>
+                    </div>
+
+                    <form id="login-form">
+                        <div class="form-group">
+                            <label for="login-password" class="form-label">Password</label>
+                            <input
+                                type="password"
+                                id="login-password"
+                                name="password"
+                                class="form-input"
+                                placeholder="Enter your password"
+                                required
+                                autocomplete="current-password"
+                            >
+                        </div>
+                        <button type="submit" id="login-submit" class="btn btn-primary">
+                            <span class="btn-text">Sign In</span>
+                            <span class="spinner" style="display: none;"></span>
+                        </button>
+                    </form>
+
+                    <div class="help-link">
+                        <a href="#" id="forgot-password">Forgot password?</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 8: CIBA - Guardian Push Login (Returning Users with Guardian) -->
+            <div id="screen-ciba" class="screen">
+                <div class="login-card-header">
+                    <h1>Approve sign in</h1>
+                    <p>Check your Guardian app for a push notification</p>
+                </div>
+                <div class="login-card-body">
+                    <div id="ciba-error" class="message message-error" style="display: none;"></div>
+
+                    <div class="user-info" style="background: var(--gray-50); padding: var(--spacing-md); border-radius: var(--radius-md); margin-bottom: var(--spacing-lg); display: flex; align-items: center; gap: var(--spacing-md);">
+                        <div style="width: 40px; height: 40px; background: var(--rbc-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">
+                            <span id="ciba-user-initial">U</span>
+                        </div>
+                        <div>
+                            <div id="ciba-user-email" style="font-weight: 500; color: var(--gray-900);"></div>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; padding: var(--spacing-xl) 0;">
+                        <div style="font-size: 4rem; margin-bottom: var(--spacing-lg);">📱</div>
+                        <div class="spinner" style="display: inline-block; margin-bottom: var(--spacing-md);"></div>
+                        <p id="ciba-status" style="color: var(--gray-600);">Waiting for approval...</p>
+                        <p style="font-size: 0.85rem; color: var(--gray-500); margin-top: var(--spacing-sm);">
+                            You should see "Click approve to sign in to the DEMO app" in Guardian
+                        </p>
+                    </div>
+
+                    <div class="help-link">
+                        <a href="#" id="ciba-use-password">Use password instead</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 9: MFA Challenge - Method Selection (Returning Users) -->
+            <div id="screen-mfa-challenge-select" class="screen">
+                <div class="login-card-header">
+                    <h1>Verify your identity</h1>
+                    <p>Choose how to verify</p>
+                </div>
+                <div class="login-card-body">
+                    <div id="mfa-challenge-select-error" class="message message-error" style="display: none;"></div>
+
+                    <div class="mfa-options" id="mfa-challenge-options">
+                        <!-- Options populated dynamically based on enrolled authenticators -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 9: MFA Challenge - TOTP (Returning Users) -->
+            <div id="screen-mfa-challenge-totp" class="screen">
+                <div class="login-card-header">
+                    <h1>Enter verification code</h1>
+                    <p>Enter the code from your authenticator app</p>
+                </div>
+                <div class="login-card-body">
+                    <div id="mfa-challenge-totp-error" class="message message-error" style="display: none;"></div>
+
+                    <form id="mfa-challenge-totp-form">
+                        <div class="form-group">
+                            <label class="form-label">6-digit code</label>
+                            <div class="otp-container" id="mfa-challenge-otp-container">
+                                <input type="text" class="otp-input mfa-challenge-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="0">
+                                <input type="text" class="otp-input mfa-challenge-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="1">
+                                <input type="text" class="otp-input mfa-challenge-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="2">
+                                <input type="text" class="otp-input mfa-challenge-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="3">
+                                <input type="text" class="otp-input mfa-challenge-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="4">
+                                <input type="text" class="otp-input mfa-challenge-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="5">
+                            </div>
+                        </div>
+                        <button type="submit" id="mfa-challenge-totp-submit" class="btn btn-primary">
+                            <span class="btn-text">Verify</span>
+                            <span class="spinner" style="display: none;"></span>
+                        </button>
+                    </form>
+
+                    <div class="help-link" id="mfa-challenge-totp-back" style="display: none;">
+                        <a href="#" id="mfa-challenge-back-to-select">Use a different method</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 10: MFA Challenge - Guardian Push (Returning Users) -->
+            <div id="screen-mfa-challenge-guardian" class="screen">
+                <div class="login-card-header">
+                    <h1>Approve sign in</h1>
+                    <p>Check your Guardian app for a push notification</p>
+                </div>
+                <div class="login-card-body">
+                    <div id="mfa-challenge-guardian-error" class="message message-error" style="display: none;"></div>
+
+                    <div style="text-align: center; padding: var(--spacing-xl) 0;">
+                        <div style="font-size: 4rem; margin-bottom: var(--spacing-lg);">📱</div>
+                        <div class="spinner" style="display: inline-block; margin-bottom: var(--spacing-md);"></div>
+                        <p id="guardian-challenge-status" style="color: var(--gray-600);">Waiting for approval...</p>
+                    </div>
+
+                    <div class="help-link" id="mfa-challenge-guardian-back" style="display: none;">
+                        <a href="#" id="guardian-challenge-back-to-select">Use a different method</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 11: Success -->
+            <div id="screen-success" class="screen">
+                <div class="login-card-header">
+                    <h1>Success!</h1>
+                    <p id="success-message">You're being redirected...</p>
+                </div>
+                <div class="login-card-body" style="text-align: center;">
+                    <div style="font-size: 4rem; margin-bottom: var(--spacing-lg);">&#10003;</div>
+                    <p>Please wait while we complete your setup...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2024 Auth Gateway. <a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a></p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="/login/js/app.js"></script>
+</body>
+</html>

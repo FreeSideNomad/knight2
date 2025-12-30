@@ -21,6 +21,9 @@ public class UserEntity {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
+    @Column(name = "login_id", nullable = false, unique = true, length = 50)
+    private String loginId;
+
     @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
 
@@ -51,11 +54,20 @@ public class UserEntity {
     @Column(name = "last_synced_at")
     private Instant lastSyncedAt;
 
+    @Column(name = "last_logged_in_at")
+    private Instant lastLoggedInAt;
+
     @Column(name = "status", nullable = false, length = 30)
     private String status;
 
-    @Column(name = "lock_reason", length = 500)
-    private String lockReason;
+    @Column(name = "lock_type", nullable = false, length = 20)
+    private String lockType = "NONE";
+
+    @Column(name = "locked_by", length = 255)
+    private String lockedBy;
+
+    @Column(name = "locked_at")
+    private Instant lockedAt;
 
     @Column(name = "deactivation_reason", length = 500)
     private String deactivationReason;

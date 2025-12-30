@@ -143,7 +143,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            MvcResult result = mockMvc.perform(post("/api/profiles")
+            MvcResult result = mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isCreated())
@@ -173,7 +173,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles")
+            mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isCreated())
@@ -199,7 +199,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles")
+            mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isCreated())
@@ -224,7 +224,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles")
+            mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isCreated())
@@ -255,7 +255,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles")
+            mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isCreated())
@@ -287,7 +287,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles")
+            mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isBadRequest());
@@ -317,7 +317,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles")
+            mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isBadRequest());
@@ -342,7 +342,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles")
+            mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(firstRequest))
                 .andExpect(status().isCreated());
@@ -363,7 +363,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles")
+            mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(secondRequest))
                 .andExpect(status().isBadRequest());
@@ -388,7 +388,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles")
+            mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(servicingRequest))
                 .andExpect(status().isCreated());
@@ -409,7 +409,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles")
+            mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(onlineRequest))
                 .andExpect(status().isCreated());
@@ -441,7 +441,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            MvcResult createResult = mockMvc.perform(post("/api/profiles")
+            MvcResult createResult = mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andExpect(status().isCreated())
@@ -451,7 +451,7 @@ class ProfileControllerE2ETest {
             String profileId = createResponse.get("profileId").asText();
 
             // Now get the profile
-            mockMvc.perform(get("/api/profiles/{profileId}", profileId)
+            mockMvc.perform(get("/api/v1/bank/profiles/{profileId}", profileId)
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.profileId").value(profileId))
@@ -464,7 +464,7 @@ class ProfileControllerE2ETest {
         @DisplayName("should return error for non-existing profile")
         void shouldReturnErrorForNonExistingProfile() throws Exception {
             // IllegalArgumentException "Profile not found" is mapped to 400 by GlobalExceptionHandler
-            mockMvc.perform(get("/api/profiles/servicing:srf:999999999")
+            mockMvc.perform(get("/api/v1/bank/profiles/servicing:srf:999999999")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
         }
@@ -517,18 +517,18 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles")
+            mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(request1))
                 .andExpect(status().isCreated());
 
-            mockMvc.perform(post("/api/profiles")
+            mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(request2))
                 .andExpect(status().isCreated());
 
             // Get all profiles for client (should return both where client is primary or secondary)
-            MvcResult result = mockMvc.perform(get("/api/clients/srf:123456789/profiles")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients/srf:123456789/profiles")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -557,13 +557,13 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles")
+            mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(request))
                 .andExpect(status().isCreated());
 
             // Get primary profiles
-            MvcResult result = mockMvc.perform(get("/api/clients/srf:123456789/profiles/primary")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients/srf:123456789/profiles/primary")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -599,13 +599,13 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles")
+            mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(request))
                 .andExpect(status().isCreated());
 
             // Get secondary profiles for the secondary client
-            MvcResult result = mockMvc.perform(get("/api/clients/srf:123456789/profiles/secondary")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients/srf:123456789/profiles/secondary")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -634,13 +634,13 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles")
+            mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(servicingRequest))
                 .andExpect(status().isCreated());
 
             // Get only servicing profiles
-            MvcResult result = mockMvc.perform(get("/api/clients/srf:123456789/profiles/servicing")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients/srf:123456789/profiles/servicing")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -655,7 +655,7 @@ class ProfileControllerE2ETest {
         @DisplayName("should return empty list for client with no profiles")
         void shouldReturnEmptyListForClientWithNoProfiles() throws Exception {
             // Don't create any profiles, just query
-            mockMvc.perform(get("/api/clients/srf:123456789/profiles")
+            mockMvc.perform(get("/api/v1/bank/clients/srf:123456789/profiles")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
@@ -681,13 +681,13 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles")
+            mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(onlineRequest))
                 .andExpect(status().isCreated());
 
             // Get only online profiles
-            MvcResult result = mockMvc.perform(get("/api/clients/srf:123456789/profiles/online")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients/srf:123456789/profiles/online")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -724,7 +724,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            MvcResult createResult = mockMvc.perform(post("/api/profiles")
+            MvcResult createResult = mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andExpect(status().isCreated())
@@ -734,7 +734,7 @@ class ProfileControllerE2ETest {
             String profileId = createResponse.get("profileId").asText();
 
             // Get profile detail
-            mockMvc.perform(get("/api/profiles/{profileId}/detail", profileId)
+            mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/detail", profileId)
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.profileId").value(profileId))
@@ -772,7 +772,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            MvcResult createResult = mockMvc.perform(post("/api/profiles")
+            MvcResult createResult = mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andExpect(status().isCreated())
@@ -789,7 +789,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles/{profileId}/services", profileId)
+            mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/services", profileId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(enrollRequest))
                 .andExpect(status().isCreated())
@@ -817,7 +817,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            MvcResult createResult = mockMvc.perform(post("/api/profiles")
+            MvcResult createResult = mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andExpect(status().isCreated())
@@ -840,7 +840,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles/{profileId}/services", profileId)
+            mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/services", profileId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(enrollRequest))
                 .andExpect(status().isCreated())
@@ -874,7 +874,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles")
+            mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andExpect(status().isCreated());
@@ -889,7 +889,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles/search")
+            mockMvc.perform(post("/api/v1/bank/profiles/search")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(searchRequest))
                 .andExpect(status().isOk())
@@ -917,7 +917,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles")
+            mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andExpect(status().isCreated());
@@ -932,7 +932,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles/search")
+            mockMvc.perform(post("/api/v1/bank/profiles/search")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(searchRequest))
                 .andExpect(status().isOk())
@@ -959,7 +959,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles")
+            mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andExpect(status().isCreated());
@@ -974,7 +974,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles/search")
+            mockMvc.perform(post("/api/v1/bank/profiles/search")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(searchRequest))
                 .andExpect(status().isOk())
@@ -992,7 +992,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles/search")
+            mockMvc.perform(post("/api/v1/bank/profiles/search")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(searchRequest))
                 .andExpect(status().isOk())
@@ -1020,7 +1020,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles")
+            mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(servicingRequest))
                 .andExpect(status().isCreated());
@@ -1036,7 +1036,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles/search")
+            mockMvc.perform(post("/api/v1/bank/profiles/search")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(searchRequest))
                 .andExpect(status().isOk())
@@ -1069,7 +1069,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            MvcResult createResult = mockMvc.perform(post("/api/profiles")
+            MvcResult createResult = mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andExpect(status().isCreated())
@@ -1087,7 +1087,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles/{profileId}/clients", profileId)
+            mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/clients", profileId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(addRequest))
                 .andExpect(status().isCreated());
@@ -1112,7 +1112,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            MvcResult createResult = mockMvc.perform(post("/api/profiles")
+            MvcResult createResult = mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andExpect(status().isCreated())
@@ -1129,7 +1129,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles/{profileId}/clients", profileId)
+            mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/clients", profileId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(addRequest))
                 .andExpect(status().isCreated());
@@ -1160,7 +1160,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            MvcResult createResult = mockMvc.perform(post("/api/profiles")
+            MvcResult createResult = mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(createRequest))
                 .andExpect(status().isCreated())
@@ -1170,7 +1170,7 @@ class ProfileControllerE2ETest {
             String profileId = createResponse.get("profileId").asText();
 
             // Remove secondary client
-            mockMvc.perform(delete("/api/profiles/{profileId}/clients/{clientId}", profileId, "srf:987654321"))
+            mockMvc.perform(delete("/api/v1/bank/profiles/{profileId}/clients/{clientId}", profileId, "srf:987654321"))
                 .andExpect(status().isNoContent());
         }
     }
@@ -1198,7 +1198,7 @@ class ProfileControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles")
+            mockMvc.perform(post("/api/v1/bank/profiles")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isCreated())

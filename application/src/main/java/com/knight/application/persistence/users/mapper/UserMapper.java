@@ -18,6 +18,7 @@ public class UserMapper {
     public UserEntity toEntity(User user) {
         UserEntity entity = new UserEntity();
         entity.setUserId(UUID.fromString(user.id().id()));
+        entity.setLoginId(user.loginId());
         entity.setEmail(user.email());
         entity.setFirstName(user.firstName());
         entity.setLastName(user.lastName());
@@ -28,8 +29,11 @@ public class UserMapper {
         entity.setPasswordSet(user.passwordSet());
         entity.setMfaEnrolled(user.mfaEnrolled());
         entity.setLastSyncedAt(user.lastSyncedAt());
+        entity.setLastLoggedInAt(user.lastLoggedInAt());
         entity.setStatus(user.status().name());
-        entity.setLockReason(user.lockReason());
+        entity.setLockType(user.lockType().name());
+        entity.setLockedBy(user.lockedBy());
+        entity.setLockedAt(user.lockedAt());
         entity.setDeactivationReason(user.deactivationReason());
         entity.setCreatedAt(user.createdAt());
         entity.setCreatedBy(user.createdBy());
@@ -59,6 +63,7 @@ public class UserMapper {
 
         return User.reconstitute(
             userId,
+            entity.getLoginId(),
             entity.getEmail(),
             entity.getFirstName(),
             entity.getLastName(),
@@ -70,8 +75,11 @@ public class UserMapper {
             entity.isPasswordSet(),
             entity.isMfaEnrolled(),
             entity.getLastSyncedAt(),
+            entity.getLastLoggedInAt(),
             User.Status.valueOf(entity.getStatus()),
-            entity.getLockReason(),
+            User.LockType.valueOf(entity.getLockType() != null ? entity.getLockType() : "NONE"),
+            entity.getLockedBy(),
+            entity.getLockedAt(),
             entity.getDeactivationReason(),
             entity.getCreatedAt(),
             entity.getCreatedBy(),

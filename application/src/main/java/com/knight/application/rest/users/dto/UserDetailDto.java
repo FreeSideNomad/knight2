@@ -8,6 +8,7 @@ import java.util.Set;
  */
 public record UserDetailDto(
     String userId,
+    String loginId,
     String email,
     String firstName,
     String lastName,
@@ -22,6 +23,9 @@ public record UserDetailDto(
     Instant createdAt,
     String createdBy,
     Instant lastSyncedAt,
-    String lockReason,
+    Instant lastLoggedInAt,
+    String lockType,
+    String lockedBy,
+    Instant lockedAt,
     String deactivationReason
 ) {}

@@ -33,14 +33,13 @@ public class IndirectClientApplicationService implements IndirectClientCommands,
     @Override
     @Transactional
     public IndirectClientId createIndirectClient(CreateIndirectClientCmd cmd) {
-        int nextSequence = repository.getNextSequenceForClient(cmd.parentClientId());
-        IndirectClientId id = IndirectClientId.of(cmd.parentClientId(), nextSequence);
+        IndirectClientId id = IndirectClientId.generate();
 
         IndirectClient client = IndirectClient.create(
             id,
             cmd.parentClientId(),
-            cmd.profileId(),
-            cmd.businessName(),
+            cmd.parentProfileId(),
+            cmd.name(),
             "system" // createdBy - should come from security context
         );
 
@@ -61,7 +60,7 @@ public class IndirectClientApplicationService implements IndirectClientCommands,
         eventPublisher.publishEvent(new IndirectClientOnboarded(
             id.urn(),
             cmd.parentClientId().urn(),
-            cmd.businessName(),
+            cmd.name(),
             Instant.now()
         ));
 
@@ -88,7 +87,7 @@ public class IndirectClientApplicationService implements IndirectClientCommands,
 
         return new IndirectClientSummary(
             client.id().urn(),
-            client.businessName(),
+            client.name(),
             client.status().name(),
             client.relatedPersons().size()
         );

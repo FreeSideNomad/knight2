@@ -1,0 +1,43 @@
+server:
+  port: 8080
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: indirect-client-portal
+  # Profile is set via SPRING_PROFILES_ACTIVE env var
+  # Use 'local' for dev, 'docker' for container, 'prod' for production
+
+# API backend configuration
+api:
+  base-url: ${API_URL:http://localhost:8080/api/v1/indirect}
+
+# JWT Configuration for Auth0
+jwt:
+  issuer: https://${AUTH0_DOMAIN}/
+  audience: ${AUTH0_API_AUDIENCE}
+  jwks-url: https://${AUTH0_DOMAIN}/.well-known/jwks.json
+
+# Vaadin configuration
+vaadin:
+  launch-browser: false
+  whitelisted-packages:
+    - com.vaadin
+    - org.vaadin
+    - com.knight.indirectportal
+
+# Logging
+logging:
+  level:
+    com.knight.indirectportal: DEBUG
+    org.springframework.security: DEBUG
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

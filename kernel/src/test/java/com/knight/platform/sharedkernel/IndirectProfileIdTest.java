@@ -7,53 +7,35 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Unit tests for IndirectProfileId.
+ * Tests the new UUID-based IndirectProfileId format.
  */
 @DisplayName("IndirectProfileId Tests")
 class IndirectProfileIdTest {
-
-    private final SrfClientId validSrfClient = new SrfClientId("123456789");
-    private final IndirectClientId validIndirectClient = IndirectClientId.of(validSrfClient, 1);
 
     @Nested
     @DisplayName("of()")
     class Of {
 
         @Test
-        @DisplayName("should create IndirectProfileId successfully")
+        @DisplayName("should create IndirectProfileId from IndirectClientId")
         void shouldCreateIndirectProfileIdSuccessfully() {
+            // Given
+            IndirectClientId indirectClientId = IndirectClientId.generate();
+
             // When
-            IndirectProfileId id = IndirectProfileId.of(validSrfClient, validIndirectClient);
+            IndirectProfileId id = IndirectProfileId.of(indirectClientId);
 
             // Then
-            assertThat(id.clientId()).isEqualTo(validSrfClient);
-            assertThat(id.indirectClientId()).isEqualTo(validIndirectClient);
-            assertThat(id.urn()).isEqualTo("indirect-profile:indirect:srf:123456789:1");
-        }
-
-        @Test
-        @DisplayName("should throw when clientId is null")
-        void shouldThrowWhenClientIdIsNull() {
-            assertThatThrownBy(() -> IndirectProfileId.of(null, validIndirectClient))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("ClientId cannot be null");
+            assertThat(id.indirectClientId()).isEqualTo(indirectClientId);
+            assertThat(id.urn()).isEqualTo(indirectClientId.urn());
         }
 
         @Test
         @DisplayName("should throw when indirectClientId is null")
         void shouldThrowWhenIndirectClientIdIsNull() {
-            assertThatThrownBy(() -> IndirectProfileId.of(validSrfClient, null))
+            assertThatThrownBy(() -> IndirectProfileId.of(null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("IndirectClientId cannot be null");
-        }
-
-        @Test
-        @DisplayName("should throw when clientId is not SRF")
-        void shouldThrowWhenClientIdIsNotSrf() {
-            CdrClientId cdrClient = new CdrClientId("000123");
-
-            assertThatThrownBy(() -> IndirectProfileId.of(cdrClient, validIndirectClient))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("IndirectProfileId requires SRF client");
         }
     }
 
@@ -64,13 +46,16 @@ class IndirectProfileIdTest {
         @Test
         @DisplayName("should parse valid URN")
         void shouldParseValidUrn() {
+            // Given
+            IndirectClientId indirectClientId = IndirectClientId.generate();
+            String urn = indirectClientId.urn();
+
             // When
-            IndirectProfileId id = IndirectProfileId.fromUrn("indirect-profile:indirect:srf:123456789:5");
+            IndirectProfileId id = IndirectProfileId.fromUrn(urn);
 
             // Then
-            assertThat(id.clientId().urn()).isEqualTo("srf:123456789");
-            assertThat(id.indirectClientId().urn()).isEqualTo("indirect:srf:123456789:5");
-            assertThat(id.urn()).isEqualTo("indirect-profile:indirect:srf:123456789:5");
+            assertThat(id.indirectClientId().urn()).isEqualTo(urn);
+            assertThat(id.urn()).isEqualTo(urn);
         }
 
         @Test
@@ -84,7 +69,7 @@ class IndirectProfileIdTest {
         @Test
         @DisplayName("should throw when URN has wrong prefix")
         void shouldThrowWhenUrnHasWrongPrefix() {
-            assertThatThrownBy(() -> IndirectProfileId.fromUrn("online:srf:123456789:1"))
+            assertThatThrownBy(() -> IndirectProfileId.fromUrn("online:srf:123456789"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Invalid IndirectProfileId URN format");
         }
@@ -97,8 +82,9 @@ class IndirectProfileIdTest {
         @Test
         @DisplayName("should be equal when URN is same")
         void shouldBeEqualWhenUrnIsSame() {
-            IndirectProfileId id1 = IndirectProfileId.of(validSrfClient, validIndirectClient);
-            IndirectProfileId id2 = IndirectProfileId.of(validSrfClient, validIndirectClient);
+            IndirectClientId indirectClientId = IndirectClientId.generate();
+            IndirectProfileId id1 = IndirectProfileId.of(indirectClientId);
+            IndirectProfileId id2 = IndirectProfileId.of(indirectClientId);
 
             assertThat(id1).isEqualTo(id2);
             assertThat(id1.hashCode()).isEqualTo(id2.hashCode());
@@ -107,10 +93,11 @@ class IndirectProfileIdTest {
         @Test
         @DisplayName("should not be equal when indirectClientId is different")
         void shouldNotBeEqualWhenIndirectClientIdIsDifferent() {
-            IndirectClientId otherIndirect = IndirectClientId.of(validSrfClient, 2);
+            IndirectClientId indirectClientId1 = IndirectClientId.generate();
+            IndirectClientId indirectClientId2 = IndirectClientId.generate();
 
-            IndirectProfileId id1 = IndirectProfileId.of(validSrfClient, validIndirectClient);
-            IndirectProfileId id2 = IndirectProfileId.of(validSrfClient, otherIndirect);
+            IndirectProfileId id1 = IndirectProfileId.of(indirectClientId1);
+            IndirectProfileId id2 = IndirectProfileId.of(indirectClientId2);
 
             assertThat(id1).isNotEqualTo(id2);
         }
@@ -118,7 +105,7 @@ class IndirectProfileIdTest {
         @Test
         @DisplayName("should not be equal to null")
         void shouldNotBeEqualToNull() {
-            IndirectProfileId id = IndirectProfileId.of(validSrfClient, validIndirectClient);
+            IndirectProfileId id = IndirectProfileId.of(IndirectClientId.generate());
 
             assertThat(id).isNotEqualTo(null);
         }
@@ -126,9 +113,9 @@ class IndirectProfileIdTest {
         @Test
         @DisplayName("should not be equal to different type")
         void shouldNotBeEqualToDifferentType() {
-            IndirectProfileId id = IndirectProfileId.of(validSrfClient, validIndirectClient);
+            IndirectProfileId id = IndirectProfileId.of(IndirectClientId.generate());
 
-            assertThat(id).isNotEqualTo("indirect-profile:indirect:srf:123456789:1");
+            assertThat(id).isNotEqualTo("some-string");
         }
     }
 
@@ -139,10 +126,11 @@ class IndirectProfileIdTest {
         @Test
         @DisplayName("should return readable string")
         void shouldReturnReadableString() {
-            IndirectProfileId id = IndirectProfileId.of(validSrfClient, validIndirectClient);
+            IndirectClientId indirectClientId = IndirectClientId.generate();
+            IndirectProfileId id = IndirectProfileId.of(indirectClientId);
 
             assertThat(id.toString()).contains("IndirectProfileId");
-            assertThat(id.toString()).contains("indirect-profile:");
+            assertThat(id.toString()).contains("ind:");
         }
     }
 }

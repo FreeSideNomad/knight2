@@ -3,44 +3,41 @@ package com.knight.platform.sharedkernel;
 import java.util.Objects;
 
 /**
- * Indirect profile identifier: IndirectProfileId(clientId, indirectClientId)
- * Stored as URN format: indirect-profile:{indirectClientUrn}
+ * Indirect profile identifier: IndirectProfileId(indirectClientId)
+ * Stored as URN format: ind:{UUID} (same as the IndirectClientId it references)
+ *
+ * For indirect profiles, the profile_id matches the client_id (ind:{UUID}).
  */
 public final class IndirectProfileId {
-    private final ClientId clientId;
     private final IndirectClientId indirectClientId;
     private final String urn;
 
-    private IndirectProfileId(ClientId clientId, IndirectClientId indirectClientId) {
-        if (clientId == null) {
-            throw new IllegalArgumentException("ClientId cannot be null");
-        }
+    private IndirectProfileId(IndirectClientId indirectClientId) {
         if (indirectClientId == null) {
             throw new IllegalArgumentException("IndirectClientId cannot be null");
         }
-        if (!(clientId instanceof BankClientId bankClientId) || !"srf".equals(bankClientId.system())) {
-            throw new IllegalArgumentException("IndirectProfileId requires SRF client");
-        }
-        this.clientId = clientId;
         this.indirectClientId = indirectClientId;
-        this.urn = "indirect-profile:" + indirectClientId.urn();
+        this.urn = indirectClientId.urn();  // profile_id matches client_id
     }
 
-    public static IndirectProfileId of(ClientId clientId, IndirectClientId indirectClientId) {
-        return new IndirectProfileId(clientId, indirectClientId);
+    /**
+     * Creates an IndirectProfileId from an IndirectClientId.
+     * The profile_id will be the same as the client_id (ind:{UUID}).
+     */
+    public static IndirectProfileId of(IndirectClientId indirectClientId) {
+        return new IndirectProfileId(indirectClientId);
     }
 
+    /**
+     * Parses an IndirectProfileId from its URN representation.
+     * The URN format is ind:{UUID} (same as IndirectClientId).
+     */
     public static IndirectProfileId fromUrn(String urn) {
-        if (urn == null || !urn.startsWith("indirect-profile:")) {
-            throw new IllegalArgumentException("Invalid IndirectProfileId URN format");
+        if (urn == null || !urn.startsWith("ind:")) {
+            throw new IllegalArgumentException("Invalid IndirectProfileId URN format: " + urn);
         }
-        String indirectClientUrn = urn.substring("indirect-profile:".length());
-        IndirectClientId indirectClientId = IndirectClientId.fromUrn(indirectClientUrn);
-        return new IndirectProfileId(indirectClientId.clientId(), indirectClientId);
-    }
-
-    public ClientId clientId() {
-        return clientId;
+        IndirectClientId indirectClientId = IndirectClientId.fromUrn(urn);
+        return new IndirectProfileId(indirectClientId);
     }
 
     public IndirectClientId indirectClientId() {

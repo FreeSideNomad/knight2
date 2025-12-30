@@ -22,6 +22,7 @@ public interface UserQueries {
 
     record ProfileUserSummary(
         String userId,
+        String loginId,
         String email,
         String firstName,
         String lastName,
@@ -29,7 +30,7 @@ public interface UserQueries {
         String statusDisplayName,
         Set<String> roles,
         Instant createdAt,
-        Instant lastLogin
+        Instant lastLoggedInAt
     ) {}
 
     /**
@@ -46,6 +47,7 @@ public interface UserQueries {
 
     record UserDetail(
         String userId,
+        String loginId,
         String email,
         String firstName,
         String lastName,
@@ -60,7 +62,10 @@ public interface UserQueries {
         Instant createdAt,
         String createdBy,
         Instant lastSyncedAt,
-        String lockReason,
+        Instant lastLoggedInAt,
+        String lockType,
+        String lockedBy,
+        Instant lockedAt,
         String deactivationReason
     ) {}
 

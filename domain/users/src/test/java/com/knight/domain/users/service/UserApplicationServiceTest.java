@@ -66,6 +66,7 @@ class UserApplicationServiceTest {
         void shouldCreateUserSuccessfully() {
             // given
             CreateUserCmd cmd = new CreateUserCmd(
+                "jdoe",
                 VALID_EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -109,6 +110,7 @@ class UserApplicationServiceTest {
         void shouldRejectDuplicateEmail() {
             // given
             CreateUserCmd cmd = new CreateUserCmd(
+                "jdoe",
                 VALID_EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -424,9 +426,9 @@ class UserApplicationServiceTest {
             // given
             User user = createActiveUser();
             UserId userId = user.id();
-            String reason = "Multiple failed login attempts";
+            String actor = "admin@example.com";
 
-            LockUserCmd cmd = new LockUserCmd(userId, reason);
+            LockUserCmd cmd = new LockUserCmd(userId, "CLIENT", actor);
 
             when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
@@ -437,7 +439,8 @@ class UserApplicationServiceTest {
             verify(userRepository).save(user);
             verify(auth0IdentityService).blockUser(user.identityProviderUserId());
             assertThat(user.status()).isEqualTo(Status.LOCKED);
-            assertThat(user.lockReason()).isEqualTo(reason);
+            assertThat(user.lockType()).isEqualTo(User.LockType.CLIENT);
+            assertThat(user.lockedBy()).isEqualTo(actor);
         }
 
         @Test
@@ -446,9 +449,9 @@ class UserApplicationServiceTest {
             // given
             User user = createPendingUser(IdentityProvider.AUTH0);
             UserId userId = user.id();
-            String reason = "Security concern";
+            String actor = "security@example.com";
 
-            LockUserCmd cmd = new LockUserCmd(userId, reason);
+            LockUserCmd cmd = new LockUserCmd(userId, "SECURITY", actor);
 
             when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
@@ -471,8 +474,9 @@ class UserApplicationServiceTest {
             // given
             User user = createLockedUser();
             UserId userId = user.id();
+            String actor = "admin@example.com";
 
-            UnlockUserCmd cmd = new UnlockUserCmd(userId);
+            UnlockUserCmd cmd = new UnlockUserCmd(userId, "CLIENT", actor);
 
             when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
@@ -483,7 +487,8 @@ class UserApplicationServiceTest {
             verify(userRepository).save(user);
             verify(auth0IdentityService).unblockUser(user.identityProviderUserId());
             assertThat(user.status()).isEqualTo(Status.ACTIVE);
-            assertThat(user.lockReason()).isNull();
+            assertThat(user.lockType()).isEqualTo(User.LockType.NONE);
+            assertThat(user.lockedBy()).isNull();
         }
 
         @Test
@@ -491,10 +496,11 @@ class UserApplicationServiceTest {
         void shouldUnlockUserWithoutAuth0CallIfNotProvisioned() {
             // given
             User user = createPendingUser(IdentityProvider.AUTH0);
-            user.lock("test reason");
+            user.lock(User.LockType.CLIENT, "test-actor");
             UserId userId = user.id();
+            String actor = "admin@example.com";
 
-            UnlockUserCmd cmd = new UnlockUserCmd(userId);
+            UnlockUserCmd cmd = new UnlockUserCmd(userId, "CLIENT", actor);
 
             when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
@@ -752,6 +758,7 @@ class UserApplicationServiceTest {
 
     private User createPendingUser(IdentityProvider identityProvider) {
         return User.create(
+            "testuser",
             VALID_EMAIL,
             FIRST_NAME,
             LAST_NAME,
@@ -783,7 +790,7 @@ class UserApplicationServiceTest {
 
     private User createLockedUser() {
         User user = createActiveUser();
-        user.lock("test reason");
+        user.lock(User.LockType.CLIENT, "test-actor");
         return user;
     }
 }

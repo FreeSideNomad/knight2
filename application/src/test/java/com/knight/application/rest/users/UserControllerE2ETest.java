@@ -163,6 +163,7 @@ class UserControllerE2ETest {
         void shouldCreateUserLinkedToProfile() throws Exception {
             String requestBody = """
                 {
+                    "loginId": "johndoe",
                     "email": "john.doe@example.com",
                     "firstName": "John",
                     "lastName": "Doe",
@@ -170,7 +171,7 @@ class UserControllerE2ETest {
                 }
                 """;
 
-            MvcResult result = mockMvc.perform(post("/api/profiles/{profileId}/users", testProfileId.urn())
+            MvcResult result = mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/users", testProfileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isCreated())
@@ -194,6 +195,7 @@ class UserControllerE2ETest {
         void shouldCreateUserWithSingleRole() throws Exception {
             String requestBody = """
                 {
+                    "loginId": "janesmith",
                     "email": "jane.smith@example.com",
                     "firstName": "Jane",
                     "lastName": "Smith",
@@ -201,7 +203,7 @@ class UserControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles/{profileId}/users", testProfileId.urn())
+            mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/users", testProfileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isCreated())
@@ -214,6 +216,7 @@ class UserControllerE2ETest {
         void shouldCreateUserWithAllRoles() throws Exception {
             String requestBody = """
                 {
+                    "loginId": "superadmin",
                     "email": "admin@example.com",
                     "firstName": "Super",
                     "lastName": "Admin",
@@ -221,7 +224,7 @@ class UserControllerE2ETest {
                 }
                 """;
 
-            MvcResult result = mockMvc.perform(post("/api/profiles/{profileId}/users", testProfileId.urn())
+            MvcResult result = mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/users", testProfileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isCreated())
@@ -244,6 +247,7 @@ class UserControllerE2ETest {
             // Create first user
             String firstRequest = """
                 {
+                    "loginId": "firstuser",
                     "email": "duplicate@example.com",
                     "firstName": "First",
                     "lastName": "User",
@@ -251,7 +255,7 @@ class UserControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles/{profileId}/users", testProfileId.urn())
+            mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/users", testProfileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(firstRequest))
                 .andExpect(status().isCreated());
@@ -259,6 +263,7 @@ class UserControllerE2ETest {
             // Try to create second user with same email
             String secondRequest = """
                 {
+                    "loginId": "seconduser",
                     "email": "duplicate@example.com",
                     "firstName": "Second",
                     "lastName": "User",
@@ -266,7 +271,7 @@ class UserControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles/{profileId}/users", testProfileId.urn())
+            mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/users", testProfileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(secondRequest))
                 .andExpect(status().isBadRequest());
@@ -277,6 +282,7 @@ class UserControllerE2ETest {
         void shouldRejectInvalidEmail() throws Exception {
             String requestBody = """
                 {
+                    "loginId": "invalidemail",
                     "email": "invalid-email",
                     "firstName": "Invalid",
                     "lastName": "Email",
@@ -284,7 +290,7 @@ class UserControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles/{profileId}/users", testProfileId.urn())
+            mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/users", testProfileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isBadRequest());
@@ -295,6 +301,7 @@ class UserControllerE2ETest {
         void shouldRejectUserWithNoRoles() throws Exception {
             String requestBody = """
                 {
+                    "loginId": "noroles",
                     "email": "noroles@example.com",
                     "firstName": "No",
                     "lastName": "Roles",
@@ -302,7 +309,7 @@ class UserControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/profiles/{profileId}/users", testProfileId.urn())
+            mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/users", testProfileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isBadRequest());
@@ -320,6 +327,7 @@ class UserControllerE2ETest {
         void shouldProvisionUserToAuth0() throws Exception {
             String requestBody = """
                 {
+                    "loginId": "provisioneduser",
                     "email": "provisioned@example.com",
                     "firstName": "Provisioned",
                     "lastName": "User",
@@ -327,7 +335,7 @@ class UserControllerE2ETest {
                 }
                 """;
 
-            MvcResult result = mockMvc.perform(post("/api/profiles/{profileId}/users", testProfileId.urn())
+            MvcResult result = mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/users", testProfileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isCreated())
@@ -360,7 +368,7 @@ class UserControllerE2ETest {
             createUser("user2@example.com", "User", "Two", new String[]{"CREATOR"});
             createUser("user3@example.com", "User", "Three", new String[]{"APPROVER"});
 
-            MvcResult result = mockMvc.perform(get("/api/profiles/{profileId}/users", testProfileId.urn())
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/users", testProfileId.urn())
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
@@ -373,7 +381,7 @@ class UserControllerE2ETest {
         @Test
         @DisplayName("should return empty list for profile with no users")
         void shouldReturnEmptyListForProfileWithNoUsers() throws Exception {
-            mockMvc.perform(get("/api/profiles/{profileId}/users", testProfileId.urn())
+            mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/users", testProfileId.urn())
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
@@ -385,7 +393,7 @@ class UserControllerE2ETest {
         void shouldReturnUsersWithCompleteInformation() throws Exception {
             createUser("complete@example.com", "Complete", "User", new String[]{"READER", "CREATOR"});
 
-            MvcResult result = mockMvc.perform(get("/api/profiles/{profileId}/users", testProfileId.urn())
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/users", testProfileId.urn())
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -404,16 +412,18 @@ class UserControllerE2ETest {
 
         private void createUser(String email, String firstName, String lastName, String[] roles) throws Exception {
             String rolesJson = String.join("\", \"", roles);
+            String loginId = email.split("@")[0].replace(".", "");
             String requestBody = String.format("""
                 {
+                    "loginId": "%s",
                     "email": "%s",
                     "firstName": "%s",
                     "lastName": "%s",
                     "roles": ["%s"]
                 }
-                """, email, firstName, lastName, rolesJson);
+                """, loginId, email, firstName, lastName, rolesJson);
 
-            mockMvc.perform(post("/api/profiles/{profileId}/users", testProfileId.urn())
+            mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/users", testProfileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isCreated());
@@ -431,7 +441,7 @@ class UserControllerE2ETest {
         void shouldGetCompleteUserDetails() throws Exception {
             String userId = createAndGetUserId("details@example.com", "Details", "User", new String[]{"READER"});
 
-            MvcResult result = mockMvc.perform(get("/api/profiles/{profileId}/users/{userId}", testProfileId.urn(), userId)
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/users/{userId}", testProfileId.urn(), userId)
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(userId))
@@ -454,23 +464,25 @@ class UserControllerE2ETest {
         @DisplayName("should return error for non-existing user")
         void shouldReturnErrorForNonExistingUser() throws Exception {
             // Use a valid UUID format that doesn't exist in the database
-            mockMvc.perform(get("/api/profiles/{profileId}/users/{userId}", testProfileId.urn(), "00000000-0000-0000-0000-000000000000")
+            mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/users/{userId}", testProfileId.urn(), "00000000-0000-0000-0000-000000000000")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
         }
 
         private String createAndGetUserId(String email, String firstName, String lastName, String[] roles) throws Exception {
             String rolesJson = String.join("\", \"", roles);
+            String loginId = email.split("@")[0].replace(".", "");
             String requestBody = String.format("""
                 {
+                    "loginId": "%s",
                     "email": "%s",
                     "firstName": "%s",
                     "lastName": "%s",
                     "roles": ["%s"]
                 }
-                """, email, firstName, lastName, rolesJson);
+                """, loginId, email, firstName, lastName, rolesJson);
 
-            MvcResult result = mockMvc.perform(post("/api/profiles/{profileId}/users", testProfileId.urn())
+            MvcResult result = mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/users", testProfileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isCreated())
@@ -498,13 +510,13 @@ class UserControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(post("/api/users/{userId}/roles", userId)
+            mockMvc.perform(post("/api/v1/bank/users/{userId}/roles", userId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isCreated());
 
             // Verify the role was added
-            MvcResult result = mockMvc.perform(get("/api/profiles/{profileId}/users/{userId}", testProfileId.urn(), userId)
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/users/{userId}", testProfileId.urn(), userId)
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -529,12 +541,12 @@ class UserControllerE2ETest {
         void shouldRemoveRoleFromUser() throws Exception {
             String userId = createAndGetUserId("removerole@example.com", "Remove", "Role", new String[]{"READER", "CREATOR"});
 
-            mockMvc.perform(delete("/api/users/{userId}/roles/{role}", userId, "READER")
+            mockMvc.perform(delete("/api/v1/bank/users/{userId}/roles/{role}", userId, "READER")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
 
             // Verify the role was removed
-            MvcResult result = mockMvc.perform(get("/api/profiles/{profileId}/users/{userId}", testProfileId.urn(), userId)
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/users/{userId}", testProfileId.urn(), userId)
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -550,23 +562,25 @@ class UserControllerE2ETest {
         void shouldNotAllowRemovingLastRole() throws Exception {
             String userId = createAndGetUserId("lastrole@example.com", "Last", "Role", new String[]{"READER"});
 
-            mockMvc.perform(delete("/api/users/{userId}/roles/{role}", userId, "READER")
+            mockMvc.perform(delete("/api/v1/bank/users/{userId}/roles/{role}", userId, "READER")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isConflict());
         }
 
         private String createAndGetUserId(String email, String firstName, String lastName, String[] roles) throws Exception {
             String rolesJson = String.join("\", \"", roles);
+            String loginId = email.split("@")[0].replace(".", "");
             String requestBody = String.format("""
                 {
+                    "loginId": "%s",
                     "email": "%s",
                     "firstName": "%s",
                     "lastName": "%s",
                     "roles": ["%s"]
                 }
-                """, email, firstName, lastName, rolesJson);
+                """, loginId, email, firstName, lastName, rolesJson);
 
-            MvcResult result = mockMvc.perform(post("/api/profiles/{profileId}/users", testProfileId.urn())
+            MvcResult result = mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/users", testProfileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isCreated())
@@ -594,13 +608,13 @@ class UserControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(put("/api/users/{userId}/deactivate", userId)
+            mockMvc.perform(put("/api/v1/bank/users/{userId}/deactivate", userId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isNoContent());
 
             // Verify user is deactivated
-            MvcResult result = mockMvc.perform(get("/api/profiles/{profileId}/users/{userId}", testProfileId.urn(), userId)
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/users/{userId}", testProfileId.urn(), userId)
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -620,24 +634,24 @@ class UserControllerE2ETest {
 
             String requestBody = """
                 {
-                    "reason": "Suspicious activity detected"
+                    "lockType": "CLIENT"
                 }
                 """;
 
-            mockMvc.perform(put("/api/users/{userId}/lock", userId)
+            mockMvc.perform(put("/api/v1/bank/users/{userId}/lock", userId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isNoContent());
 
             // Verify user is locked
-            MvcResult result = mockMvc.perform(get("/api/profiles/{profileId}/users/{userId}", testProfileId.urn(), userId)
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/users/{userId}", testProfileId.urn(), userId)
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
 
             JsonNode response = objectMapper.readTree(result.getResponse().getContentAsString());
             assertThat(response.get("status").asText()).isEqualTo("LOCKED");
-            assertThat(response.get("lockReason").asText()).isEqualTo("Suspicious activity detected");
+            assertThat(response.get("lockType").asText()).isEqualTo("CLIENT");
         }
 
         @Test
@@ -651,29 +665,29 @@ class UserControllerE2ETest {
             // Lock the user
             String lockRequest = """
                 {
-                    "reason": "Test lock"
+                    "lockType": "CLIENT"
                 }
                 """;
 
-            mockMvc.perform(put("/api/users/{userId}/lock", userId)
+            mockMvc.perform(put("/api/v1/bank/users/{userId}/lock", userId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(lockRequest))
                 .andExpect(status().isNoContent());
 
             // Now unlock the user
-            mockMvc.perform(put("/api/users/{userId}/unlock", userId)
+            mockMvc.perform(put("/api/v1/bank/users/{userId}/unlock", userId)
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
 
             // Verify user is unlocked and active
-            MvcResult result = mockMvc.perform(get("/api/profiles/{profileId}/users/{userId}", testProfileId.urn(), userId)
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/users/{userId}", testProfileId.urn(), userId)
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
 
             JsonNode response = objectMapper.readTree(result.getResponse().getContentAsString());
             assertThat(response.get("status").asText()).isEqualTo("ACTIVE");
-            assertThat(response.get("lockReason").isNull()).isTrue();
+            assertThat(response.get("lockType").asText()).isEqualTo("NONE");
         }
 
         @Test
@@ -688,18 +702,18 @@ class UserControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(put("/api/users/{userId}/deactivate", userId)
+            mockMvc.perform(put("/api/v1/bank/users/{userId}/deactivate", userId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(deactivateRequest))
                 .andExpect(status().isNoContent());
 
             // Now activate the user
-            mockMvc.perform(put("/api/users/{userId}/activate", userId)
+            mockMvc.perform(put("/api/v1/bank/users/{userId}/activate", userId)
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
 
             // Verify user is active
-            MvcResult result = mockMvc.perform(get("/api/profiles/{profileId}/users/{userId}", testProfileId.urn(), userId)
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/users/{userId}", testProfileId.urn(), userId)
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -711,16 +725,18 @@ class UserControllerE2ETest {
 
         private String createAndGetUserId(String email, String firstName, String lastName, String[] roles) throws Exception {
             String rolesJson = String.join("\", \"", roles);
+            String loginId = email.split("@")[0].replace(".", "");
             String requestBody = String.format("""
                 {
+                    "loginId": "%s",
                     "email": "%s",
                     "firstName": "%s",
                     "lastName": "%s",
                     "roles": ["%s"]
                 }
-                """, email, firstName, lastName, rolesJson);
+                """, loginId, email, firstName, lastName, rolesJson);
 
-            MvcResult result = mockMvc.perform(post("/api/profiles/{profileId}/users", testProfileId.urn())
+            MvcResult result = mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/users", testProfileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isCreated())
@@ -731,7 +747,7 @@ class UserControllerE2ETest {
         }
 
         private void activateUser(String userId) throws Exception {
-            mockMvc.perform(put("/api/users/{userId}/activate", userId)
+            mockMvc.perform(put("/api/v1/bank/users/{userId}/activate", userId)
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
         }
@@ -748,7 +764,7 @@ class UserControllerE2ETest {
         void shouldResendInvitation() throws Exception {
             String userId = createAndGetUserId("resend@example.com", "Resend", "User", new String[]{"READER"});
 
-            MvcResult result = mockMvc.perform(post("/api/users/{userId}/resend-invitation", userId)
+            MvcResult result = mockMvc.perform(post("/api/v1/bank/users/{userId}/resend-invitation", userId)
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -772,12 +788,12 @@ class UserControllerE2ETest {
                     "reason": "Test deactivation"
                 }
                 """;
-            mockMvc.perform(put("/api/users/{userId}/deactivate", userId3)
+            mockMvc.perform(put("/api/v1/bank/users/{userId}/deactivate", userId3)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(deactivateRequest))
                 .andExpect(status().isNoContent());
 
-            MvcResult result = mockMvc.perform(get("/api/profiles/{profileId}/users/counts", testProfileId.urn())
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/users/counts", testProfileId.urn())
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -801,7 +817,7 @@ class UserControllerE2ETest {
                 }
                 """;
 
-            mockMvc.perform(put("/api/users/{userId}", userId)
+            mockMvc.perform(put("/api/v1/bank/users/{userId}", userId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isOk())
@@ -812,16 +828,18 @@ class UserControllerE2ETest {
 
         private String createAndGetUserId(String email, String firstName, String lastName, String[] roles) throws Exception {
             String rolesJson = String.join("\", \"", roles);
+            String loginId = email.split("@")[0].replace(".", "");
             String requestBody = String.format("""
                 {
+                    "loginId": "%s",
                     "email": "%s",
                     "firstName": "%s",
                     "lastName": "%s",
                     "roles": ["%s"]
                 }
-                """, email, firstName, lastName, rolesJson);
+                """, loginId, email, firstName, lastName, rolesJson);
 
-            MvcResult result = mockMvc.perform(post("/api/profiles/{profileId}/users", testProfileId.urn())
+            MvcResult result = mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/users", testProfileId.urn())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(requestBody))
                 .andExpect(status().isCreated())

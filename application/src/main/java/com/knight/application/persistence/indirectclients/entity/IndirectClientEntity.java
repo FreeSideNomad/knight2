@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Entity
 @Table(name = "indirect_clients")
@@ -18,23 +17,20 @@ import java.util.UUID;
 public class IndirectClientEntity {
 
     @Id
-    @Column(name = "id", nullable = false)
-    private UUID id;
-
-    @Column(name = "indirect_client_urn", nullable = false, unique = true, length = 200)
-    private String indirectClientUrn;
+    @Column(name = "client_id", nullable = false, length = 50)
+    private String clientId;  // URN format: ind:{UUID}
 
     @Column(name = "parent_client_id", nullable = false, length = 100)
     private String parentClientId;
 
-    @Column(name = "profile_id", nullable = false, length = 200)
-    private String profileId;
+    @Column(name = "parent_profile_id", nullable = false, length = 200)
+    private String parentProfileId;  // Renamed from profileId
 
     @Column(name = "client_type", nullable = false, length = 20)
     private String clientType;
 
-    @Column(name = "business_name", nullable = false, length = 255)
-    private String businessName;
+    @Column(name = "name", nullable = false, length = 255)
+    private String name;  // Renamed from businessName
 
     @Column(name = "external_reference", length = 100)
     private String externalReference;

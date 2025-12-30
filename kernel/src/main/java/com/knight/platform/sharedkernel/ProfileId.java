@@ -25,12 +25,17 @@ public final class ProfileId {
             if (!"srf".equals(system) && !"cdr".equals(system)) {
                 throw new IllegalArgumentException("ProfileId requires SRF or CDR client");
             }
-        } else if (!(clientId instanceof IndirectClientId)) {
+            this.profileType = profileType.toLowerCase();
+            this.clientId = clientId;
+            this.urn = this.profileType + ":" + clientId.urn();
+        } else if (clientId instanceof IndirectClientId) {
+            // For indirect clients, profile_id matches client_id (ind:{UUID})
+            this.profileType = profileType.toLowerCase();
+            this.clientId = clientId;
+            this.urn = clientId.urn();  // Just ind:{UUID}, no prefix
+        } else {
             throw new IllegalArgumentException("ProfileId requires BankClientId (SRF or CDR) or IndirectClientId");
         }
-        this.profileType = profileType.toLowerCase();
-        this.clientId = clientId;
-        this.urn = this.profileType + ":" + clientId.urn();
     }
 
     public static ProfileId of(String profileType, ClientId clientId) {
@@ -46,6 +51,11 @@ public final class ProfileId {
     public static ProfileId fromUrn(String urn) {
         if (urn == null) {
             throw new IllegalArgumentException("Invalid ProfileId URN format");
+        }
+        // For indirect profiles, the URN is just ind:{UUID}
+        if (urn.startsWith("ind:")) {
+            IndirectClientId indirectClientId = IndirectClientId.fromUrn(urn);
+            return new ProfileId("indirect", indirectClientId);
         }
         // Format: profileType:clientUrn (e.g., servicing:srf:123456789 or online:cdr:000123)
         int firstColon = urn.indexOf(':');

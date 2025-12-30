@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Spring Data JPA repository for ClientAccountEntity.
@@ -44,8 +43,8 @@ public interface ClientAccountJpaRepository extends JpaRepository<ClientAccountE
     /**
      * Finds all accounts belonging to a specific indirect client.
      *
-     * @param indirectClientId the indirect client ID as UUID
+     * @param indirectClientId the indirect client ID as URN string (ind:{UUID})
      * @return list of account entities for the given indirect client
      */
-    List<ClientAccountEntity> findByIndirectClientId(UUID indirectClientId);
+    List<ClientAccountEntity> findByIndirectClientId(String indirectClientId);
 }

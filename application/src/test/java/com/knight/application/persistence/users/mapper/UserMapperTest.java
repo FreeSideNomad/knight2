@@ -24,6 +24,7 @@ class UserMapperTest {
 
     private UserMapper mapper;
 
+    private static final String LOGIN_ID = "testuser";
     private static final String EMAIL = "test.user@example.com";
     private static final String FIRST_NAME = "Test";
     private static final String LAST_NAME = "User";
@@ -45,6 +46,7 @@ class UserMapperTest {
         @DisplayName("should map all user fields from domain to entity")
         void shouldMapAllUserFieldsFromDomainToEntity() {
             User user = User.create(
+                LOGIN_ID,
                 EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -83,6 +85,7 @@ class UserMapperTest {
             );
 
             User user = User.create(
+                LOGIN_ID,
                 EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -105,6 +108,7 @@ class UserMapperTest {
         @DisplayName("should map single role from domain to entity")
         void shouldMapSingleRoleFromDomainToEntity() {
             User user = User.create(
+                LOGIN_ID,
                 EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -126,6 +130,7 @@ class UserMapperTest {
         @DisplayName("should map indirect user type")
         void shouldMapIndirectUserType() {
             User user = User.create(
+                LOGIN_ID,
                 EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -146,6 +151,7 @@ class UserMapperTest {
         @DisplayName("should map provisioned user state")
         void shouldMapProvisionedUserState() {
             User user = User.create(
+                LOGIN_ID,
                 EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -167,6 +173,7 @@ class UserMapperTest {
         @DisplayName("should map active user with MFA")
         void shouldMapActiveUserWithMfa() {
             User user = User.create(
+                LOGIN_ID,
                 EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -191,6 +198,7 @@ class UserMapperTest {
         @DisplayName("should map locked user")
         void shouldMapLockedUser() {
             User user = User.create(
+                LOGIN_ID,
                 EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -202,18 +210,20 @@ class UserMapperTest {
             );
             user.markProvisioned("anp|12345");
             user.updateOnboardingStatus(true, true);
-            user.lock("Multiple failed login attempts");
+            user.lock(User.LockType.SECURITY, "system");
 
             UserEntity entity = mapper.toEntity(user);
 
             assertThat(entity.getStatus()).isEqualTo("LOCKED");
-            assertThat(entity.getLockReason()).isEqualTo("Multiple failed login attempts");
+            assertThat(entity.getLockType()).isEqualTo("SECURITY");
+            assertThat(entity.getLockedBy()).isEqualTo("system");
         }
 
         @Test
         @DisplayName("should map deactivated user")
         void shouldMapDeactivatedUser() {
             User user = User.create(
+                LOGIN_ID,
                 EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -312,6 +322,7 @@ class UserMapperTest {
             UserEntity entity = createUserEntity();
 
             entity.setStatus("PENDING_CREATION");
+        entity.setLockType("NONE");
             assertThat(mapper.toDomain(entity).status()).isEqualTo(User.Status.PENDING_CREATION);
 
             entity.setStatus("PENDING_VERIFICATION");
@@ -365,12 +376,14 @@ class UserMapperTest {
         void shouldMapLockedUserFromEntity() {
             UserEntity entity = createUserEntity();
             entity.setStatus("LOCKED");
-            entity.setLockReason("Security violation");
+            entity.setLockType("BANK");
+            entity.setLockedBy("admin");
 
             User user = mapper.toDomain(entity);
 
             assertThat(user.status()).isEqualTo(User.Status.LOCKED);
-            assertThat(user.lockReason()).isEqualTo("Security violation");
+            assertThat(user.lockType()).isEqualTo(User.LockType.BANK);
+            assertThat(user.lockedBy()).isEqualTo("admin");
         }
 
         @Test
@@ -397,6 +410,7 @@ class UserMapperTest {
         @DisplayName("should preserve all user data in round-trip conversion")
         void shouldPreserveAllUserDataInRoundTrip() {
             User original = User.create(
+                LOGIN_ID,
                 EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -433,6 +447,7 @@ class UserMapperTest {
             );
 
             User original = User.create(
+                LOGIN_ID,
                 EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -454,6 +469,7 @@ class UserMapperTest {
         @DisplayName("should preserve provisioned state in round-trip")
         void shouldPreserveProvisionedStateInRoundTrip() {
             User original = User.create(
+                LOGIN_ID,
                 EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -481,6 +497,7 @@ class UserMapperTest {
     private UserEntity createUserEntity() {
         UserEntity entity = new UserEntity();
         entity.setUserId(UUID.randomUUID());
+        entity.setLoginId(LOGIN_ID);
         entity.setEmail(EMAIL);
         entity.setFirstName(FIRST_NAME);
         entity.setLastName(LAST_NAME);
@@ -488,6 +505,7 @@ class UserMapperTest {
         entity.setIdentityProvider("ANP");
         entity.setProfileId(PROFILE_ID.urn());
         entity.setStatus("PENDING_CREATION");
+        entity.setLockType("NONE");
         entity.setPasswordSet(false);
         entity.setMfaEnrolled(false);
         entity.setCreatedAt(Instant.now());

@@ -21,9 +21,9 @@ import static org.assertj.core.api.Assertions.*;
 class IndirectClientTest {
 
     private static final SrfClientId PARENT_CLIENT_ID = new SrfClientId("123456789");
-    private static final IndirectClientId TEST_ID = IndirectClientId.of(PARENT_CLIENT_ID, 1);
-    private static final ProfileId TEST_PROFILE_ID = ProfileId.of("servicing", PARENT_CLIENT_ID);
-    private static final String TEST_BUSINESS_NAME = "ACME Payors Inc";
+    private static final IndirectClientId TEST_ID = IndirectClientId.generate();
+    private static final ProfileId PARENT_PROFILE_ID = ProfileId.of("servicing", PARENT_CLIENT_ID);
+    private static final String TEST_NAME = "ACME Payors Inc";
     private static final String TEST_CREATED_BY = "user@example.com";
 
     @Nested
@@ -37,8 +37,8 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             );
 
@@ -46,9 +46,9 @@ class IndirectClientTest {
             assertThat(client).isNotNull();
             assertThat(client.id()).isEqualTo(TEST_ID);
             assertThat(client.parentClientId()).isEqualTo(PARENT_CLIENT_ID);
-            assertThat(client.profileId()).isEqualTo(TEST_PROFILE_ID);
+            assertThat(client.parentProfileId()).isEqualTo(PARENT_PROFILE_ID);
             assertThat(client.clientType()).isEqualTo(IndirectClient.ClientType.BUSINESS);
-            assertThat(client.businessName()).isEqualTo(TEST_BUSINESS_NAME);
+            assertThat(client.name()).isEqualTo(TEST_NAME);
             assertThat(client.externalReference()).isNull();
             assertThat(client.status()).isEqualTo(IndirectClient.Status.PENDING);
             assertThat(client.relatedPersons()).isEmpty();
@@ -64,14 +64,14 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 "EXT-REF-123",
                 TEST_CREATED_BY
             );
 
             // Then
-            assertThat(client.businessName()).isEqualTo(TEST_BUSINESS_NAME);
+            assertThat(client.name()).isEqualTo(TEST_NAME);
             assertThat(client.externalReference()).isEqualTo("EXT-REF-123");
         }
 
@@ -82,8 +82,8 @@ class IndirectClientTest {
             assertThatThrownBy(() -> IndirectClient.create(
                 null,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             )).isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("id cannot be null");
@@ -96,8 +96,8 @@ class IndirectClientTest {
             assertThatThrownBy(() -> IndirectClient.create(
                 TEST_ID,
                 null,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             )).isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("parentClientId cannot be null");
@@ -111,10 +111,10 @@ class IndirectClientTest {
                 TEST_ID,
                 PARENT_CLIENT_ID,
                 null,
-                TEST_BUSINESS_NAME,
+                TEST_NAME,
                 TEST_CREATED_BY
             )).isInstanceOf(NullPointerException.class)
-                .hasMessageContaining("profileId cannot be null");
+                .hasMessageContaining("parentProfileId cannot be null");
         }
 
         @Test
@@ -124,11 +124,11 @@ class IndirectClientTest {
             assertThatThrownBy(() -> IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
+                PARENT_PROFILE_ID,
                 null,
                 TEST_CREATED_BY
             )).isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Business name cannot be null or blank");
+                .hasMessageContaining("Name cannot be null or blank");
         }
 
         @Test
@@ -138,11 +138,11 @@ class IndirectClientTest {
             assertThatThrownBy(() -> IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
+                PARENT_PROFILE_ID,
                 "   ",
                 TEST_CREATED_BY
             )).isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Business name cannot be null or blank");
+                .hasMessageContaining("Name cannot be null or blank");
         }
 
         @Test
@@ -152,8 +152,8 @@ class IndirectClientTest {
             assertThatThrownBy(() -> IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 null
             )).isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("createdBy cannot be null");
@@ -171,8 +171,8 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             );
             Email email = Email.of("john@example.com");
@@ -199,8 +199,8 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             );
 
@@ -222,8 +222,8 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             );
             assertThat(client.status()).isEqualTo(IndirectClient.Status.PENDING);
@@ -242,8 +242,8 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             );
 
@@ -265,8 +265,8 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             );
 
@@ -287,8 +287,8 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             );
 
@@ -309,8 +309,8 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             );
             client.addRelatedPerson("John Doe", PersonRole.ADMIN, null, null);
@@ -338,8 +338,8 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             );
             client.addRelatedPerson("John Doe", PersonRole.ADMIN, null, null);
@@ -373,8 +373,8 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             );
             PersonId nonExistentId = PersonId.generate();
@@ -397,8 +397,8 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             );
             client.addRelatedPerson("John Doe", PersonRole.ADMIN, null, null);
@@ -428,8 +428,8 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             );
             client.addRelatedPerson("John Doe", PersonRole.ADMIN, null, null);
@@ -451,8 +451,8 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             );
             client.addRelatedPerson("John Doe", PersonRole.ADMIN, null, null);
@@ -471,8 +471,8 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             );
             client.addRelatedPerson("John Doe", PersonRole.ADMIN, null, null);
@@ -492,8 +492,8 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             );
             client.addRelatedPerson("John Doe", PersonRole.ADMIN, null, null);
@@ -519,8 +519,8 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             );
             client.addRelatedPerson("John Doe", PersonRole.ADMIN, null, null);
@@ -528,9 +528,9 @@ class IndirectClientTest {
             IndirectClient pendingClient = IndirectClient.reconstitute(
                 client.id(),
                 client.parentClientId(),
-                client.profileId(),
+                client.parentProfileId(),
                 client.clientType(),
-                client.businessName(),
+                client.name(),
                 client.externalReference(),
                 IndirectClient.Status.PENDING,
                 new ArrayList<>(client.relatedPersons()),
@@ -553,8 +553,8 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             );
             client.addRelatedPerson("John Doe", PersonRole.ADMIN, null, null);
@@ -574,8 +574,8 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             );
             assertThat(client.relatedPersons()).isEmpty();
@@ -598,8 +598,8 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             );
             client.addRelatedPerson("John Doe", PersonRole.ADMIN, null, null);
@@ -619,8 +619,8 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             );
             assertThat(client.status()).isEqualTo(IndirectClient.Status.PENDING);
@@ -639,8 +639,8 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.create(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
-                TEST_BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                TEST_NAME,
                 TEST_CREATED_BY
             );
             client.suspend();
@@ -681,9 +681,9 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.reconstitute(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
+                PARENT_PROFILE_ID,
                 IndirectClient.ClientType.BUSINESS,
-                TEST_BUSINESS_NAME,
+                TEST_NAME,
                 "EXT-REF-123",
                 IndirectClient.Status.ACTIVE,
                 persons,
@@ -695,9 +695,9 @@ class IndirectClientTest {
             // Then
             assertThat(client.id()).isEqualTo(TEST_ID);
             assertThat(client.parentClientId()).isEqualTo(PARENT_CLIENT_ID);
-            assertThat(client.profileId()).isEqualTo(TEST_PROFILE_ID);
+            assertThat(client.parentProfileId()).isEqualTo(PARENT_PROFILE_ID);
             assertThat(client.clientType()).isEqualTo(IndirectClient.ClientType.BUSINESS);
-            assertThat(client.businessName()).isEqualTo(TEST_BUSINESS_NAME);
+            assertThat(client.name()).isEqualTo(TEST_NAME);
             assertThat(client.externalReference()).isEqualTo("EXT-REF-123");
             assertThat(client.status()).isEqualTo(IndirectClient.Status.ACTIVE);
             assertThat(client.relatedPersons()).hasSize(1);
@@ -718,9 +718,9 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.reconstitute(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
+                PARENT_PROFILE_ID,
                 IndirectClient.ClientType.BUSINESS,
-                TEST_BUSINESS_NAME,
+                TEST_NAME,
                 null,
                 IndirectClient.Status.SUSPENDED,
                 new ArrayList<>(),
@@ -744,9 +744,9 @@ class IndirectClientTest {
             IndirectClient client = IndirectClient.reconstitute(
                 TEST_ID,
                 PARENT_CLIENT_ID,
-                TEST_PROFILE_ID,
+                PARENT_PROFILE_ID,
                 IndirectClient.ClientType.BUSINESS,
-                TEST_BUSINESS_NAME,
+                TEST_NAME,
                 null,
                 IndirectClient.Status.PENDING,
                 new ArrayList<>(),

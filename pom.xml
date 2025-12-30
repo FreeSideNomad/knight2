@@ -25,6 +25,8 @@
         <module>domain</module>
         <module>application</module>
         <module>employee-portal</module>
+        <module>client-portal</module>
+        <module>indirect-client-portal</module>
         <module>coverage-report</module>
     </modules>
 

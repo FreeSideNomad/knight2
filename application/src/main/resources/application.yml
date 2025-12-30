@@ -98,6 +98,22 @@ auth0:
   connection: ${AUTH0_CONNECTION:Username-Password-Authentication}
   password-reset-result-url: ${AUTH0_PASSWORD_RESET_URL:http://localhost:8080/}
 
+  # Auth0 Login Configuration (for client-login gateway)
+  login:
+    domain: ${AUTH0_DOMAIN:dbc-test.auth0.com}
+    client-id: ${AUTH0_WEB_CLIENT_ID:}
+    client-secret: ${AUTH0_WEB_CLIENT_SECRET:}
+    m2m-client-id: ${AUTH0_M2M_CLIENT_ID:}
+    m2m-client-secret: ${AUTH0_M2M_CLIENT_SECRET:}
+    audience: ${AUTH0_API_AUDIENCE:https://auth-gateway.local/api}
+    connection: ${AUTH0_CONNECTION:Username-Password-Authentication}
+
+# Login API Basic Auth (for client-login gateway)
+login:
+  basic-auth:
+    username: ${LOGIN_API_USERNAME:gateway}
+    password: ${LOGIN_API_PASSWORD:changeme}
+
 # Platform Events
 kafka:
   platform-events-topic: ${KAFKA_PLATFORM_EVENTS_TOPIC:platform-events}
@@ -114,3 +130,7 @@ jwt:
     issuer: ${JWT_PORTAL_ISSUER:http://localhost:8081}
     jwks-uri: ${JWT_PORTAL_JWKS_URI:http://localhost:8081/.well-known/jwks.json}
     audience: knight-platform-api
+  auth0:
+    enabled: ${JWT_AUTH0_ENABLED:true}
+    domain: ${AUTH0_DOMAIN:dbc-test.auth0.com}
+    audience: ${AUTH0_API_AUDIENCE:https://auth-gateway.local/api}

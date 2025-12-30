@@ -1,6 +1,7 @@
 package com.knight.domain.users.aggregate;
 
 import com.knight.domain.users.aggregate.User.IdentityProvider;
+import com.knight.domain.users.aggregate.User.LockType;
 import com.knight.domain.users.aggregate.User.Role;
 import com.knight.domain.users.aggregate.User.Status;
 import com.knight.domain.users.aggregate.User.UserType;
@@ -20,6 +21,7 @@ import static org.assertj.core.api.Assertions.*;
 @DisplayName("User Aggregate Tests")
 class UserTest {
 
+    private static final String LOGIN_ID = "johndoe";
     private static final String VALID_EMAIL = "test@example.com";
     private static final String FIRST_NAME = "John";
     private static final String LAST_NAME = "Doe";
@@ -36,6 +38,7 @@ class UserTest {
         void shouldCreateUserWithValidInputs() {
             // when
             User user = User.create(
+                LOGIN_ID,
                 VALID_EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -58,6 +61,7 @@ class UserTest {
             assertThat(user.roles()).containsExactlyInAnyOrder(Role.READER, Role.CREATOR);
             assertThat(user.createdBy()).isEqualTo(CREATED_BY);
             assertThat(user.status()).isEqualTo(Status.PENDING_CREATION);
+            assertThat(user.lockType()).isEqualTo(LockType.NONE);
             assertThat(user.passwordSet()).isFalse();
             assertThat(user.mfaEnrolled()).isFalse();
             assertThat(user.identityProviderUserId()).isNull();
@@ -70,6 +74,7 @@ class UserTest {
         void shouldRejectNullEmail() {
             // when/then
             assertThatThrownBy(() -> User.create(
+                LOGIN_ID,
                 null,
                 FIRST_NAME,
                 LAST_NAME,
@@ -88,6 +93,7 @@ class UserTest {
         void shouldRejectBlankEmail() {
             // when/then
             assertThatThrownBy(() -> User.create(
+                LOGIN_ID,
                 "   ",
                 FIRST_NAME,
                 LAST_NAME,
@@ -106,6 +112,7 @@ class UserTest {
         void shouldRejectEmailWithoutAtSymbol() {
             // when/then
             assertThatThrownBy(() -> User.create(
+                LOGIN_ID,
                 "invalidEmail",
                 FIRST_NAME,
                 LAST_NAME,
@@ -124,6 +131,7 @@ class UserTest {
         void shouldRejectNullRoles() {
             // when/then
             assertThatThrownBy(() -> User.create(
+                LOGIN_ID,
                 VALID_EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -142,6 +150,7 @@ class UserTest {
         void shouldRejectEmptyRoles() {
             // when/then
             assertThatThrownBy(() -> User.create(
+                LOGIN_ID,
                 VALID_EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -315,7 +324,7 @@ class UserTest {
         void shouldRejectActivationOfLockedUser() {
             // given
             User user = createActiveUser();
-            user.lock("security concern");
+            user.lock(LockType.CLIENT, "admin");
 
             // when/then
             assertThatThrownBy(() -> user.activate())
@@ -363,42 +372,102 @@ class UserTest {
     class LockTests {
 
         @Test
-        @DisplayName("should lock user with reason")
-        void shouldLockUserWithReason() {
+        @DisplayName("should lock user with CLIENT lock type")
+        void shouldLockUserWithClientLockType() {
             // given
             User user = createActiveUser();
-            String reason = "Multiple failed login attempts";
+            String actor = "client-admin@example.com";
 
             // when
-            user.lock(reason);
+            user.lock(LockType.CLIENT, actor);
 
             // then
             assertThat(user.status()).isEqualTo(Status.LOCKED);
-            assertThat(user.lockReason()).isEqualTo(reason);
+            assertThat(user.lockType()).isEqualTo(LockType.CLIENT);
+            assertThat(user.lockedBy()).isEqualTo(actor);
+            assertThat(user.lockedAt()).isNotNull();
         }
 
         @Test
-        @DisplayName("should reject lock without reason")
-        void shouldRejectLockWithoutReason() {
+        @DisplayName("should lock user with BANK lock type")
+        void shouldLockUserWithBankLockType() {
+            // given
+            User user = createActiveUser();
+            String actor = "bank-admin@example.com";
+
+            // when
+            user.lock(LockType.BANK, actor);
+
+            // then
+            assertThat(user.status()).isEqualTo(Status.LOCKED);
+            assertThat(user.lockType()).isEqualTo(LockType.BANK);
+            assertThat(user.lockedBy()).isEqualTo(actor);
+            assertThat(user.lockedAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("should lock user with SECURITY lock type")
+        void shouldLockUserWithSecurityLockType() {
+            // given
+            User user = createActiveUser();
+            String actor = "security-admin@example.com";
+
+            // when
+            user.lock(LockType.SECURITY, actor);
+
+            // then
+            assertThat(user.status()).isEqualTo(Status.LOCKED);
+            assertThat(user.lockType()).isEqualTo(LockType.SECURITY);
+            assertThat(user.lockedBy()).isEqualTo(actor);
+            assertThat(user.lockedAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("should reject lock with NONE type")
+        void shouldRejectLockWithNoneType() {
             // given
             User user = createActiveUser();
 
             // when/then
-            assertThatThrownBy(() -> user.lock(null))
+            assertThatThrownBy(() -> user.lock(LockType.NONE, "actor"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Lock reason is required");
+                .hasMessageContaining("Lock type must be CLIENT, BANK, or SECURITY");
         }
 
         @Test
-        @DisplayName("should reject lock with blank reason")
-        void shouldRejectLockWithBlankReason() {
+        @DisplayName("should reject lock with null type")
+        void shouldRejectLockWithNullType() {
             // given
             User user = createActiveUser();
 
             // when/then
-            assertThatThrownBy(() -> user.lock("   "))
+            assertThatThrownBy(() -> user.lock(null, "actor"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Lock reason is required");
+                .hasMessageContaining("Lock type must be CLIENT, BANK, or SECURITY");
+        }
+
+        @Test
+        @DisplayName("should reject lock without actor")
+        void shouldRejectLockWithoutActor() {
+            // given
+            User user = createActiveUser();
+
+            // when/then
+            assertThatThrownBy(() -> user.lock(LockType.CLIENT, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Actor is required");
+        }
+
+        @Test
+        @DisplayName("should reject lock with blank actor")
+        void shouldRejectLockWithBlankActor() {
+            // given
+            User user = createActiveUser();
+
+            // when/then
+            assertThatThrownBy(() -> user.lock(LockType.CLIENT, "   "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Actor is required");
         }
 
         @Test
@@ -406,13 +475,15 @@ class UserTest {
         void shouldBeIdempotentWhenAlreadyLocked() {
             // given
             User user = createActiveUser();
-            user.lock("first reason");
+            user.lock(LockType.CLIENT, "first-actor");
 
             // when
-            user.lock("second reason");
+            user.lock(LockType.SECURITY, "second-actor");
 
             // then
             assertThat(user.status()).isEqualTo(Status.LOCKED);
+            assertThat(user.lockType()).isEqualTo(LockType.CLIENT);
+            assertThat(user.lockedBy()).isEqualTo("first-actor");
         }
     }
 
@@ -421,18 +492,147 @@ class UserTest {
     class UnlockTests {
 
         @Test
-        @DisplayName("should unlock locked user")
-        void shouldUnlockLockedUser() {
+        @DisplayName("should unlock CLIENT lock with CLIENT level")
+        void shouldUnlockClientLockWithClientLevel() {
             // given
             User user = createActiveUser();
-            user.lock("test reason");
+            user.lock(LockType.CLIENT, "client-admin");
 
             // when
-            user.unlock();
+            user.unlock(LockType.CLIENT, "client-admin-2");
 
             // then
             assertThat(user.status()).isEqualTo(Status.ACTIVE);
-            assertThat(user.lockReason()).isNull();
+            assertThat(user.lockType()).isEqualTo(LockType.NONE);
+            assertThat(user.lockedBy()).isNull();
+            assertThat(user.lockedAt()).isNull();
+        }
+
+        @Test
+        @DisplayName("should unlock CLIENT lock with BANK level")
+        void shouldUnlockClientLockWithBankLevel() {
+            // given
+            User user = createActiveUser();
+            user.lock(LockType.CLIENT, "client-admin");
+
+            // when
+            user.unlock(LockType.BANK, "bank-admin");
+
+            // then
+            assertThat(user.status()).isEqualTo(Status.ACTIVE);
+            assertThat(user.lockType()).isEqualTo(LockType.NONE);
+        }
+
+        @Test
+        @DisplayName("should unlock CLIENT lock with SECURITY level")
+        void shouldUnlockClientLockWithSecurityLevel() {
+            // given
+            User user = createActiveUser();
+            user.lock(LockType.CLIENT, "client-admin");
+
+            // when
+            user.unlock(LockType.SECURITY, "security-admin");
+
+            // then
+            assertThat(user.status()).isEqualTo(Status.ACTIVE);
+            assertThat(user.lockType()).isEqualTo(LockType.NONE);
+        }
+
+        @Test
+        @DisplayName("should reject unlock CLIENT lock with NONE level")
+        void shouldRejectUnlockClientLockWithNoneLevel() {
+            // given
+            User user = createActiveUser();
+            user.lock(LockType.CLIENT, "client-admin");
+
+            // when/then
+            assertThatThrownBy(() -> user.unlock(LockType.NONE, "someone"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot unlock CLIENT lock with NONE level");
+        }
+
+        @Test
+        @DisplayName("should unlock BANK lock with BANK level")
+        void shouldUnlockBankLockWithBankLevel() {
+            // given
+            User user = createActiveUser();
+            user.lock(LockType.BANK, "bank-admin");
+
+            // when
+            user.unlock(LockType.BANK, "bank-admin-2");
+
+            // then
+            assertThat(user.status()).isEqualTo(Status.ACTIVE);
+            assertThat(user.lockType()).isEqualTo(LockType.NONE);
+        }
+
+        @Test
+        @DisplayName("should unlock BANK lock with SECURITY level")
+        void shouldUnlockBankLockWithSecurityLevel() {
+            // given
+            User user = createActiveUser();
+            user.lock(LockType.BANK, "bank-admin");
+
+            // when
+            user.unlock(LockType.SECURITY, "security-admin");
+
+            // then
+            assertThat(user.status()).isEqualTo(Status.ACTIVE);
+            assertThat(user.lockType()).isEqualTo(LockType.NONE);
+        }
+
+        @Test
+        @DisplayName("should reject unlock BANK lock with CLIENT level")
+        void shouldRejectUnlockBankLockWithClientLevel() {
+            // given
+            User user = createActiveUser();
+            user.lock(LockType.BANK, "bank-admin");
+
+            // when/then
+            assertThatThrownBy(() -> user.unlock(LockType.CLIENT, "client-admin"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot unlock BANK lock with CLIENT level");
+        }
+
+        @Test
+        @DisplayName("should unlock SECURITY lock with SECURITY level")
+        void shouldUnlockSecurityLockWithSecurityLevel() {
+            // given
+            User user = createActiveUser();
+            user.lock(LockType.SECURITY, "security-admin");
+
+            // when
+            user.unlock(LockType.SECURITY, "security-admin-2");
+
+            // then
+            assertThat(user.status()).isEqualTo(Status.ACTIVE);
+            assertThat(user.lockType()).isEqualTo(LockType.NONE);
+        }
+
+        @Test
+        @DisplayName("should reject unlock SECURITY lock with BANK level")
+        void shouldRejectUnlockSecurityLockWithBankLevel() {
+            // given
+            User user = createActiveUser();
+            user.lock(LockType.SECURITY, "security-admin");
+
+            // when/then
+            assertThatThrownBy(() -> user.unlock(LockType.BANK, "bank-admin"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot unlock SECURITY lock with BANK level");
+        }
+
+        @Test
+        @DisplayName("should reject unlock SECURITY lock with CLIENT level")
+        void shouldRejectUnlockSecurityLockWithClientLevel() {
+            // given
+            User user = createActiveUser();
+            user.lock(LockType.SECURITY, "security-admin");
+
+            // when/then
+            assertThatThrownBy(() -> user.unlock(LockType.CLIENT, "client-admin"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot unlock SECURITY lock with CLIENT level");
         }
 
         @Test
@@ -442,9 +642,48 @@ class UserTest {
             User user = createActiveUser();
 
             // when/then
-            assertThatThrownBy(() -> user.unlock())
+            assertThatThrownBy(() -> user.unlock(LockType.CLIENT, "admin"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("User is not locked");
+        }
+
+        @Test
+        @DisplayName("should reject unlock with null requester level")
+        void shouldRejectUnlockWithNullRequesterLevel() {
+            // given
+            User user = createActiveUser();
+            user.lock(LockType.CLIENT, "admin");
+
+            // when/then
+            assertThatThrownBy(() -> user.unlock(null, "admin"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Requester level is required");
+        }
+
+        @Test
+        @DisplayName("should reject unlock without actor")
+        void shouldRejectUnlockWithoutActor() {
+            // given
+            User user = createActiveUser();
+            user.lock(LockType.CLIENT, "admin");
+
+            // when/then
+            assertThatThrownBy(() -> user.unlock(LockType.CLIENT, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Actor is required");
+        }
+
+        @Test
+        @DisplayName("should reject unlock with blank actor")
+        void shouldRejectUnlockWithBlankActor() {
+            // given
+            User user = createActiveUser();
+            user.lock(LockType.CLIENT, "admin");
+
+            // when/then
+            assertThatThrownBy(() -> user.unlock(LockType.CLIENT, "   "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Actor is required");
         }
     }
 
@@ -505,6 +744,7 @@ class UserTest {
         void shouldRejectRemovalOfLastRole() {
             // given
             User user = User.create(
+                LOGIN_ID,
                 VALID_EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -584,10 +824,12 @@ class UserTest {
             Instant createdAt = Instant.now().minusSeconds(3600);
             Instant updatedAt = Instant.now().minusSeconds(1800);
             Instant lastSyncedAt = Instant.now().minusSeconds(900);
+            Instant lastLoggedInAt = Instant.now().minusSeconds(300);
 
             // when
             User user = User.reconstitute(
                 userId,
+                LOGIN_ID,
                 VALID_EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -599,7 +841,10 @@ class UserTest {
                 true,
                 true,
                 lastSyncedAt,
+                lastLoggedInAt,
                 Status.ACTIVE,
+                LockType.NONE,
+                null,
                 null,
                 null,
                 createdAt,
@@ -621,22 +866,26 @@ class UserTest {
             assertThat(user.mfaEnrolled()).isTrue();
             assertThat(user.lastSyncedAt()).isEqualTo(lastSyncedAt);
             assertThat(user.status()).isEqualTo(Status.ACTIVE);
-            assertThat(user.lockReason()).isNull();
+            assertThat(user.lockType()).isEqualTo(LockType.NONE);
+            assertThat(user.lockedBy()).isNull();
+            assertThat(user.lockedAt()).isNull();
             assertThat(user.deactivationReason()).isNull();
             assertThat(user.createdBy()).isEqualTo(CREATED_BY);
             assertThat(user.updatedAt()).isEqualTo(updatedAt);
         }
 
         @Test
-        @DisplayName("should reconstitute locked user with lock reason")
-        void shouldReconstituteLockedUserWithLockReason() {
+        @DisplayName("should reconstitute locked user with lock type and metadata")
+        void shouldReconstituteLockedUserWithLockType() {
             // given
             UserId userId = UserId.of(UUID.randomUUID().toString());
-            String lockReason = "Security violation";
+            String lockedBy = "security-admin@example.com";
+            Instant lockedAt = Instant.now().minusSeconds(600);
 
             // when
             User user = User.reconstitute(
                 userId,
+                LOGIN_ID,
                 VALID_EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -648,8 +897,11 @@ class UserTest {
                 true,
                 false,
                 Instant.now(),
+                null,
                 Status.LOCKED,
-                lockReason,
+                LockType.SECURITY,
+                lockedBy,
+                lockedAt,
                 null,
                 Instant.now().minusSeconds(3600),
                 CREATED_BY,
@@ -658,7 +910,45 @@ class UserTest {
 
             // then
             assertThat(user.status()).isEqualTo(Status.LOCKED);
-            assertThat(user.lockReason()).isEqualTo(lockReason);
+            assertThat(user.lockType()).isEqualTo(LockType.SECURITY);
+            assertThat(user.lockedBy()).isEqualTo(lockedBy);
+            assertThat(user.lockedAt()).isEqualTo(lockedAt);
+        }
+
+        @Test
+        @DisplayName("should reconstitute with null lock type as NONE")
+        void shouldReconstituteWithNullLockTypeAsNone() {
+            // given
+            UserId userId = UserId.of(UUID.randomUUID().toString());
+
+            // when
+            User user = User.reconstitute(
+                userId,
+                LOGIN_ID,
+                VALID_EMAIL,
+                FIRST_NAME,
+                LAST_NAME,
+                UserType.CLIENT_USER,
+                IdentityProvider.AUTH0,
+                PROFILE_ID,
+                VALID_ROLES,
+                "auth0|123",
+                true,
+                true,
+                Instant.now(),
+                null,
+                Status.ACTIVE,
+                null,  // null lockType
+                null,
+                null,
+                null,
+                Instant.now().minusSeconds(3600),
+                CREATED_BY,
+                Instant.now()
+            );
+
+            // then
+            assertThat(user.lockType()).isEqualTo(LockType.NONE);
         }
 
         @Test
@@ -671,6 +961,7 @@ class UserTest {
             // when
             User user = User.reconstitute(
                 userId,
+                LOGIN_ID,
                 VALID_EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -682,7 +973,10 @@ class UserTest {
                 false,
                 false,
                 null,
+                null,
                 Status.DEACTIVATED,
+                LockType.NONE,
+                null,
                 null,
                 deactivationReason,
                 Instant.now().minusSeconds(3600),
@@ -696,10 +990,210 @@ class UserTest {
         }
     }
 
+    @Nested
+    @DisplayName("Login ID Validation Tests")
+    class LoginIdValidationTests {
+
+        @Test
+        @DisplayName("should reject null login ID")
+        void shouldRejectNullLoginId() {
+            assertThatThrownBy(() -> User.create(
+                null,
+                VALID_EMAIL,
+                FIRST_NAME,
+                LAST_NAME,
+                UserType.CLIENT_USER,
+                IdentityProvider.AUTH0,
+                PROFILE_ID,
+                VALID_ROLES,
+                CREATED_BY
+            ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Login ID is required");
+        }
+
+        @Test
+        @DisplayName("should reject blank login ID")
+        void shouldRejectBlankLoginId() {
+            assertThatThrownBy(() -> User.create(
+                "   ",
+                VALID_EMAIL,
+                FIRST_NAME,
+                LAST_NAME,
+                UserType.CLIENT_USER,
+                IdentityProvider.AUTH0,
+                PROFILE_ID,
+                VALID_ROLES,
+                CREATED_BY
+            ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Login ID is required");
+        }
+
+        @Test
+        @DisplayName("should reject login ID that is too short")
+        void shouldRejectLoginIdTooShort() {
+            assertThatThrownBy(() -> User.create(
+                "ab",
+                VALID_EMAIL,
+                FIRST_NAME,
+                LAST_NAME,
+                UserType.CLIENT_USER,
+                IdentityProvider.AUTH0,
+                PROFILE_ID,
+                VALID_ROLES,
+                CREATED_BY
+            ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Login ID must be 3-50 characters");
+        }
+
+        @Test
+        @DisplayName("should reject login ID that is too long")
+        void shouldRejectLoginIdTooLong() {
+            String longLoginId = "a".repeat(51);
+            assertThatThrownBy(() -> User.create(
+                longLoginId,
+                VALID_EMAIL,
+                FIRST_NAME,
+                LAST_NAME,
+                UserType.CLIENT_USER,
+                IdentityProvider.AUTH0,
+                PROFILE_ID,
+                VALID_ROLES,
+                CREATED_BY
+            ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Login ID must be 3-50 characters");
+        }
+
+        @Test
+        @DisplayName("should reject login ID with special characters")
+        void shouldRejectLoginIdWithSpecialChars() {
+            assertThatThrownBy(() -> User.create(
+                "john@doe",
+                VALID_EMAIL,
+                FIRST_NAME,
+                LAST_NAME,
+                UserType.CLIENT_USER,
+                IdentityProvider.AUTH0,
+                PROFILE_ID,
+                VALID_ROLES,
+                CREATED_BY
+            ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Login ID must be 3-50 characters");
+        }
+
+        @Test
+        @DisplayName("should accept valid login ID with underscores")
+        void shouldAcceptValidLoginIdWithUnderscores() {
+            User user = User.create(
+                "john_doe_123",
+                VALID_EMAIL,
+                FIRST_NAME,
+                LAST_NAME,
+                UserType.CLIENT_USER,
+                IdentityProvider.AUTH0,
+                PROFILE_ID,
+                VALID_ROLES,
+                CREATED_BY
+            );
+
+            assertThat(user.loginId()).isEqualTo("john_doe_123");
+        }
+
+        @Test
+        @DisplayName("should accept 3 character login ID")
+        void shouldAcceptMinLengthLoginId() {
+            User user = User.create(
+                "abc",
+                VALID_EMAIL,
+                FIRST_NAME,
+                LAST_NAME,
+                UserType.CLIENT_USER,
+                IdentityProvider.AUTH0,
+                PROFILE_ID,
+                VALID_ROLES,
+                CREATED_BY
+            );
+
+            assertThat(user.loginId()).isEqualTo("abc");
+        }
+
+        @Test
+        @DisplayName("should accept 50 character login ID")
+        void shouldAcceptMaxLengthLoginId() {
+            String maxLoginId = "a".repeat(50);
+            User user = User.create(
+                maxLoginId,
+                VALID_EMAIL,
+                FIRST_NAME,
+                LAST_NAME,
+                UserType.CLIENT_USER,
+                IdentityProvider.AUTH0,
+                PROFILE_ID,
+                VALID_ROLES,
+                CREATED_BY
+            );
+
+            assertThat(user.loginId()).isEqualTo(maxLoginId);
+        }
+    }
+
+    @Nested
+    @DisplayName("Last Logged In Tests")
+    class LastLoggedInTests {
+
+        @Test
+        @DisplayName("should have null lastLoggedInAt initially")
+        void shouldHaveNullLastLoggedInAtInitially() {
+            User user = createValidUser();
+            assertThat(user.lastLoggedInAt()).isNull();
+        }
+
+        @Test
+        @DisplayName("should update lastLoggedInAt when recordLogin is called")
+        void shouldUpdateLastLoggedInAtWhenRecordLogin() {
+            User user = createActiveUser();
+            Instant beforeLogin = Instant.now();
+
+            user.recordLogin();
+
+            assertThat(user.lastLoggedInAt()).isNotNull();
+            assertThat(user.lastLoggedInAt()).isAfterOrEqualTo(beforeLogin);
+        }
+
+        @Test
+        @DisplayName("should update lastLoggedInAt on multiple logins")
+        void shouldUpdateLastLoggedInAtOnMultipleLogins() throws InterruptedException {
+            User user = createActiveUser();
+            user.recordLogin();
+            Instant firstLogin = user.lastLoggedInAt();
+
+            Thread.sleep(10); // Small delay to ensure different timestamps
+            user.recordLogin();
+
+            assertThat(user.lastLoggedInAt()).isAfter(firstLogin);
+        }
+
+        @Test
+        @DisplayName("should also update updatedAt when recordLogin is called")
+        void shouldUpdateUpdatedAtWhenRecordLogin() {
+            User user = createActiveUser();
+            Instant beforeLogin = user.updatedAt();
+
+            user.recordLogin();
+
+            assertThat(user.updatedAt()).isAfterOrEqualTo(beforeLogin);
+        }
+    }
+
     // ==================== Helper Methods ====================
 
     private static User createValidUser() {
         return User.create(
+            LOGIN_ID,
             VALID_EMAIL,
             FIRST_NAME,
             LAST_NAME,

@@ -33,6 +33,16 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.knight</groupId>
+            <artifactId>client-portal</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.knight</groupId>
+            <artifactId>indirect-client-portal</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.knight.domain</groupId>
             <artifactId>profiles</artifactId>
             <version>${project.version}</version>

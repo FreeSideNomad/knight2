@@ -209,6 +209,7 @@ public class MainLayout extends AppLayout implements RouterLayout {
         // Profiles section
         SideNavItem profilesItem = new SideNavItem("Profiles", ProfileSearchView.class, VaadinIcon.FOLDER_O.create());
         profilesItem.addItem(new SideNavItem("Search Profiles", ProfileSearchView.class));
+        profilesItem.addItem(new SideNavItem("Indirect Profiles", IndirectProfileSearchView.class));
 
         nav.addItem(clientsItem);
         nav.addItem(profilesItem);

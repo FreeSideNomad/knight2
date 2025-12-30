@@ -19,8 +19,8 @@ public interface IndirectClientCommands {
 
     record CreateIndirectClientCmd(
         ClientId parentClientId,
-        ProfileId profileId,
-        String businessName,
+        ProfileId parentProfileId,
+        String name,
         List<RelatedPersonData> relatedPersons
     ) {}
 

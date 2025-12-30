@@ -152,13 +152,17 @@ public class ProfileSearchView extends VerticalLayout implements BeforeEnterObse
         resultGrid.addColumn(ProfileSummary::getClientCount).setHeader("Clients").setAutoWidth(true);
         resultGrid.addColumn(ProfileSummary::getAccountEnrollmentCount).setHeader("Accounts").setAutoWidth(true);
 
-        // Navigate to detail view on row click
-        resultGrid.addItemClickListener(event -> {
-            ProfileSummary profile = event.getItem();
-            String urlSafeProfileId = profile.getProfileId().replace(":", "_");
-            QueryParameters queryParams = buildQueryParameters();
-            UI.getCurrent().navigate("profile/" + urlSafeProfileId, queryParams);
-        });
+        // View button column
+        resultGrid.addComponentColumn(profile -> {
+            Button viewButton = new Button("View");
+            viewButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_PRIMARY);
+            viewButton.addClickListener(e -> {
+                String urlSafeProfileId = profile.getProfileId().replace(":", "_");
+                QueryParameters queryParams = buildQueryParameters();
+                UI.getCurrent().navigate("profile/" + urlSafeProfileId, queryParams);
+            });
+            return viewButton;
+        }).setHeader("Actions").setAutoWidth(true).setFlexGrow(0);
 
         // Layout configuration
         add(title, searchForm, resultGrid);

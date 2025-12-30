@@ -57,6 +57,7 @@ public class UserApplicationService implements UserCommands, UserQueries {
             .collect(Collectors.toSet());
 
         User user = User.create(
+            cmd.loginId(),
             cmd.email(),
             cmd.firstName(),
             cmd.lastName(),
@@ -71,6 +72,7 @@ public class UserApplicationService implements UserCommands, UserQueries {
 
         eventPublisher.publishEvent(new UserCreated(
             user.id().id(),
+            cmd.loginId(),
             cmd.email(),
             cmd.firstName(),
             cmd.lastName(),
@@ -178,7 +180,8 @@ public class UserApplicationService implements UserCommands, UserQueries {
         User user = repository.findById(cmd.userId())
             .orElseThrow(() -> new IllegalArgumentException("User not found: " + cmd.userId().id()));
 
-        user.lock(cmd.reason());
+        User.LockType lockType = User.LockType.valueOf(cmd.lockType());
+        user.lock(lockType, cmd.actor());
         repository.save(user);
 
         // Block user in Auth0 if provisioned
@@ -193,7 +196,8 @@ public class UserApplicationService implements UserCommands, UserQueries {
         User user = repository.findById(cmd.userId())
             .orElseThrow(() -> new IllegalArgumentException("User not found: " + cmd.userId().id()));
 
-        user.unlock();
+        User.LockType requesterLevel = User.LockType.valueOf(cmd.requesterLevel());
+        user.unlock(requesterLevel, cmd.actor());
         repository.save(user);
 
         // Unblock user in Auth0 if provisioned
@@ -314,6 +318,7 @@ public class UserApplicationService implements UserCommands, UserQueries {
 
         return new ProfileUserSummary(
             user.id().id(),
+            user.loginId(),
             user.email(),
             user.firstName(),
             user.lastName(),
@@ -321,7 +326,7 @@ public class UserApplicationService implements UserCommands, UserQueries {
             getStatusDisplayName(user.status()),
             roles,
             user.createdAt(),
-            user.lastSyncedAt()  // Using lastSyncedAt as proxy for lastLogin
+            user.lastLoggedInAt()
         );
     }
 
@@ -332,6 +337,7 @@ public class UserApplicationService implements UserCommands, UserQueries {
 
         return new UserDetail(
             user.id().id(),
+            user.loginId(),
             user.email(),
             user.firstName(),
             user.lastName(),
@@ -346,7 +352,10 @@ public class UserApplicationService implements UserCommands, UserQueries {
             user.createdAt(),
             user.createdBy(),
             user.lastSyncedAt(),
-            user.lockReason(),
+            user.lastLoggedInAt(),
+            user.lockType().name(),
+            user.lockedBy(),
+            user.lockedAt(),
             user.deactivationReason()
         );
     }

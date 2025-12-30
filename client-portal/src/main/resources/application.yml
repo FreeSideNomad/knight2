@@ -1,0 +1,31 @@
+server:
+  port: 8080
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: client-portal
+
+api:
+  base-url: ${API_URL:http://platform:8080/api/v1/client}
+
+jwt:
+  issuer: https://${AUTH0_DOMAIN}/
+  audience: ${AUTH0_API_AUDIENCE}
+  jwks-url: https://${AUTH0_DOMAIN}/.well-known/jwks.json
+
+vaadin:
+  launch-browser: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.knight.clientportal: DEBUG

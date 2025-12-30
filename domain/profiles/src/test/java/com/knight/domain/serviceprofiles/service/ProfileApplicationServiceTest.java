@@ -660,7 +660,7 @@ class ProfileApplicationServiceTest {
         @Test
         @DisplayName("should use indirect client name when profile name is blank")
         void shouldUseIndirectClientNameWhenProfileNameBlank() {
-            IndirectClientId indirectClientId = IndirectClientId.of(PRIMARY_CLIENT_ID, 1);
+            IndirectClientId indirectClientId = IndirectClientId.generate();
             when(clientNameResolver.resolveName(indirectClientId)).thenReturn(Optional.of("Payor Inc."));
 
             CreateProfileWithAccountsCmd cmd = new CreateProfileWithAccountsCmd(
@@ -685,7 +685,7 @@ class ProfileApplicationServiceTest {
         @Test
         @DisplayName("should throw when indirect client not found")
         void shouldThrowWhenIndirectClientNotFound() {
-            IndirectClientId indirectClientId = IndirectClientId.of(PRIMARY_CLIENT_ID, 99);
+            IndirectClientId indirectClientId = IndirectClientId.generate();
             when(clientNameResolver.resolveName(indirectClientId)).thenReturn(Optional.empty());
 
             CreateProfileWithAccountsCmd cmd = new CreateProfileWithAccountsCmd(
@@ -730,12 +730,12 @@ class ProfileApplicationServiceTest {
         @Test
         @DisplayName("should find active accounts for indirect client")
         void shouldFindActiveAccountsForIndirectClient() {
-            IndirectClientId indirectClientId = IndirectClientId.of(PRIMARY_CLIENT_ID, 1);
+            IndirectClientId indirectClientId = IndirectClientId.generate();
 
             ClientAccount account = mock(ClientAccount.class);
             when(account.status()).thenReturn(AccountStatus.ACTIVE);
             when(account.accountId()).thenReturn(ACCOUNT_ID_1);
-            when(clientAccountRepository.findByIndirectClientId(indirectClientId)).thenReturn(List.of(account));
+            when(clientAccountRepository.findByIndirectClientId(indirectClientId.urn())).thenReturn(List.of(account));
 
             CreateProfileWithAccountsCmd cmd = new CreateProfileWithAccountsCmd(
                 ProfileType.INDIRECT,
@@ -751,7 +751,7 @@ class ProfileApplicationServiceTest {
 
             service.createProfileWithAccounts(cmd);
 
-            verify(clientAccountRepository).findByIndirectClientId(indirectClientId);
+            verify(clientAccountRepository).findByIndirectClientId(indirectClientId.urn());
             verify(profileRepository).save(profileCaptor.capture());
             assertThat(profileCaptor.getValue().accountEnrollments()).hasSize(1);
         }

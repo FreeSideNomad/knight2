@@ -130,7 +130,7 @@ class ClientControllerE2ETest {
         @Test
         @DisplayName("should find clients by partial name match")
         void shouldFindByPartialName() throws Exception {
-            MvcResult result = mockMvc.perform(get("/api/clients")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients")
                     .param("name", "Corp")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -148,7 +148,7 @@ class ClientControllerE2ETest {
         @Test
         @DisplayName("should find client by exact name match")
         void shouldFindByExactName() throws Exception {
-            MvcResult result = mockMvc.perform(get("/api/clients")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients")
                     .param("name", "John Smith")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -165,7 +165,7 @@ class ClientControllerE2ETest {
         @Test
         @DisplayName("should return empty result for non-matching name")
         void shouldReturnEmptyForNonMatchingName() throws Exception {
-            mockMvc.perform(get("/api/clients")
+            mockMvc.perform(get("/api/v1/bank/clients")
                     .param("name", "NonExistent")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -176,7 +176,7 @@ class ClientControllerE2ETest {
         @Test
         @DisplayName("should handle case-insensitive name search")
         void shouldHandleCaseInsensitiveSearch() throws Exception {
-            MvcResult result = mockMvc.perform(get("/api/clients")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients")
                     .param("name", "ACME")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -190,7 +190,7 @@ class ClientControllerE2ETest {
         @DisplayName("should paginate name search results")
         void shouldPaginateResults() throws Exception {
             // Search for all clients with 'a' in name - should be 4: Acme, Alpha, Beta, Gamma
-            MvcResult result = mockMvc.perform(get("/api/clients")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients")
                     .param("name", "a")
                     .param("page", "0")
                     .param("size", "2")
@@ -213,7 +213,7 @@ class ClientControllerE2ETest {
         @Test
         @DisplayName("should find clients by full clientId with prefix")
         void shouldFindByFullClientId() throws Exception {
-            MvcResult result = mockMvc.perform(get("/api/clients")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients")
                     .param("clientId", "srf:123456789")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -229,7 +229,7 @@ class ClientControllerE2ETest {
         @Test
         @DisplayName("should find clients by partial clientId with prefix")
         void shouldFindByPartialClientIdWithPrefix() throws Exception {
-            MvcResult result = mockMvc.perform(get("/api/clients")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients")
                     .param("clientId", "srf:123")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -242,7 +242,7 @@ class ClientControllerE2ETest {
         @Test
         @DisplayName("should find all CDR clients by prefix")
         void shouldFindAllByPrefix() throws Exception {
-            MvcResult result = mockMvc.perform(get("/api/clients")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients")
                     .param("clientId", "cdr:")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -256,7 +256,7 @@ class ClientControllerE2ETest {
         @DisplayName("should find clients by number pattern only")
         void shouldFindByNumberPatternOnly() throws Exception {
             // Search for "00000" should find all CDR clients
-            MvcResult result = mockMvc.perform(get("/api/clients")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients")
                     .param("clientId", "00000")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -269,7 +269,7 @@ class ClientControllerE2ETest {
         @Test
         @DisplayName("should return empty for non-matching clientId")
         void shouldReturnEmptyForNonMatchingClientId() throws Exception {
-            mockMvc.perform(get("/api/clients")
+            mockMvc.perform(get("/api/v1/bank/clients")
                     .param("clientId", "xyz:999999")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -280,7 +280,7 @@ class ClientControllerE2ETest {
         @Test
         @DisplayName("should paginate clientId search results")
         void shouldPaginateResults() throws Exception {
-            MvcResult result = mockMvc.perform(get("/api/clients")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients")
                     .param("clientId", "cdr:")
                     .param("page", "0")
                     .param("size", "2")
@@ -303,7 +303,7 @@ class ClientControllerE2ETest {
         @DisplayName("should filter by type when searching by name")
         void shouldFilterByTypeWithName() throws Exception {
             // Search for "Corp" with type "srf" should find only Acme Corporation
-            MvcResult result = mockMvc.perform(get("/api/clients")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients")
                     .param("type", "srf")
                     .param("name", "Corp")
                     .contentType(MediaType.APPLICATION_JSON))
@@ -321,7 +321,7 @@ class ClientControllerE2ETest {
         @Test
         @DisplayName("should filter by type when searching by clientId")
         void shouldFilterByTypeWithClientId() throws Exception {
-            MvcResult result = mockMvc.perform(get("/api/clients")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients")
                     .param("type", "srf")
                     .param("clientId", "123")
                     .contentType(MediaType.APPLICATION_JSON))
@@ -335,7 +335,7 @@ class ClientControllerE2ETest {
         @Test
         @DisplayName("should return all clients of a type when only type is specified")
         void shouldReturnAllOfType() throws Exception {
-            MvcResult result = mockMvc.perform(get("/api/clients")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients")
                     .param("type", "srf")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -353,7 +353,7 @@ class ClientControllerE2ETest {
         @Test
         @DisplayName("should return empty result when no filters provided")
         void shouldReturnEmptyWithNoFilters() throws Exception {
-            mockMvc.perform(get("/api/clients")
+            mockMvc.perform(get("/api/v1/bank/clients")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(0))
@@ -368,7 +368,7 @@ class ClientControllerE2ETest {
         @Test
         @DisplayName("should return client details for existing client")
         void shouldReturnClientDetails() throws Exception {
-            MvcResult result = mockMvc.perform(get("/api/clients/srf:123456789")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients/srf:123456789")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -388,7 +388,7 @@ class ClientControllerE2ETest {
         @Test
         @DisplayName("should return 404 for non-existing client")
         void shouldReturn404ForNonExistingClient() throws Exception {
-            mockMvc.perform(get("/api/clients/srf:999999999")
+            mockMvc.perform(get("/api/v1/bank/clients/srf:999999999")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
         }
@@ -396,7 +396,7 @@ class ClientControllerE2ETest {
         @Test
         @DisplayName("should return 400 for invalid client ID format")
         void shouldReturn400ForInvalidClientId() throws Exception {
-            mockMvc.perform(get("/api/clients/invalid-format")
+            mockMvc.perform(get("/api/v1/bank/clients/invalid-format")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
         }
@@ -409,7 +409,7 @@ class ClientControllerE2ETest {
         @Test
         @DisplayName("should return properly formatted PageResultDto")
         void shouldReturnProperPageFormat() throws Exception {
-            MvcResult result = mockMvc.perform(get("/api/clients")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients")
                     .param("name", "Acme")
                     .param("page", "0")
                     .param("size", "20")
@@ -440,7 +440,7 @@ class ClientControllerE2ETest {
         @Test
         @DisplayName("should return clientId in URN format")
         void shouldReturnClientIdInUrnFormat() throws Exception {
-            MvcResult result = mockMvc.perform(get("/api/clients")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients")
                     .param("name", "Acme")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -462,7 +462,7 @@ class ClientControllerE2ETest {
         @Test
         @DisplayName("should return empty list when client has no accounts")
         void shouldReturnEmptyListForClientWithNoAccounts() throws Exception {
-            mockMvc.perform(get("/api/clients/srf:123456789/accounts")
+            mockMvc.perform(get("/api/v1/bank/clients/srf:123456789/accounts")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
@@ -473,7 +473,7 @@ class ClientControllerE2ETest {
         @Test
         @DisplayName("should return 404 for non-existing client")
         void shouldReturn404ForNonExistingClient() throws Exception {
-            mockMvc.perform(get("/api/clients/srf:999999999/accounts")
+            mockMvc.perform(get("/api/v1/bank/clients/srf:999999999/accounts")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
         }
@@ -481,7 +481,7 @@ class ClientControllerE2ETest {
         @Test
         @DisplayName("should return 400 for invalid client ID format")
         void shouldReturn400ForInvalidClientId() throws Exception {
-            mockMvc.perform(get("/api/clients/invalid-format/accounts")
+            mockMvc.perform(get("/api/v1/bank/clients/invalid-format/accounts")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
         }
@@ -489,7 +489,7 @@ class ClientControllerE2ETest {
         @Test
         @DisplayName("should paginate account results")
         void shouldPaginateResults() throws Exception {
-            mockMvc.perform(get("/api/clients/srf:123456789/accounts")
+            mockMvc.perform(get("/api/v1/bank/clients/srf:123456789/accounts")
                     .param("page", "0")
                     .param("size", "10")
                     .contentType(MediaType.APPLICATION_JSON))
@@ -512,7 +512,7 @@ class ClientControllerE2ETest {
             String number = "123456789";
             String fullClientId = type + ":" + number;
 
-            MvcResult result = mockMvc.perform(get("/api/clients")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients")
                     .param("clientId", fullClientId)
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -535,7 +535,7 @@ class ClientControllerE2ETest {
             // Frontend sends: name=Acme
             String searchName = "Acme";
 
-            MvcResult result = mockMvc.perform(get("/api/clients")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients")
                     .param("name", searchName)
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -558,7 +558,7 @@ class ClientControllerE2ETest {
             // User enters just "123456789" without prefix
             String number = "123456789";
 
-            MvcResult result = mockMvc.perform(get("/api/clients")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/clients")
                     .param("clientId", number)
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())

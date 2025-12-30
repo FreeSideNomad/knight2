@@ -30,11 +30,11 @@ public class ClientNameResolverImpl implements ClientNameResolver {
     @Override
     public Optional<String> resolveName(ClientId clientId) {
         String urn = clientId.urn();
-        if (urn.startsWith("indirect:")) {
+        if (urn.startsWith("ind:")) {
             // This is an indirect client - look up from IndirectClientRepository
             IndirectClientId indirectClientId = IndirectClientId.fromUrn(urn);
             return indirectClientRepository.findById(indirectClientId)
-                .map(IndirectClient::businessName);
+                .map(IndirectClient::name);
         } else {
             // Regular client - look up from ClientRepository
             return clientRepository.findById(clientId)

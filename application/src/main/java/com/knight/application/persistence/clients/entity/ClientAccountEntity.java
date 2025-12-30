@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * JPA entity representing a client account in the database.
@@ -16,7 +15,7 @@ import java.util.UUID;
  *
  * For OFI accounts linked to IndirectClients:
  * - clientId is optional (may be null)
- * - indirectClientId references the IndirectClient that owns this account
+ * - indirectClientId references the IndirectClient that owns this account (by client_id URN)
  * - accountHolderName stores the name of the account holder at the external bank
  */
 @Entity
@@ -34,8 +33,8 @@ public class ClientAccountEntity {
     @Column(name = "client_id")
     private String clientId;   // URN string format (FK conceptually, nullable for OFI accounts)
 
-    @Column(name = "indirect_client_id")
-    private UUID indirectClientId;  // UUID reference to indirect_clients (for OFI accounts)
+    @Column(name = "indirect_client_id", length = 50)
+    private String indirectClientId;  // URN reference to indirect_clients.client_id (for OFI accounts)
 
     @Column(name = "account_system", nullable = false)
     private String accountSystem;  // e.g., "CAN_DDA", "OFI"

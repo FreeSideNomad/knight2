@@ -13,7 +13,6 @@ import com.knight.platform.sharedkernel.AccountStatus;
 import com.knight.platform.sharedkernel.ClientAccountId;
 import com.knight.platform.sharedkernel.ClientId;
 import com.knight.platform.sharedkernel.ClientNameResolver;
-import com.knight.platform.sharedkernel.IndirectClientId;
 import com.knight.platform.sharedkernel.ProfileId;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -288,10 +287,9 @@ public class ProfileApplicationService implements ProfileCommands, ProfileQuerie
         List<ClientAccount> accounts;
         String urn = clientId.urn();
 
-        if (urn.startsWith("indirect:")) {
+        if (urn.startsWith("ind:")) {
             // This is an indirect client - use the indirect client lookup
-            IndirectClientId indirectClientId = IndirectClientId.fromUrn(urn);
-            accounts = clientAccountRepository.findByIndirectClientId(indirectClientId);
+            accounts = clientAccountRepository.findByIndirectClientId(urn);
         } else {
             // Regular client
             accounts = clientAccountRepository.findByClientId(clientId);

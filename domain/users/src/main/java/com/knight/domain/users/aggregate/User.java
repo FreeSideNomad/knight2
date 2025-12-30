@@ -5,12 +5,15 @@ import com.knight.platform.sharedkernel.UserId;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * User aggregate root.
  * Manages user lifecycle for client users and indirect client users.
  */
 public class User {
+
+    private static final Pattern LOGIN_ID_PATTERN = Pattern.compile("^[a-zA-Z0-9_]{3,50}$");
 
     public enum Status {
         PENDING_CREATION,      // User created locally, not yet provisioned to IdP
@@ -39,8 +42,29 @@ public class User {
         APPROVER         // Can approve transactions/records
     }
 
+    public enum LockType {
+        NONE,      // Not locked
+        CLIENT,    // Locked by Client Admin - can be unlocked by CLIENT, BANK, or SECURITY
+        BANK,      // Locked by Bank Admin - can be unlocked by BANK or SECURITY
+        SECURITY;  // Locked by Security Admin - can only be unlocked by SECURITY
+
+        /**
+         * Check if the requester level is sufficient to unlock this lock type.
+         * @param requesterLevel The lock type level of the requester
+         * @return true if requester can unlock this lock type
+         */
+        public boolean canBeUnlockedBy(LockType requesterLevel) {
+            if (this == NONE) {
+                return true; // Nothing to unlock
+            }
+            // Requester level must be >= current lock level
+            return requesterLevel.ordinal() >= this.ordinal();
+        }
+    }
+
     // Core fields
     private final UserId id;
+    private final String loginId;
     private final String email;
     private String firstName;
     private String lastName;
@@ -54,10 +78,13 @@ public class User {
     private boolean passwordSet;
     private boolean mfaEnrolled;
     private Instant lastSyncedAt;
+    private Instant lastLoggedInAt;
 
     // Status tracking
     private Status status;
-    private String lockReason;
+    private LockType lockType;
+    private String lockedBy;
+    private Instant lockedAt;
     private String deactivationReason;
 
     // Audit
@@ -65,10 +92,11 @@ public class User {
     private final String createdBy;
     private Instant updatedAt;
 
-    private User(UserId id, String email, String firstName, String lastName,
+    private User(UserId id, String loginId, String email, String firstName, String lastName,
                  UserType userType, IdentityProvider identityProvider,
                  ProfileId profileId, Set<Role> roles, String createdBy) {
         this.id = Objects.requireNonNull(id, "id cannot be null");
+        this.loginId = Objects.requireNonNull(loginId, "loginId cannot be null");
         this.email = Objects.requireNonNull(email, "email cannot be null");
         this.firstName = firstName;
         this.lastName = lastName;
@@ -78,6 +106,7 @@ public class User {
         this.roles = new HashSet<>(roles != null ? roles : Set.of());
         this.createdBy = Objects.requireNonNull(createdBy, "createdBy cannot be null");
         this.status = Status.PENDING_CREATION;
+        this.lockType = LockType.NONE;
         this.passwordSet = false;
         this.mfaEnrolled = false;
         this.createdAt = Instant.now();
@@ -88,20 +117,25 @@ public class User {
      * Factory method for reconstitution from persistence.
      */
     public static User reconstitute(
-            UserId id, String email, String firstName, String lastName,
+            UserId id, String loginId, String email, String firstName, String lastName,
             UserType userType, IdentityProvider identityProvider,
             ProfileId profileId, Set<Role> roles, String identityProviderUserId,
             boolean passwordSet, boolean mfaEnrolled, Instant lastSyncedAt,
-            Status status, String lockReason, String deactivationReason,
+            Instant lastLoggedInAt,
+            Status status, LockType lockType, String lockedBy, Instant lockedAt,
+            String deactivationReason,
             Instant createdAt, String createdBy, Instant updatedAt) {
-        User user = new User(id, email, firstName, lastName, userType, identityProvider,
+        User user = new User(id, loginId, email, firstName, lastName, userType, identityProvider,
                 profileId, roles, createdBy);
         user.identityProviderUserId = identityProviderUserId;
         user.passwordSet = passwordSet;
         user.mfaEnrolled = mfaEnrolled;
         user.lastSyncedAt = lastSyncedAt;
+        user.lastLoggedInAt = lastLoggedInAt;
         user.status = status;
-        user.lockReason = lockReason;
+        user.lockType = lockType != null ? lockType : LockType.NONE;
+        user.lockedBy = lockedBy;
+        user.lockedAt = lockedAt;
         user.deactivationReason = deactivationReason;
         // Override createdAt and updatedAt from persistence
         try {
@@ -115,9 +149,10 @@ public class User {
         return user;
     }
 
-    public static User create(String email, String firstName, String lastName,
+    public static User create(String loginId, String email, String firstName, String lastName,
                               UserType userType, IdentityProvider identityProvider,
                               ProfileId profileId, Set<Role> roles, String createdBy) {
+        validateLoginId(loginId);
         if (email == null || email.isBlank() || !email.contains("@")) {
             throw new IllegalArgumentException("Valid email is required");
         }
@@ -125,8 +160,18 @@ public class User {
             throw new IllegalArgumentException("At least one role is required");
         }
         UserId id = UserId.of(UUID.randomUUID().toString());
-        return new User(id, email, firstName, lastName, userType, identityProvider,
+        return new User(id, loginId, email, firstName, lastName, userType, identityProvider,
                 profileId, roles, createdBy);
+    }
+
+    private static void validateLoginId(String loginId) {
+        if (loginId == null || loginId.isBlank()) {
+            throw new IllegalArgumentException("Login ID is required");
+        }
+        if (!LOGIN_ID_PATTERN.matcher(loginId).matches()) {
+            throw new IllegalArgumentException(
+                "Login ID must be 3-50 characters and contain only alphanumeric characters and underscores");
+        }
     }
 
     /**
@@ -180,24 +225,53 @@ public class User {
         this.updatedAt = Instant.now();
     }
 
-    public void lock(String reason) {
+    /**
+     * Lock the user account with a specific lock type.
+     * @param type The type of lock to apply
+     * @param actor The user/system performing the lock action
+     */
+    public void lock(LockType type, String actor) {
+        if (type == null || type == LockType.NONE) {
+            throw new IllegalArgumentException("Lock type must be CLIENT, BANK, or SECURITY");
+        }
+        if (actor == null || actor.isBlank()) {
+            throw new IllegalArgumentException("Actor is required for lock operation");
+        }
         if (this.status == Status.LOCKED) {
             return;
         }
-        if (reason == null || reason.isBlank()) {
-            throw new IllegalArgumentException("Lock reason is required");
-        }
         this.status = Status.LOCKED;
-        this.lockReason = reason;
+        this.lockType = type;
+        this.lockedBy = actor;
+        this.lockedAt = Instant.now();
         this.updatedAt = Instant.now();
     }
 
-    public void unlock() {
+    /**
+     * Unlock the user account.
+     * @param requesterLevel The lock type level of the requester attempting to unlock
+     * @param actor The user/system performing the unlock action
+     */
+    public void unlock(LockType requesterLevel, String actor) {
         if (this.status != Status.LOCKED) {
             throw new IllegalStateException("User is not locked");
         }
+        if (requesterLevel == null) {
+            throw new IllegalArgumentException("Requester level is required");
+        }
+        if (actor == null || actor.isBlank()) {
+            throw new IllegalArgumentException("Actor is required for unlock operation");
+        }
+        if (!this.lockType.canBeUnlockedBy(requesterLevel)) {
+            throw new IllegalStateException(
+                String.format("Cannot unlock %s lock with %s level. Insufficient permissions.",
+                    this.lockType, requesterLevel)
+            );
+        }
         this.status = Status.ACTIVE;
-        this.lockReason = null;
+        this.lockType = LockType.NONE;
+        this.lockedBy = null;
+        this.lockedAt = null;
         this.updatedAt = Instant.now();
     }
 
@@ -222,8 +296,18 @@ public class User {
         this.updatedAt = Instant.now();
     }
 
+    /**
+     * Record a successful login event.
+     * Updates the lastLoggedInAt timestamp to track user activity.
+     */
+    public void recordLogin() {
+        this.lastLoggedInAt = Instant.now();
+        this.updatedAt = Instant.now();
+    }
+
     // Getters
     public UserId id() { return id; }
+    public String loginId() { return loginId; }
     public String email() { return email; }
     public String firstName() { return firstName; }
     public String lastName() { return lastName; }
@@ -235,8 +319,11 @@ public class User {
     public boolean passwordSet() { return passwordSet; }
     public boolean mfaEnrolled() { return mfaEnrolled; }
     public Instant lastSyncedAt() { return lastSyncedAt; }
+    public Instant lastLoggedInAt() { return lastLoggedInAt; }
     public Status status() { return status; }
-    public String lockReason() { return lockReason; }
+    public LockType lockType() { return lockType; }
+    public String lockedBy() { return lockedBy; }
+    public Instant lockedAt() { return lockedAt; }
     public String deactivationReason() { return deactivationReason; }
     public Instant createdAt() { return createdAt; }
     public String createdBy() { return createdBy; }

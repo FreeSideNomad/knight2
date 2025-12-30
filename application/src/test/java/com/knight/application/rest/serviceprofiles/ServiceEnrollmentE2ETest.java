@@ -132,7 +132,7 @@ class ServiceEnrollmentE2ETest {
             }
             """;
 
-        MvcResult result = mockMvc.perform(post("/api/profiles")
+        MvcResult result = mockMvc.perform(post("/api/v1/bank/profiles")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
             .andExpect(status().isCreated())
@@ -155,7 +155,7 @@ class ServiceEnrollmentE2ETest {
             }
             """;
 
-        MvcResult result = mockMvc.perform(post("/api/profiles/{profileId}/services", testProfileId)
+        MvcResult result = mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/services", testProfileId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
             .andExpect(status().isCreated())
@@ -185,7 +185,7 @@ class ServiceEnrollmentE2ETest {
             }
             """;
 
-        MvcResult result = mockMvc.perform(post("/api/profiles/{profileId}/services", testProfileId)
+        MvcResult result = mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/services", testProfileId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
             .andExpect(status().isCreated())
@@ -217,7 +217,7 @@ class ServiceEnrollmentE2ETest {
             """, configJson.replace("\"", "\\\""));
 
         // Enroll service with configuration
-        MvcResult enrollResult = mockMvc.perform(post("/api/profiles/{profileId}/services", testProfileId)
+        MvcResult enrollResult = mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/services", testProfileId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
             .andExpect(status().isCreated())
@@ -226,7 +226,7 @@ class ServiceEnrollmentE2ETest {
             .andReturn();
 
         // Get profile details and verify configuration is stored
-        MvcResult detailResult = mockMvc.perform(get("/api/profiles/{profileId}/detail", testProfileId))
+        MvcResult detailResult = mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/detail", testProfileId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.serviceEnrollments", hasSize(1)))
             .andExpect(jsonPath("$.serviceEnrollments[0].serviceType").value("RECEIVABLES"))
@@ -263,13 +263,13 @@ class ServiceEnrollmentE2ETest {
             }
             """, initialConfig.replace("\"", "\\\""));
 
-        mockMvc.perform(post("/api/profiles/{profileId}/services", testProfileId)
+        mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/services", testProfileId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(enrollRequest))
             .andExpect(status().isCreated());
 
         // Verify initial configuration
-        MvcResult initialResult = mockMvc.perform(get("/api/profiles/{profileId}/detail", testProfileId))
+        MvcResult initialResult = mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/detail", testProfileId))
             .andExpect(status().isOk())
             .andReturn();
 
@@ -293,13 +293,13 @@ class ServiceEnrollmentE2ETest {
             }
             """, updatedConfig.replace("\"", "\\\""));
 
-        mockMvc.perform(post("/api/profiles/{profileId}/services", testProfileId)
+        mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/services", testProfileId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(secondEnrollRequest))
             .andExpect(status().isCreated());
 
         // Verify both configurations are stored independently
-        MvcResult finalResult = mockMvc.perform(get("/api/profiles/{profileId}/detail", testProfileId))
+        MvcResult finalResult = mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/detail", testProfileId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.serviceEnrollments", hasSize(2)))
             .andReturn();
@@ -346,13 +346,13 @@ class ServiceEnrollmentE2ETest {
             }
             """;
 
-        mockMvc.perform(post("/api/profiles/{profileId}/services", testProfileId)
+        mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/services", testProfileId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(enrollRequest))
             .andExpect(status().isCreated());
 
         // Verify service is enrolled
-        mockMvc.perform(get("/api/profiles/{profileId}/detail", testProfileId))
+        mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/detail", testProfileId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.serviceEnrollments", hasSize(1)))
             .andExpect(jsonPath("$.serviceEnrollments[0].serviceType").value("RECEIVABLES"))
@@ -360,7 +360,7 @@ class ServiceEnrollmentE2ETest {
 
         // Note: If there's a DELETE endpoint for unenrolling, it would be tested here
         // For now, we verify the service exists and is active
-        // Example: mockMvc.perform(delete("/api/profiles/{profileId}/services/{serviceEnrollmentId}", testProfileId, enrollmentId))
+        // Example: mockMvc.perform(delete("/api/v1/bank/profiles/{profileId}/services/{serviceEnrollmentId}", testProfileId, enrollmentId))
         //             .andExpect(status().isNoContent());
     }
 
@@ -378,7 +378,7 @@ class ServiceEnrollmentE2ETest {
             """;
 
         // Enroll service first time - should succeed
-        mockMvc.perform(post("/api/profiles/{profileId}/services", testProfileId)
+        mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/services", testProfileId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
             .andExpect(status().isCreated());
@@ -388,7 +388,7 @@ class ServiceEnrollmentE2ETest {
         // If the system allows multiple enrollments of the same service, this test would need adjustment.
 
         // Verify only one service of this type exists
-        mockMvc.perform(get("/api/profiles/{profileId}/detail", testProfileId))
+        mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/detail", testProfileId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.serviceEnrollments", hasSize(1)))
             .andExpect(jsonPath("$.serviceEnrollments[0].serviceType").value("RECEIVABLES"));
@@ -416,18 +416,18 @@ class ServiceEnrollmentE2ETest {
             }
             """;
 
-        mockMvc.perform(post("/api/profiles/{profileId}/services", testProfileId)
+        mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/services", testProfileId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(receivablesRequest))
             .andExpect(status().isCreated());
 
-        mockMvc.perform(post("/api/profiles/{profileId}/services", testProfileId)
+        mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/services", testProfileId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payorRequest))
             .andExpect(status().isCreated());
 
         // Get profile detail and verify all services are returned
-        MvcResult result = mockMvc.perform(get("/api/profiles/{profileId}/detail", testProfileId))
+        MvcResult result = mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/detail", testProfileId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.profileId").value(testProfileId))
             .andExpect(jsonPath("$.serviceEnrollments", hasSize(2)))
@@ -463,7 +463,7 @@ class ServiceEnrollmentE2ETest {
             """, configJson.replace("\"", "\\\""));
 
         // Enroll service
-        MvcResult enrollResult = mockMvc.perform(post("/api/profiles/{profileId}/services", testProfileId)
+        MvcResult enrollResult = mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/services", testProfileId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
             .andExpect(status().isCreated())
@@ -473,7 +473,7 @@ class ServiceEnrollmentE2ETest {
         String enrollmentId = enrollResponse.get("enrollmentId").asText();
 
         // Get profile detail and verify all fields
-        MvcResult detailResult = mockMvc.perform(get("/api/profiles/{profileId}/detail", testProfileId))
+        MvcResult detailResult = mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/detail", testProfileId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.serviceEnrollments", hasSize(1)))
             .andReturn();
@@ -529,7 +529,7 @@ class ServiceEnrollmentE2ETest {
             }
             """;
 
-        MvcResult result = mockMvc.perform(post("/api/profiles/{profileId}/services", testProfileId)
+        MvcResult result = mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/services", testProfileId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
             .andExpect(status().isCreated())
@@ -542,7 +542,7 @@ class ServiceEnrollmentE2ETest {
         assertThat(response.get("linkedAccountCount").asInt()).isEqualTo(2);
 
         // Verify account enrollments are created
-        mockMvc.perform(get("/api/profiles/{profileId}/detail", testProfileId))
+        mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/detail", testProfileId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.accountEnrollments", hasSize(greaterThanOrEqualTo(2))));
     }
@@ -560,7 +560,7 @@ class ServiceEnrollmentE2ETest {
             }
             """;
 
-        mockMvc.perform(post("/api/profiles/{profileId}/services", "servicing:srf:999999999")
+        mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/services", "servicing:srf:999999999")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
             .andExpect(status().isBadRequest());
@@ -588,18 +588,18 @@ class ServiceEnrollmentE2ETest {
             }
             """;
 
-        mockMvc.perform(post("/api/profiles/{profileId}/services", testProfileId)
+        mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/services", testProfileId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(receivablesRequest))
             .andExpect(status().isCreated());
 
-        mockMvc.perform(post("/api/profiles/{profileId}/services", testProfileId)
+        mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/services", testProfileId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payorRequest))
             .andExpect(status().isCreated());
 
         // Get profile summary and verify service count
-        mockMvc.perform(get("/api/profiles/{profileId}", testProfileId))
+        mockMvc.perform(get("/api/v1/bank/profiles/{profileId}", testProfileId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.profileId").value(testProfileId))
             .andExpect(jsonPath("$.serviceEnrollmentCount").value(2));

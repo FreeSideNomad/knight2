@@ -37,7 +37,7 @@ public class ClientService {
         try {
             Map<String, Object> response = restClient.get()
                     .uri(uriBuilder -> {
-                        var builder = uriBuilder.path("/api/clients");
+                        var builder = uriBuilder.path("/api/v1/bank/clients");
                         if (type != null && !type.isBlank()) {
                             builder.queryParam("type", type);
                         }
@@ -69,7 +69,7 @@ public class ClientService {
         try {
             Map<String, Object> response = restClient.get()
                     .uri(uriBuilder -> {
-                        var builder = uriBuilder.path("/api/clients");
+                        var builder = uriBuilder.path("/api/v1/bank/clients");
                         if (type != null && !type.isBlank()) {
                             builder.queryParam("type", type);
                         }
@@ -97,7 +97,7 @@ public class ClientService {
     public ClientDetail getClient(String clientId) {
         try {
             return restClient.get()
-                    .uri("/api/clients/{clientId}", clientId)
+                    .uri("/api/v1/bank/clients/{clientId}", clientId)
                     .retrieve()
                     .body(ClientDetail.class);
         } catch (Exception e) {
@@ -117,7 +117,7 @@ public class ClientService {
         try {
             Map<String, Object> response = restClient.get()
                     .uri(uriBuilder -> uriBuilder
-                            .path("/api/clients/{clientId}/accounts")
+                            .path("/api/v1/bank/clients/{clientId}/accounts")
                             .queryParam("page", page)
                             .queryParam("size", size)
                             .build(clientId))
@@ -138,7 +138,7 @@ public class ClientService {
     public List<Object> getClientProfiles(String clientId) {
         try {
             return restClient.get()
-                    .uri("/api/clients/{clientId}/profiles", clientId)
+                    .uri("/api/v1/bank/clients/{clientId}/profiles", clientId)
                     .retrieve()
                     .body(new ParameterizedTypeReference<List<Object>>() {});
         } catch (Exception e) {

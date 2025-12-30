@@ -44,7 +44,7 @@ class IndirectClientApplicationServiceTest {
     private IndirectClientApplicationService service;
 
     private final SrfClientId parentClientId = new SrfClientId("123456789");
-    private final ProfileId profileId = ProfileId.of("online", parentClientId);
+    private final ProfileId parentProfileId = ProfileId.of("online", parentClientId);
 
     @Nested
     @DisplayName("createIndirectClient()")
@@ -54,11 +54,9 @@ class IndirectClientApplicationServiceTest {
         @DisplayName("should create indirect client successfully")
         void shouldCreateIndirectClientSuccessfully() {
             // Given
-            when(repository.getNextSequenceForClient(parentClientId)).thenReturn(1);
-
             CreateIndirectClientCmd cmd = new CreateIndirectClientCmd(
                 parentClientId,
-                profileId,
+                parentProfileId,
                 "Test Business",
                 null
             );
@@ -68,14 +66,14 @@ class IndirectClientApplicationServiceTest {
 
             // Then
             assertThat(result).isNotNull();
-            assertThat(result.urn()).isEqualTo("indirect:srf:123456789:1");
+            assertThat(result.urn()).startsWith("ind:");
 
             // Verify save was called
             ArgumentCaptor<IndirectClient> captor = ArgumentCaptor.forClass(IndirectClient.class);
             verify(repository).save(captor.capture());
 
             IndirectClient savedClient = captor.getValue();
-            assertThat(savedClient.businessName()).isEqualTo("Test Business");
+            assertThat(savedClient.name()).isEqualTo("Test Business");
             assertThat(savedClient.parentClientId()).isEqualTo(parentClientId);
         }
 
@@ -83,8 +81,6 @@ class IndirectClientApplicationServiceTest {
         @DisplayName("should create indirect client with related persons")
         void shouldCreateIndirectClientWithRelatedPersons() {
             // Given
-            when(repository.getNextSequenceForClient(parentClientId)).thenReturn(2);
-
             RelatedPersonData person = new RelatedPersonData(
                 "John Doe",
                 PersonRole.ADMIN,
@@ -94,7 +90,7 @@ class IndirectClientApplicationServiceTest {
 
             CreateIndirectClientCmd cmd = new CreateIndirectClientCmd(
                 parentClientId,
-                profileId,
+                parentProfileId,
                 "Test Business",
                 List.of(person)
             );
@@ -117,11 +113,9 @@ class IndirectClientApplicationServiceTest {
         @DisplayName("should publish IndirectClientOnboarded event")
         void shouldPublishIndirectClientOnboardedEvent() {
             // Given
-            when(repository.getNextSequenceForClient(parentClientId)).thenReturn(1);
-
             CreateIndirectClientCmd cmd = new CreateIndirectClientCmd(
                 parentClientId,
-                profileId,
+                parentProfileId,
                 "Test Business",
                 null
             );
@@ -135,21 +129,19 @@ class IndirectClientApplicationServiceTest {
             verify(eventPublisher).publishEvent(eventCaptor.capture());
 
             IndirectClientOnboarded event = eventCaptor.getValue();
-            assertThat(event.indirectClientId()).isEqualTo("indirect:srf:123456789:1");
+            assertThat(event.indirectClientId()).startsWith("ind:");
             assertThat(event.parentClientId()).isEqualTo("srf:123456789");
             assertThat(event.businessName()).isEqualTo("Test Business");
             assertThat(event.onboardedAt()).isNotNull();
         }
 
         @Test
-        @DisplayName("should generate sequential IDs")
-        void shouldGenerateSequentialIds() {
+        @DisplayName("should generate UUID-based IDs")
+        void shouldGenerateUuidBasedIds() {
             // Given
-            when(repository.getNextSequenceForClient(parentClientId)).thenReturn(5);
-
             CreateIndirectClientCmd cmd = new CreateIndirectClientCmd(
                 parentClientId,
-                profileId,
+                parentProfileId,
                 "Test Business",
                 null
             );
@@ -158,7 +150,7 @@ class IndirectClientApplicationServiceTest {
             IndirectClientId result = service.createIndirectClient(cmd);
 
             // Then
-            assertThat(result.urn()).isEqualTo("indirect:srf:123456789:5");
+            assertThat(result.urn()).matches("ind:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
         }
     }
 
@@ -170,11 +162,11 @@ class IndirectClientApplicationServiceTest {
         @DisplayName("should add related person successfully")
         void shouldAddRelatedPersonSuccessfully() {
             // Given
-            IndirectClientId clientId = IndirectClientId.of(parentClientId, 1);
+            IndirectClientId clientId = IndirectClientId.generate();
             IndirectClient client = IndirectClient.create(
                 clientId,
                 parentClientId,
-                profileId,
+                parentProfileId,
                 "Test Business",
                 "system"
             );
@@ -201,7 +193,7 @@ class IndirectClientApplicationServiceTest {
         @DisplayName("should throw when client not found")
         void shouldThrowWhenClientNotFound() {
             // Given
-            IndirectClientId clientId = IndirectClientId.of(parentClientId, 999);
+            IndirectClientId clientId = IndirectClientId.generate();
             when(repository.findById(clientId)).thenReturn(Optional.empty());
 
             AddRelatedPersonCmd cmd = new AddRelatedPersonCmd(
@@ -227,11 +219,11 @@ class IndirectClientApplicationServiceTest {
         @DisplayName("should return client summary")
         void shouldReturnClientSummary() {
             // Given
-            IndirectClientId clientId = IndirectClientId.of(parentClientId, 1);
+            IndirectClientId clientId = IndirectClientId.generate();
             IndirectClient client = IndirectClient.create(
                 clientId,
                 parentClientId,
-                profileId,
+                parentProfileId,
                 "Test Business",
                 "system"
             );
@@ -253,7 +245,7 @@ class IndirectClientApplicationServiceTest {
         @DisplayName("should throw when client not found")
         void shouldThrowWhenClientNotFound() {
             // Given
-            IndirectClientId clientId = IndirectClientId.of(parentClientId, 999);
+            IndirectClientId clientId = IndirectClientId.generate();
             when(repository.findById(clientId)).thenReturn(Optional.empty());
 
             // When/Then

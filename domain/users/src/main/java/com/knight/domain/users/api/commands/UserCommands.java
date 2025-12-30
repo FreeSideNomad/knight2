@@ -19,6 +19,7 @@ public interface UserCommands {
     UserId createUser(CreateUserCmd cmd);
 
     record CreateUserCmd(
+        String loginId,
         String email,
         String firstName,
         String lastName,
@@ -75,11 +76,11 @@ public interface UserCommands {
 
     void lockUser(LockUserCmd cmd);
 
-    record LockUserCmd(UserId userId, String reason) {}
+    record LockUserCmd(UserId userId, String lockType, String actor) {}
 
     void unlockUser(UnlockUserCmd cmd);
 
-    record UnlockUserCmd(UserId userId) {}
+    record UnlockUserCmd(UserId userId, String requesterLevel, String actor) {}
 
     // ==================== Role Management ====================
 

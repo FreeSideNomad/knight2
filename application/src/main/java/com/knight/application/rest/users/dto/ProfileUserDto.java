@@ -8,6 +8,7 @@ import java.util.Set;
  */
 public record ProfileUserDto(
     String userId,
+    String loginId,
     String email,
     String firstName,
     String lastName,
@@ -18,5 +19,5 @@ public record ProfileUserDto(
     boolean canLock,
     boolean canDeactivate,
     Instant createdAt,
-    Instant lastLogin
+    Instant lastLoggedInAt
 ) {}

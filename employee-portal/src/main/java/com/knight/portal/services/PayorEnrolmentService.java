@@ -49,7 +49,7 @@ public class PayorEnrolmentService {
             }).contentType(MediaType.APPLICATION_JSON);
 
             Map<String, Object> response = webClient.post()
-                    .uri("/api/profiles/{profileId}/payor-enrolment/validate", profileId)
+                    .uri("/api/v1/bank/profiles/{profileId}/payor-enrolment/validate", profileId)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .bodyValue(builder.build())
                     .retrieve()
@@ -75,7 +75,7 @@ public class PayorEnrolmentService {
             Map<String, Object> request = Map.of("batchId", batchId);
 
             Map<String, Object> response = restClient.post()
-                    .uri("/api/profiles/{profileId}/payor-enrolment/execute", profileId)
+                    .uri("/api/v1/bank/profiles/{profileId}/payor-enrolment/execute", profileId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(request)
                     .retrieve()
@@ -98,7 +98,7 @@ public class PayorEnrolmentService {
     public BatchDetailDto getBatchDetail(String batchId) {
         try {
             Map<String, Object> response = restClient.get()
-                    .uri("/api/batches/{batchId}", batchId)
+                    .uri("/api/v1/bank/batches/{batchId}", batchId)
                     .retrieve()
                     .body(new ParameterizedTypeReference<Map<String, Object>>() {});
 
@@ -119,8 +119,8 @@ public class PayorEnrolmentService {
     public List<BatchItemDto> getBatchItems(String batchId, String status) {
         try {
             String uri = status != null
-                    ? "/api/batches/{batchId}/items?status=" + status
-                    : "/api/batches/{batchId}/items";
+                    ? "/api/v1/bank/batches/{batchId}/items?status=" + status
+                    : "/api/v1/bank/batches/{batchId}/items";
 
             List<Map<String, Object>> response = restClient.get()
                     .uri(uri, batchId)
@@ -146,7 +146,7 @@ public class PayorEnrolmentService {
     public List<BatchSummaryDto> listBatches(String profileId) {
         try {
             List<Map<String, Object>> response = restClient.get()
-                    .uri("/api/profiles/{profileId}/payor-enrolment/batches", profileId)
+                    .uri("/api/v1/bank/profiles/{profileId}/payor-enrolment/batches", profileId)
                     .retrieve()
                     .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {});
 

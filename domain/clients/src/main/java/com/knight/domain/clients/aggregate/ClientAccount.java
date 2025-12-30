@@ -5,11 +5,9 @@ import com.knight.platform.sharedkernel.AccountSystem;
 import com.knight.platform.sharedkernel.ClientAccountId;
 import com.knight.platform.sharedkernel.ClientId;
 import com.knight.platform.sharedkernel.Currency;
-import com.knight.platform.sharedkernel.IndirectClientId;
 
 import java.time.Instant;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * ClientAccount aggregate root.
@@ -17,7 +15,7 @@ import java.util.UUID;
  *
  * For OFI accounts linked to IndirectClients:
  * - clientId is null
- * - indirectClientId references the owning IndirectClient
+ * - indirectClientId references the owning IndirectClient (URN format: ind:{UUID})
  * - accountHolderName stores the name of the account holder at the external bank
  *
  * Business rules:
@@ -29,14 +27,14 @@ public class ClientAccount {
 
     private final ClientAccountId accountId;
     private final ClientId clientId;          // Null for OFI accounts linked to IndirectClient
-    private final UUID indirectClientId;      // Set for OFI accounts linked to IndirectClient
+    private final String indirectClientId;    // URN of IndirectClient (ind:{UUID}) for OFI accounts
     private final Currency currency;
-    private final String accountHolderName;   // For OFI accounts
+    private String accountHolderName;   // For OFI accounts - mutable for updates
     private AccountStatus status;
     private final Instant createdAt;
     private Instant updatedAt;
 
-    private ClientAccount(ClientAccountId accountId, ClientId clientId, UUID indirectClientId,
+    private ClientAccount(ClientAccountId accountId, ClientId clientId, String indirectClientId,
                          Currency currency, String accountHolderName) {
         this.accountId = Objects.requireNonNull(accountId, "accountId cannot be null");
         this.clientId = clientId;  // Can be null for OFI accounts
@@ -66,12 +64,12 @@ public class ClientAccount {
      * Creates a new OFI account linked to an IndirectClient.
      *
      * @param accountId the unique account identifier (must be OFI account type)
-     * @param indirectClientId the indirect client who owns this account
+     * @param indirectClientId the indirect client URN (format: ind:{UUID})
      * @param currency the currency of the account
      * @param accountHolderName the name of the account holder at the external bank (optional)
      * @return a new ClientAccount instance
      */
-    public static ClientAccount createOfiAccount(ClientAccountId accountId, UUID indirectClientId,
+    public static ClientAccount createOfiAccount(ClientAccountId accountId, String indirectClientId,
                                                   Currency currency, String accountHolderName) {
         Objects.requireNonNull(indirectClientId, "indirectClientId cannot be null for OFI accounts");
         if (accountId.accountSystem() != AccountSystem.OFI) {
@@ -86,7 +84,7 @@ public class ClientAccount {
      *
      * @param accountId the unique account identifier
      * @param clientId the client who owns this account (null for OFI accounts)
-     * @param indirectClientId the indirect client who owns this account (null for regular accounts)
+     * @param indirectClientId the indirect client URN (null for regular accounts)
      * @param currency the currency of the account
      * @param accountHolderName the account holder name (for OFI accounts)
      * @param status the account status
@@ -97,7 +95,7 @@ public class ClientAccount {
     public static ClientAccount reconstruct(
             ClientAccountId accountId,
             ClientId clientId,
-            UUID indirectClientId,
+            String indirectClientId,
             Currency currency,
             String accountHolderName,
             AccountStatus status,
@@ -147,6 +145,20 @@ public class ClientAccount {
         this.updatedAt = Instant.now();
     }
 
+    /**
+     * Updates the account holder name for OFI accounts.
+     *
+     * @param accountHolderName the new account holder name
+     * @throws IllegalStateException if the account is closed
+     */
+    public void updateAccountHolderName(String accountHolderName) {
+        if (this.status == AccountStatus.CLOSED) {
+            throw new IllegalStateException("Cannot update closed account");
+        }
+        this.accountHolderName = accountHolderName;
+        this.updatedAt = Instant.now();
+    }
+
     // Getters
     public ClientAccountId accountId() {
         return accountId;
@@ -156,7 +168,7 @@ public class ClientAccount {
         return clientId;
     }
 
-    public UUID indirectClientId() {
+    public String indirectClientId() {
         return indirectClientId;
     }
 

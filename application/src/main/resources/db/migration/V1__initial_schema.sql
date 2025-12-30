@@ -42,31 +42,31 @@ CREATE INDEX idx_profiles_name ON profiles(name);
 -- =====================================================
 
 -- Indirect Clients table
+-- client_id is the PK and uses URN format: ind:{UUID}
 CREATE TABLE indirect_clients (
-    id UNIQUEIDENTIFIER PRIMARY KEY,              -- UUID (database key)
-    indirect_client_urn VARCHAR(200) NOT NULL UNIQUE, -- Domain ID URN (indirect:{clientUrn}:{seq})
+    client_id VARCHAR(50) PRIMARY KEY,            -- URN format: ind:{UUID}
     parent_client_id VARCHAR(100) NOT NULL,       -- URN string (references clients)
-    profile_id VARCHAR(200) NOT NULL,             -- URN string (references profiles)
+    parent_profile_id VARCHAR(200) NOT NULL,      -- URN string (references profiles)
     client_type VARCHAR(20) NOT NULL,             -- PERSON or BUSINESS
-    business_name NVARCHAR(255) NOT NULL,         -- May contain Unicode
+    name NVARCHAR(255) NOT NULL,                  -- May contain Unicode (renamed from business_name)
+    external_reference VARCHAR(100),              -- External system reference
     status VARCHAR(20) NOT NULL,                  -- PENDING, ACTIVE, SUSPENDED
     created_at DATETIME2 NOT NULL,
     updated_at DATETIME2 NOT NULL,
 
     CONSTRAINT FK_indirect_client_parent FOREIGN KEY (parent_client_id)
         REFERENCES clients(client_id),
-    CONSTRAINT FK_indirect_client_profile FOREIGN KEY (profile_id)
+    CONSTRAINT FK_indirect_client_profile FOREIGN KEY (parent_profile_id)
         REFERENCES profiles(profile_id)
 );
 
-CREATE INDEX idx_indirect_clients_urn ON indirect_clients(indirect_client_urn);
 CREATE INDEX idx_indirect_clients_parent ON indirect_clients(parent_client_id);
-CREATE INDEX idx_indirect_clients_profile ON indirect_clients(profile_id);
+CREATE INDEX idx_indirect_clients_parent_profile ON indirect_clients(parent_profile_id);
 
 -- Related Persons table
 CREATE TABLE indirect_client_persons (
     person_id UNIQUEIDENTIFIER PRIMARY KEY,       -- UUID
-    indirect_client_id UNIQUEIDENTIFIER NOT NULL, -- UUID (references indirect_clients)
+    indirect_client_id VARCHAR(50) NOT NULL,      -- URN reference to indirect_clients.client_id
     name NVARCHAR(255) NOT NULL,                  -- May contain Unicode
     role VARCHAR(20) NOT NULL,                    -- ADMIN or CONTACT
     email VARCHAR(255),                           -- ASCII only
@@ -74,7 +74,7 @@ CREATE TABLE indirect_client_persons (
     added_at DATETIME2 NOT NULL,
 
     CONSTRAINT FK_person_indirect_client FOREIGN KEY (indirect_client_id)
-        REFERENCES indirect_clients(id) ON DELETE CASCADE
+        REFERENCES indirect_clients(client_id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_indirect_client_persons_client ON indirect_client_persons(indirect_client_id);
@@ -83,7 +83,7 @@ CREATE INDEX idx_indirect_client_persons_client ON indirect_client_persons(indir
 CREATE TABLE client_accounts (
     account_id VARCHAR(100) PRIMARY KEY,          -- URN string (e.g., CAN_GRADS:PAP:1234567890)
     client_id VARCHAR(100),                       -- URN string (FK conceptually, nullable for OFI accounts)
-    indirect_client_id UNIQUEIDENTIFIER,          -- UUID reference to indirect_clients (for OFI accounts)
+    indirect_client_id VARCHAR(50),               -- URN reference to indirect_clients.client_id (for OFI accounts)
     account_system VARCHAR(50) NOT NULL,          -- CDR, SRF, CAN_GRADS, OFI, etc.
     account_type VARCHAR(50) NOT NULL,            -- DDA, PAP, PDB, CAN, IBAN, etc.
     currency CHAR(3) NOT NULL,                    -- ISO 4217 (CAD, USD)
@@ -94,7 +94,7 @@ CREATE TABLE client_accounts (
     CONSTRAINT FK_client_accounts_client FOREIGN KEY (client_id)
         REFERENCES clients(client_id),
     CONSTRAINT FK_client_accounts_indirect_client FOREIGN KEY (indirect_client_id)
-        REFERENCES indirect_clients(id)
+        REFERENCES indirect_clients(client_id)
 );
 
 CREATE INDEX idx_client_accounts_client ON client_accounts(client_id);
@@ -160,6 +160,7 @@ CREATE INDEX idx_account_enrollments_client ON account_enrollments(client_id);
 
 CREATE TABLE users (
     user_id UNIQUEIDENTIFIER PRIMARY KEY,         -- UUID
+    login_id VARCHAR(50) NOT NULL UNIQUE,         -- Login ID (alphanumeric + underscore, 3-50 chars)
     email VARCHAR(255) NOT NULL UNIQUE,           -- ASCII only
     first_name NVARCHAR(100),                     -- May contain Unicode
     last_name NVARCHAR(100),                      -- May contain Unicode
@@ -167,17 +168,21 @@ CREATE TABLE users (
     identity_provider VARCHAR(20) NOT NULL,       -- ANP, AUTH0, ENTRA_ID
     identity_provider_user_id VARCHAR(255),       -- External provider ID
     profile_id VARCHAR(200) NOT NULL,
-    status VARCHAR(20) NOT NULL,                  -- PENDING_CREATION, ACTIVE, LOCKED, etc.
+    status VARCHAR(30) NOT NULL,                  -- PENDING_CREATION, ACTIVE, LOCKED, etc.
     password_set BIT NOT NULL DEFAULT 0,
     mfa_enrolled BIT NOT NULL DEFAULT 0,
-    last_synced_at DATETIME2,
-    lock_reason NVARCHAR(500),                    -- May contain Unicode
+    last_synced_at DATETIME2,                     -- Last IdP sync (password set, MFA enrolled, etc.)
+    last_logged_in_at DATETIME2,                  -- Last actual login timestamp
+    lock_type VARCHAR(20) NOT NULL DEFAULT 'NONE', -- NONE, CLIENT, BANK, SECURITY
+    locked_by NVARCHAR(255),                      -- Who locked the account
+    locked_at DATETIME2,                          -- When the account was locked
     deactivation_reason NVARCHAR(500),            -- May contain Unicode
     created_at DATETIME2 NOT NULL,
     created_by NVARCHAR(255),
     updated_at DATETIME2 NOT NULL
 );
 
+CREATE INDEX idx_users_login_id ON users(login_id);
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_profile ON users(profile_id);
 CREATE UNIQUE INDEX idx_users_idp_user_id ON users(identity_provider_user_id)
@@ -265,3 +270,58 @@ CREATE TABLE user_group_members (
 
 CREATE INDEX idx_user_group_members_group ON user_group_members(group_id);
 CREATE INDEX idx_user_group_members_user ON user_group_members(user_id);
+
+-- =====================================================
+-- BATCH PROCESSING TABLES
+-- Supports async batch operations like payor enrolment
+-- =====================================================
+
+-- Batches table
+CREATE TABLE batches (
+    batch_id UNIQUEIDENTIFIER PRIMARY KEY,
+    batch_type VARCHAR(50) NOT NULL,              -- PAYOR_ENROLMENT, etc.
+    source_profile_id VARCHAR(200) NOT NULL,      -- Profile that initiated the batch
+    status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+    total_items INT NOT NULL DEFAULT 0,
+    success_count INT NOT NULL DEFAULT 0,
+    failed_count INT NOT NULL DEFAULT 0,
+    created_at DATETIME2 NOT NULL,
+    created_by NVARCHAR(255) NOT NULL,
+    started_at DATETIME2,
+    completed_at DATETIME2,
+
+    CONSTRAINT CHK_batch_status CHECK (status IN (
+        'PENDING', 'IN_PROGRESS', 'COMPLETED', 'COMPLETED_WITH_ERRORS', 'FAILED'
+    )),
+    CONSTRAINT CHK_batch_type CHECK (batch_type IN (
+        'PAYOR_ENROLMENT'
+    )),
+    CONSTRAINT FK_batches_profile FOREIGN KEY (source_profile_id)
+        REFERENCES profiles(profile_id)
+);
+
+CREATE INDEX idx_batches_profile ON batches(source_profile_id);
+CREATE INDEX idx_batches_status ON batches(status);
+CREATE INDEX idx_batches_created ON batches(created_at DESC);
+
+-- Batch Items table
+CREATE TABLE batch_items (
+    batch_item_id UNIQUEIDENTIFIER PRIMARY KEY,
+    batch_id UNIQUEIDENTIFIER NOT NULL,
+    sequence_number INT NOT NULL,
+    input_data NVARCHAR(MAX) NOT NULL,            -- JSON input for this item
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    result_data NVARCHAR(MAX),                    -- JSON result (entity IDs on success)
+    error_message NVARCHAR(2000),                 -- Error details on failure
+    processed_at DATETIME2,
+
+    CONSTRAINT CHK_batch_item_status CHECK (status IN (
+        'PENDING', 'IN_PROGRESS', 'SUCCESS', 'FAILED'
+    )),
+    CONSTRAINT FK_batch_items_batch FOREIGN KEY (batch_id)
+        REFERENCES batches(batch_id) ON DELETE CASCADE,
+    CONSTRAINT UQ_batch_item_sequence UNIQUE (batch_id, sequence_number)
+);
+
+CREATE INDEX idx_batch_items_batch ON batch_items(batch_id);
+CREATE INDEX idx_batch_items_status ON batch_items(status);

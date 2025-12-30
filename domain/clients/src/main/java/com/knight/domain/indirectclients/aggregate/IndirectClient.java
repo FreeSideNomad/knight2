@@ -87,9 +87,9 @@ public class IndirectClient {
 
     private final IndirectClientId id;
     private final ClientId parentClientId;
-    private final ProfileId profileId;
+    private final ProfileId parentProfileId;  // Renamed from profileId
     private ClientType clientType;
-    private String businessName;
+    private String name;  // Renamed from businessName
     private String externalReference;
     private Status status;
     private final List<RelatedPerson> relatedPersons;
@@ -97,13 +97,13 @@ public class IndirectClient {
     private final String createdBy;
     private Instant updatedAt;
 
-    private IndirectClient(IndirectClientId id, ClientId parentClientId, ProfileId profileId,
-                          ClientType clientType, String businessName, String externalReference, String createdBy) {
+    private IndirectClient(IndirectClientId id, ClientId parentClientId, ProfileId parentProfileId,
+                          ClientType clientType, String name, String externalReference, String createdBy) {
         this.id = Objects.requireNonNull(id, "id cannot be null");
         this.parentClientId = Objects.requireNonNull(parentClientId, "parentClientId cannot be null");
-        this.profileId = Objects.requireNonNull(profileId, "profileId cannot be null");
+        this.parentProfileId = Objects.requireNonNull(parentProfileId, "parentProfileId cannot be null");
         this.clientType = clientType;
-        this.businessName = businessName;
+        this.name = name;
         this.externalReference = externalReference;
         this.createdBy = Objects.requireNonNull(createdBy, "createdBy cannot be null");
         this.status = Status.PENDING;
@@ -112,20 +112,20 @@ public class IndirectClient {
         this.updatedAt = this.createdAt;
     }
 
-    public static IndirectClient create(IndirectClientId id, ClientId parentClientId, ProfileId profileId,
-                                        String businessName, String createdBy) {
-        if (businessName == null || businessName.isBlank()) {
-            throw new IllegalArgumentException("Business name cannot be null or blank");
+    public static IndirectClient create(IndirectClientId id, ClientId parentClientId, ProfileId parentProfileId,
+                                        String name, String createdBy) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Name cannot be null or blank");
         }
-        return new IndirectClient(id, parentClientId, profileId, ClientType.BUSINESS, businessName, null, createdBy);
+        return new IndirectClient(id, parentClientId, parentProfileId, ClientType.BUSINESS, name, null, createdBy);
     }
 
-    public static IndirectClient create(IndirectClientId id, ClientId parentClientId, ProfileId profileId,
-                                        String businessName, String externalReference, String createdBy) {
-        if (businessName == null || businessName.isBlank()) {
-            throw new IllegalArgumentException("Business name cannot be null or blank");
+    public static IndirectClient create(IndirectClientId id, ClientId parentClientId, ProfileId parentProfileId,
+                                        String name, String externalReference, String createdBy) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Name cannot be null or blank");
         }
-        return new IndirectClient(id, parentClientId, profileId, ClientType.BUSINESS, businessName, externalReference, createdBy);
+        return new IndirectClient(id, parentClientId, parentProfileId, ClientType.BUSINESS, name, externalReference, createdBy);
     }
 
     /**
@@ -136,12 +136,12 @@ public class IndirectClient {
      * They are managed via ClientAccountRepository with indirect_client_id.
      */
     public static IndirectClient reconstitute(
-            IndirectClientId id, ClientId parentClientId, ProfileId profileId,
-            ClientType clientType, String businessName, String externalReference, Status status,
+            IndirectClientId id, ClientId parentClientId, ProfileId parentProfileId,
+            ClientType clientType, String name, String externalReference, Status status,
             List<RelatedPerson> relatedPersons,
             Instant createdAt, String createdBy, Instant updatedAt) {
 
-        IndirectClient client = new IndirectClient(id, parentClientId, profileId, clientType, businessName, externalReference, createdBy);
+        IndirectClient client = new IndirectClient(id, parentClientId, parentProfileId, clientType, name, externalReference, createdBy);
         client.status = status;
 
         // Add related persons (already properly constructed with their IDs)
@@ -198,6 +198,20 @@ public class IndirectClient {
         this.updatedAt = Instant.now();
     }
 
+    /**
+     * Updates the name of this indirect client.
+     */
+    public void updateName(String name) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Name cannot be null or blank");
+        }
+        if (this.status == Status.SUSPENDED) {
+            throw new IllegalStateException("Cannot update name on suspended client");
+        }
+        this.name = name;
+        this.updatedAt = Instant.now();
+    }
+
     public void updateRelatedPerson(PersonId personId, String name, PersonRole role, Email email, Phone phone) {
         if (this.status == Status.SUSPENDED) {
             throw new IllegalStateException("Cannot update related person on suspended client");
@@ -235,9 +249,9 @@ public class IndirectClient {
     // Getters
     public IndirectClientId id() { return id; }
     public ClientId parentClientId() { return parentClientId; }
-    public ProfileId profileId() { return profileId; }
+    public ProfileId parentProfileId() { return parentProfileId; }  // Renamed from profileId()
     public ClientType clientType() { return clientType; }
-    public String businessName() { return businessName; }
+    public String name() { return name; }  // Renamed from businessName()
     public String externalReference() { return externalReference; }
     public Status status() { return status; }
     public List<RelatedPerson> relatedPersons() { return List.copyOf(relatedPersons); }

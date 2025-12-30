@@ -45,7 +45,9 @@ services:
       - knight-network
 
   portal:
-    build: ./employee-portal
+    build:
+      context: .
+      dockerfile: employee-portal/Dockerfile
     ports:
       - "8001:8081"
     environment:
@@ -72,6 +74,8 @@ services:
       - AUTH0_DOMAIN=${AUTH0_DOMAIN}
       - AUTH0_M2M_CLIENT_ID=${AUTH0_M2M_CLIENT_ID}
       - AUTH0_M2M_CLIENT_SECRET=${AUTH0_M2M_CLIENT_SECRET}
+      - AUTH0_WEB_CLIENT_ID=${AUTH0_WEB_CLIENT_ID}
+      - AUTH0_WEB_CLIENT_SECRET=${AUTH0_WEB_CLIENT_SECRET}
       - AUTH0_API_AUDIENCE=${AUTH0_API_AUDIENCE}
       - AUTH0_CONNECTION=${AUTH0_CONNECTION}
       - AUTH0_PASSWORD_RESET_URL=${AUTH0_PASSWORD_RESET_URL}
@@ -147,6 +151,90 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
     networks:
       - knight-network
+
+  # Client Login Gateway (OpenResty + Lua)
+  client-login:
+    build: ./client-login
+    container_name: knight-client-login
+    ports:
+      - "9000:80"
+    environment:
+      - AUTH0_DOMAIN=${AUTH0_DOMAIN}
+      - AUTH0_WEB_CLIENT_ID=${AUTH0_WEB_CLIENT_ID}
+      - AUTH0_WEB_CLIENT_SECRET=${AUTH0_WEB_CLIENT_SECRET}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CLIENT_SESSION_TTL=1200
+      - CLIENT_SESSION_COOKIE=CLIENT_SESSION
+      - PLATFORM_API_URL=http://platform:8080
+      - LOGIN_API_USERNAME=${LOGIN_API_USERNAME}
+      - LOGIN_API_PASSWORD=${LOGIN_API_PASSWORD}
+      - CLIENT_PORTAL_URL=http://client-portal:8080
+      - INDIRECT_PORTAL_URL=http://indirect-client-portal:8080
+    depends_on:
+      redis:
+        condition: service_healthy
+      platform:
+        condition: service_started
+      client-portal:
+        condition: service_started
+      indirect-client-portal:
+        condition: service_started
+    networks:
+      - knight-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Client Portal (Vaadin UI for Direct Clients)
+  client-portal:
+    build:
+      context: .
+      dockerfile: client-portal/Dockerfile
+    container_name: knight-client-portal
+    ports:
+      - "8003:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - API_URL=http://platform:8080/api/v1/client
+      - AUTH0_DOMAIN=${AUTH0_DOMAIN}
+      - AUTH0_API_AUDIENCE=${AUTH0_API_AUDIENCE}
+    depends_on:
+      platform:
+        condition: service_started
+    networks:
+      - knight-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Indirect Client Portal (Vaadin UI for Indirect Client/Payor users)
+  indirect-client-portal:
+    build:
+      context: .
+      dockerfile: indirect-client-portal/Dockerfile
+    container_name: knight-indirect-portal
+    ports:
+      - "8004:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - API_URL=http://platform:8080/api/v1/indirect
+      - AUTH0_DOMAIN=${AUTH0_DOMAIN}
+      - AUTH0_API_AUDIENCE=${AUTH0_API_AUDIENCE}
+    depends_on:
+      platform:
+        condition: service_started
+    networks:
+      - knight-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 volumes:
   sqlserver-data:

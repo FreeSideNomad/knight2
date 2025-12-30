@@ -118,4 +118,42 @@ public interface ProfileJpaRepository extends JpaRepository<ProfileEntity, Strin
         @Param("clientId") String clientId,
         @Param("profileTypes") Collection<String> profileTypes
     );
+
+    // ==================== Indirect Profile Search Methods ====================
+
+    /**
+     * Find all INDIRECT profiles.
+     * These are profiles linked to indirect clients via profile_client_enrollments.
+     */
+    @Query("SELECT p FROM ProfileEntity p WHERE p.profileType = 'INDIRECT' ORDER BY p.name")
+    List<ProfileEntity> findAllIndirectProfiles();
+
+    /**
+     * Find INDIRECT profiles linked to indirect clients with the given parent client ID.
+     * Joins indirect_clients -> profile_client_enrollments -> profiles.
+     */
+    @Query("SELECT DISTINCT p FROM ProfileEntity p " +
+           "JOIN p.clientEnrollments ce " +
+           "JOIN com.knight.application.persistence.indirectclients.entity.IndirectClientEntity ic ON ic.clientId = ce.clientId " +
+           "WHERE p.profileType = 'INDIRECT' AND ic.parentClientId = :parentClientId " +
+           "ORDER BY p.name")
+    List<ProfileEntity> findIndirectProfilesByParentClientId(@Param("parentClientId") String parentClientId);
+
+    /**
+     * Find INDIRECT profiles with pagination.
+     */
+    @Query("SELECT p FROM ProfileEntity p WHERE p.profileType = 'INDIRECT'")
+    Page<ProfileEntity> findAllIndirectProfiles(Pageable pageable);
+
+    /**
+     * Find INDIRECT profiles by parent client ID with pagination.
+     */
+    @Query("SELECT DISTINCT p FROM ProfileEntity p " +
+           "JOIN p.clientEnrollments ce " +
+           "JOIN com.knight.application.persistence.indirectclients.entity.IndirectClientEntity ic ON ic.clientId = ce.clientId " +
+           "WHERE p.profileType = 'INDIRECT' AND ic.parentClientId = :parentClientId")
+    Page<ProfileEntity> findIndirectProfilesByParentClientId(
+        @Param("parentClientId") String parentClientId,
+        Pageable pageable
+    );
 }

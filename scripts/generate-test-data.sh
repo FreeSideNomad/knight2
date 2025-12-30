@@ -67,6 +67,7 @@ echo ""
 echo -e "${GREEN}Starting test data generation...${NC}"
 echo ""
 
+export GENERATE_TEST_DATA=true
 ./mvnw test -pl application \
     -Dtest=TestDataRunner#generateTestData \
     -Dspring.profiles.active=${PROFILE} \

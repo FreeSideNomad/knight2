@@ -37,7 +37,7 @@ public class UserService {
     public List<ProfileUser> getProfileUsers(String profileId) {
         try {
             List<Map<String, Object>> response = restClient.get()
-                    .uri("/api/profiles/{profileId}/users", profileId)
+                    .uri("/api/v1/bank/profiles/{profileId}/users", profileId)
                     .retrieve()
                     .body(new ParameterizedTypeReference<List<Map<String, Object>>>() {});
 
@@ -60,7 +60,7 @@ public class UserService {
     public UserDetail getUserDetail(String profileId, String userId) {
         try {
             Map<String, Object> response = restClient.get()
-                    .uri("/api/profiles/{profileId}/users/{userId}", profileId, userId)
+                    .uri("/api/v1/bank/profiles/{profileId}/users/{userId}", profileId, userId)
                     .retrieve()
                     .body(new ParameterizedTypeReference<Map<String, Object>>() {});
 
@@ -80,7 +80,7 @@ public class UserService {
      */
     public AddUserResponse addUser(String profileId, AddUserRequest request) {
         Map<String, Object> response = restClient.post()
-                .uri("/api/profiles/{profileId}/users", profileId)
+                .uri("/api/v1/bank/profiles/{profileId}/users", profileId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
                 .retrieve()
@@ -103,7 +103,7 @@ public class UserService {
         );
 
         Map<String, Object> response = restClient.put()
-                .uri("/api/users/{userId}", userId)
+                .uri("/api/v1/bank/users/{userId}", userId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
                 .retrieve()
@@ -121,7 +121,7 @@ public class UserService {
      */
     public String resendInvitation(String userId) {
         Map<String, String> response = restClient.post()
-                .uri("/api/users/{userId}/resend-invitation", userId)
+                .uri("/api/v1/bank/users/{userId}/resend-invitation", userId)
                 .retrieve()
                 .body(new ParameterizedTypeReference<Map<String, String>>() {});
         return response != null ? response.get("passwordResetUrl") : null;
@@ -132,7 +132,7 @@ public class UserService {
      */
     public void lockUser(String userId, String reason) {
         restClient.put()
-                .uri("/api/users/{userId}/lock", userId)
+                .uri("/api/v1/bank/users/{userId}/lock", userId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("reason", reason))
                 .retrieve()
@@ -144,7 +144,7 @@ public class UserService {
      */
     public void unlockUser(String userId) {
         restClient.put()
-                .uri("/api/users/{userId}/unlock", userId)
+                .uri("/api/v1/bank/users/{userId}/unlock", userId)
                 .retrieve()
                 .toBodilessEntity();
     }
@@ -154,7 +154,7 @@ public class UserService {
      */
     public void deactivateUser(String userId, String reason) {
         restClient.put()
-                .uri("/api/users/{userId}/deactivate", userId)
+                .uri("/api/v1/bank/users/{userId}/deactivate", userId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("reason", reason))
                 .retrieve()
@@ -166,7 +166,7 @@ public class UserService {
      */
     public void activateUser(String userId) {
         restClient.put()
-                .uri("/api/users/{userId}/activate", userId)
+                .uri("/api/v1/bank/users/{userId}/activate", userId)
                 .retrieve()
                 .toBodilessEntity();
     }
@@ -176,7 +176,7 @@ public class UserService {
      */
     public void addRole(String userId, String role) {
         restClient.post()
-                .uri("/api/users/{userId}/roles", userId)
+                .uri("/api/v1/bank/users/{userId}/roles", userId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("role", role))
                 .retrieve()
@@ -188,7 +188,7 @@ public class UserService {
      */
     public void removeRole(String userId, String role) {
         restClient.delete()
-                .uri("/api/users/{userId}/roles/{role}", userId, role)
+                .uri("/api/v1/bank/users/{userId}/roles/{role}", userId, role)
                 .retrieve()
                 .toBodilessEntity();
     }

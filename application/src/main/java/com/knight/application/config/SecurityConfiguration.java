@@ -12,8 +12,13 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -32,13 +37,18 @@ public class SecurityConfiguration {
     private final JwtProperties jwtProperties;
 
     @Bean
+    @org.springframework.core.annotation.Order(2)
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+            // This filter chain handles everything except /api/login/**
+            // which is handled by LoginSecurityConfig with Basic Auth
+            .securityMatcher(request -> !request.getRequestURI().startsWith("/api/login"))
+
             // Disable CSRF for REST API (stateless, token-based auth)
             .csrf(csrf -> csrf.disable())
 
-            // Enable CORS with default configuration
-            .cors(Customizer.withDefaults())
+            // Enable CORS with explicit configuration
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
             // Stateless session management
             .sessionManagement(session -> session
@@ -94,6 +104,20 @@ public class SecurityConfiguration {
             decoders.put(portalIssuer, portalDecoder);
         }
 
+        // Configure Auth0 decoder
+        if (jwtProperties.getAuth0().isEnabled() &&
+            jwtProperties.getAuth0().getDomain() != null &&
+            !jwtProperties.getAuth0().getDomain().isBlank()) {
+
+            String auth0Issuer = jwtProperties.getAuth0().getIssuerUri();
+            String auth0JwksUri = jwtProperties.getAuth0().getJwksUri();
+
+            log.info("Configuring Auth0 JWT decoder - issuer: {}, jwks: {}",
+                auth0Issuer, auth0JwksUri);
+            JwtDecoder auth0Decoder = NimbusJwtDecoder.withJwkSetUri(auth0JwksUri).build();
+            decoders.put(auth0Issuer, auth0Decoder);
+        }
+
         if (decoders.isEmpty()) {
             throw new IllegalStateException("No JWT decoders configured. " +
                 "Enable at least one issuer (entra or portal) or disable JWT authentication.");
@@ -103,5 +127,24 @@ public class SecurityConfiguration {
             decoders.size(), decoders.keySet());
 
         return new MultiIssuerJwtDecoder(decoders);
+    }
+
+    /**
+     * CORS configuration that allows requests from trusted origins.
+     * This is permissive for internal service-to-service calls.
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        // Allow all origins for internal services (login gateway proxies requests)
+        configuration.setAllowedOriginPatterns(List.of("*"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }

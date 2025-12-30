@@ -226,7 +226,7 @@ class BatchImportE2ETest {
                 json.getBytes()
             );
 
-            MvcResult result = mockMvc.perform(multipart("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
+            MvcResult result = mockMvc.perform(multipart("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
                     .file(file))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.valid").value(true))
@@ -280,7 +280,7 @@ class BatchImportE2ETest {
                 json.getBytes()
             );
 
-            mockMvc.perform(multipart("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
+            mockMvc.perform(multipart("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
                     .file(file))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.valid").value(true))
@@ -298,7 +298,7 @@ class BatchImportE2ETest {
                 new byte[0]
             );
 
-            mockMvc.perform(multipart("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
+            mockMvc.perform(multipart("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
                     .file(file))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.valid").value(false))
@@ -326,7 +326,7 @@ class BatchImportE2ETest {
                 json.getBytes()
             );
 
-            mockMvc.perform(multipart("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
+            mockMvc.perform(multipart("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
                     .file(file))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.valid").value(false))
@@ -368,7 +368,7 @@ class BatchImportE2ETest {
                 json.getBytes()
             );
 
-            MvcResult validateResult = mockMvc.perform(multipart("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
+            MvcResult validateResult = mockMvc.perform(multipart("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
                     .file(file))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -379,7 +379,7 @@ class BatchImportE2ETest {
             // Step 2: Execute batch
             String executeRequest = String.format("{\"batchId\": \"%s\"}", batchId);
 
-            mockMvc.perform(post("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/execute")
+            mockMvc.perform(post("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/execute")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(executeRequest))
                 .andExpect(status().isAccepted())
@@ -390,14 +390,14 @@ class BatchImportE2ETest {
             waitForBatchCompletion(batchId);
 
             // Step 4: Verify IndirectClient was created
-            List<IndirectClient> indirectClients = indirectClientRepository.findByProfileId(onlineProfile.profileId());
+            List<IndirectClient> indirectClients = indirectClientRepository.findByParentProfileId(onlineProfile.profileId());
             assertThat(indirectClients).hasSize(1);
 
             IndirectClient indirectClient = indirectClients.get(0);
-            assertThat(indirectClient.businessName()).isEqualTo("ABC Company");
+            assertThat(indirectClient.name()).isEqualTo("ABC Company");
             assertThat(indirectClient.externalReference()).isEqualTo("EXT-001");
             assertThat(indirectClient.parentClientId()).isEqualTo(bankClient.clientId());
-            assertThat(indirectClient.profileId()).isEqualTo(onlineProfile.profileId());
+            assertThat(indirectClient.parentProfileId()).isEqualTo(onlineProfile.profileId());
             assertThat(indirectClient.relatedPersons()).hasSize(1);
             assertThat(indirectClient.relatedPersons().get(0).name()).isEqualTo("John Smith");
             assertThat(indirectClient.relatedPersons().get(0).role()).isEqualTo(PersonRole.ADMIN);
@@ -408,7 +408,7 @@ class BatchImportE2ETest {
             assertThat(indirectProfileOpt).isPresent();
 
             Profile indirectProfile = indirectProfileOpt.get();
-            assertThat(indirectProfile.profileId().urn()).isEqualTo("indirect:" + indirectClient.id().urn());
+            assertThat(indirectProfile.profileId().urn()).isEqualTo(indirectClient.id().urn());
             assertThat(indirectProfile.name()).isEqualTo("ABC Company Profile");
 
             // Verify PAYOR service is enrolled
@@ -483,7 +483,7 @@ class BatchImportE2ETest {
                 json.getBytes()
             );
 
-            MvcResult validateResult = mockMvc.perform(multipart("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
+            MvcResult validateResult = mockMvc.perform(multipart("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
                     .file(file))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -494,7 +494,7 @@ class BatchImportE2ETest {
             // Step 2: Execute
             String executeRequest = String.format("{\"batchId\": \"%s\"}", batchId);
 
-            mockMvc.perform(post("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/execute")
+            mockMvc.perform(post("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/execute")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(executeRequest))
                 .andExpect(status().isAccepted());
@@ -503,27 +503,31 @@ class BatchImportE2ETest {
             waitForBatchCompletion(batchId);
 
             // Step 3: Verify all 3 indirect clients created with correct sequences
-            List<IndirectClient> indirectClients = indirectClientRepository.findByProfileId(onlineProfile.profileId());
+            List<IndirectClient> indirectClients = indirectClientRepository.findByParentProfileId(onlineProfile.profileId());
             assertThat(indirectClients).hasSize(3);
 
             // Check sequence numbers (should be 1, 2, 3)
             IndirectClient client1 = indirectClients.stream()
-                .filter(c -> c.businessName().equals("ABC Company"))
+                .filter(c -> c.name().equals("ABC Company"))
                 .findFirst()
                 .orElseThrow();
-            assertThat(client1.id().urn()).contains(":1");
+            assertThat(client1.id().urn()).startsWith("ind:");
 
             IndirectClient client2 = indirectClients.stream()
-                .filter(c -> c.businessName().equals("XYZ Corp"))
+                .filter(c -> c.name().equals("XYZ Corp"))
                 .findFirst()
                 .orElseThrow();
-            assertThat(client2.id().urn()).contains(":2");
+            assertThat(client2.id().urn()).startsWith("ind:");
 
             IndirectClient client3 = indirectClients.stream()
-                .filter(c -> c.businessName().equals("123 Industries"))
+                .filter(c -> c.name().equals("123 Industries"))
                 .findFirst()
                 .orElseThrow();
-            assertThat(client3.id().urn()).contains(":3");
+            assertThat(client3.id().urn()).startsWith("ind:");
+
+            // Verify all IDs are unique
+            assertThat(client1.id()).isNotEqualTo(client2.id());
+            assertThat(client2.id()).isNotEqualTo(client3.id());
         }
 
         @Test
@@ -562,7 +566,7 @@ class BatchImportE2ETest {
                 json.getBytes()
             );
 
-            MvcResult validateResult = mockMvc.perform(multipart("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
+            MvcResult validateResult = mockMvc.perform(multipart("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
                     .file(file))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -573,7 +577,7 @@ class BatchImportE2ETest {
             // Step 2: Execute
             String executeRequest = String.format("{\"batchId\": \"%s\"}", batchId);
 
-            mockMvc.perform(post("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/execute")
+            mockMvc.perform(post("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/execute")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(executeRequest))
                 .andExpect(status().isAccepted());
@@ -581,7 +585,7 @@ class BatchImportE2ETest {
             waitForBatchCompletion(batchId);
 
             // Step 3: Verify only ADMIN person got a user account (not CONTACT)
-            List<IndirectClient> indirectClients = indirectClientRepository.findByProfileId(onlineProfile.profileId());
+            List<IndirectClient> indirectClients = indirectClientRepository.findByParentProfileId(onlineProfile.profileId());
             assertThat(indirectClients).hasSize(1);
 
             IndirectClient indirectClient = indirectClients.get(0);
@@ -631,7 +635,7 @@ class BatchImportE2ETest {
                 json.getBytes()
             );
 
-            MvcResult validateResult = mockMvc.perform(multipart("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
+            MvcResult validateResult = mockMvc.perform(multipart("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
                     .file(file))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -642,7 +646,7 @@ class BatchImportE2ETest {
             // Step 2: Try to execute with wrong profile ID
             String executeRequest = String.format("{\"batchId\": \"%s\"}", batchId);
 
-            mockMvc.perform(post("/api/profiles/online:srf:999999999/payor-enrolment/execute")
+            mockMvc.perform(post("/api/v1/bank/profiles/online:srf:999999999/payor-enrolment/execute")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(executeRequest))
                 .andExpect(status().isForbidden())
@@ -680,7 +684,7 @@ class BatchImportE2ETest {
                 json1.getBytes()
             );
 
-            MvcResult validateResult1 = mockMvc.perform(multipart("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
+            MvcResult validateResult1 = mockMvc.perform(multipart("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
                     .file(file1))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -689,7 +693,7 @@ class BatchImportE2ETest {
             String batchId1 = validateResponse1.get("batchId").asText();
 
             String executeRequest1 = String.format("{\"batchId\": \"%s\"}", batchId1);
-            mockMvc.perform(post("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/execute")
+            mockMvc.perform(post("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/execute")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(executeRequest1))
                 .andExpect(status().isAccepted());
@@ -723,7 +727,7 @@ class BatchImportE2ETest {
                 json2.getBytes()
             );
 
-            MvcResult validateResult2 = mockMvc.perform(multipart("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
+            MvcResult validateResult2 = mockMvc.perform(multipart("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
                     .file(file2))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -782,7 +786,7 @@ class BatchImportE2ETest {
                 json.getBytes()
             );
 
-            MvcResult validateResult = mockMvc.perform(multipart("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
+            MvcResult validateResult = mockMvc.perform(multipart("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
                     .file(file))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -791,7 +795,7 @@ class BatchImportE2ETest {
             String batchId = validateResponse.get("batchId").asText();
 
             String executeRequest = String.format("{\"batchId\": \"%s\"}", batchId);
-            mockMvc.perform(post("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/execute")
+            mockMvc.perform(post("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/execute")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(executeRequest))
                 .andExpect(status().isAccepted());
@@ -799,7 +803,7 @@ class BatchImportE2ETest {
             waitForBatchCompletion(batchId);
 
             // Step 2: Get batch status
-            MvcResult statusResult = mockMvc.perform(get("/api/batches/" + batchId)
+            MvcResult statusResult = mockMvc.perform(get("/api/v1/bank/batches/" + batchId)
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.batchId").value(batchId))
@@ -843,7 +847,7 @@ class BatchImportE2ETest {
                 json.getBytes()
             );
 
-            MvcResult validateResult = mockMvc.perform(multipart("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
+            MvcResult validateResult = mockMvc.perform(multipart("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
                     .file(file))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -852,7 +856,7 @@ class BatchImportE2ETest {
             String batchId = validateResponse.get("batchId").asText();
 
             String executeRequest = String.format("{\"batchId\": \"%s\"}", batchId);
-            mockMvc.perform(post("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/execute")
+            mockMvc.perform(post("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/execute")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(executeRequest))
                 .andExpect(status().isAccepted());
@@ -860,7 +864,7 @@ class BatchImportE2ETest {
             waitForBatchCompletion(batchId);
 
             // Step 2: Get batch items filtered by SUCCESS status
-            MvcResult successItems = mockMvc.perform(get("/api/batches/" + batchId + "/items")
+            MvcResult successItems = mockMvc.perform(get("/api/v1/bank/batches/" + batchId + "/items")
                     .param("status", "SUCCESS")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -871,7 +875,7 @@ class BatchImportE2ETest {
             assertThat(successItemsResult.size()).isEqualTo(1);
 
             // Step 3: Get batch items filtered by FAILED status (should be empty)
-            MvcResult failedItems = mockMvc.perform(get("/api/batches/" + batchId + "/items")
+            MvcResult failedItems = mockMvc.perform(get("/api/v1/bank/batches/" + batchId + "/items")
                     .param("status", "FAILED")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -912,7 +916,7 @@ class BatchImportE2ETest {
                 json.getBytes()
             );
 
-            MvcResult validateResult = mockMvc.perform(multipart("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
+            MvcResult validateResult = mockMvc.perform(multipart("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
                     .file(file))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -921,7 +925,7 @@ class BatchImportE2ETest {
             String batchId = validateResponse.get("batchId").asText();
 
             String executeRequest = String.format("{\"batchId\": \"%s\"}", batchId);
-            mockMvc.perform(post("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/execute")
+            mockMvc.perform(post("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/execute")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(executeRequest))
                 .andExpect(status().isAccepted());
@@ -929,7 +933,7 @@ class BatchImportE2ETest {
             waitForBatchCompletion(batchId);
 
             // Step 2: Get batch items
-            MvcResult itemsResult = mockMvc.perform(get("/api/batches/" + batchId + "/items")
+            MvcResult itemsResult = mockMvc.perform(get("/api/v1/bank/batches/" + batchId + "/items")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -946,7 +950,7 @@ class BatchImportE2ETest {
             // Verify result contains expected IDs
             JsonNode result = item.get("result");
             assertThat(result.get("indirectClientId").asText()).isNotEmpty();
-            assertThat(result.get("profileId").asText()).startsWith("indirect:indirect:");
+            assertThat(result.get("profileId").asText()).startsWith("ind:");
             assertThat(result.get("userIds").isArray()).isTrue();
             assertThat(result.get("userIds").size()).isEqualTo(1);
         }
@@ -987,13 +991,13 @@ class BatchImportE2ETest {
                     json.getBytes()
                 );
 
-                mockMvc.perform(multipart("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
+                mockMvc.perform(multipart("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
                         .file(file))
                     .andExpect(status().isOk());
             }
 
             // Step 2: List batches
-            MvcResult result = mockMvc.perform(get("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/batches")
+            MvcResult result = mockMvc.perform(get("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/batches")
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -1047,7 +1051,7 @@ class BatchImportE2ETest {
                 json.getBytes()
             );
 
-            MvcResult validateResult = mockMvc.perform(multipart("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
+            MvcResult validateResult = mockMvc.perform(multipart("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/validate")
                     .file(file))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -1056,7 +1060,7 @@ class BatchImportE2ETest {
             String batchId = validateResponse.get("batchId").asText();
 
             String executeRequest = String.format("{\"batchId\": \"%s\"}", batchId);
-            mockMvc.perform(post("/api/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/execute")
+            mockMvc.perform(post("/api/v1/bank/profiles/" + onlineProfile.profileId().urn() + "/payor-enrolment/execute")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(executeRequest))
                 .andExpect(status().isAccepted());
@@ -1064,17 +1068,17 @@ class BatchImportE2ETest {
             waitForBatchCompletion(batchId);
 
             // Verify the complete graph
-            List<IndirectClient> indirectClients = indirectClientRepository.findByProfileId(onlineProfile.profileId());
+            List<IndirectClient> indirectClients = indirectClientRepository.findByParentProfileId(onlineProfile.profileId());
             assertThat(indirectClients).hasSize(1);
 
             IndirectClient indirectClient = indirectClients.get(0);
 
             // 1. IndirectClient verification
-            assertThat(indirectClient.businessName()).isEqualTo("Graph Test Company");
+            assertThat(indirectClient.name()).isEqualTo("Graph Test Company");
             assertThat(indirectClient.externalReference()).isEqualTo("EXT-GRAPH");
             assertThat(indirectClient.parentClientId().urn()).isEqualTo(bankClient.clientId().urn());
-            assertThat(indirectClient.profileId().urn()).isEqualTo(onlineProfile.profileId().urn());
-            assertThat(indirectClient.id().urn()).matches("indirect:" + bankClient.clientId().urn() + ":\\d+");
+            assertThat(indirectClient.parentProfileId().urn()).isEqualTo(onlineProfile.profileId().urn());
+            assertThat(indirectClient.id().urn()).startsWith("ind:");
 
             // 2. INDIRECT Profile verification
             ProfileId indirectProfileId = ProfileId.of("indirect", indirectClient.id());
@@ -1082,7 +1086,7 @@ class BatchImportE2ETest {
             assertThat(indirectProfileOpt).isPresent();
 
             Profile indirectProfile = indirectProfileOpt.get();
-            assertThat(indirectProfile.profileId().urn()).isEqualTo("indirect:" + indirectClient.id().urn());
+            assertThat(indirectProfile.profileId().urn()).isEqualTo(indirectClient.id().urn());
 
             // Verify PAYOR service is enrolled
             boolean hasPayorService = indirectProfile.serviceEnrollments().stream()
@@ -1101,7 +1105,7 @@ class BatchImportE2ETest {
             assertThat(user.roles()).contains(User.Role.SECURITY_ADMIN);
 
             // 4. Verify the chain of references
-            assertThat(indirectClient.profileId()).isEqualTo(onlineProfile.profileId()); // IC -> Online Profile
+            assertThat(indirectClient.parentProfileId()).isEqualTo(onlineProfile.profileId()); // IC -> Online Profile
             assertThat(indirectClient.parentClientId()).isEqualTo(bankClient.clientId()); // IC -> Bank Client
             assertThat(user.profileId()).isEqualTo(indirectProfile.profileId()); // User -> INDIRECT Profile
         }

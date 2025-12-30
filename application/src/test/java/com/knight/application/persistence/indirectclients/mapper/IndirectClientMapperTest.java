@@ -19,17 +19,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit tests for IndirectClientMapper.
- * Tests domain to entity mapping including related persons.
- *
- * Note: toDomain mapping is handled in the repository adapter, so we only test toEntity here.
+ * Tests domain to entity and entity to domain mapping including related persons.
  */
 class IndirectClientMapperTest {
 
     private IndirectClientMapper mapper;
 
     private static final ClientId PARENT_CLIENT_ID = new SrfClientId("123456789");
-    private static final ProfileId PROFILE_ID = ProfileId.fromUrn("servicing:srf:123456789");
-    private static final String BUSINESS_NAME = "Test Business Inc.";
+    private static final ProfileId PARENT_PROFILE_ID = ProfileId.fromUrn("servicing:srf:123456789");
+    private static final String NAME = "Test Business Inc.";
     private static final String EXTERNAL_REFERENCE = "EXT-12345";
     private static final String CREATED_BY = "admin@example.com";
 
@@ -47,12 +45,12 @@ class IndirectClientMapperTest {
         @Test
         @DisplayName("should map all fields from domain to entity")
         void shouldMapAllFieldsFromDomainToEntity() {
-            IndirectClientId indirectClientId = IndirectClientId.of(PARENT_CLIENT_ID, 1);
+            IndirectClientId indirectClientId = IndirectClientId.generate();
             IndirectClient client = IndirectClient.create(
                 indirectClientId,
                 PARENT_CLIENT_ID,
-                PROFILE_ID,
-                BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                NAME,
                 EXTERNAL_REFERENCE,
                 CREATED_BY
             );
@@ -60,12 +58,11 @@ class IndirectClientMapperTest {
             IndirectClientEntity entity = mapper.toEntity(client);
 
             assertThat(entity).isNotNull();
-            assertThat(entity.getId()).isNotNull();  // Generated DB key
-            assertThat(entity.getIndirectClientUrn()).isEqualTo(indirectClientId.urn());
+            assertThat(entity.getClientId()).isEqualTo(indirectClientId.urn());
             assertThat(entity.getParentClientId()).isEqualTo("srf:123456789");
-            assertThat(entity.getProfileId()).isEqualTo(PROFILE_ID.urn());
+            assertThat(entity.getParentProfileId()).isEqualTo(PARENT_PROFILE_ID.urn());
             assertThat(entity.getClientType()).isEqualTo("BUSINESS");
-            assertThat(entity.getBusinessName()).isEqualTo(BUSINESS_NAME);
+            assertThat(entity.getName()).isEqualTo(NAME);
             assertThat(entity.getExternalReference()).isEqualTo(EXTERNAL_REFERENCE);
             assertThat(entity.getStatus()).isEqualTo("PENDING");
             assertThat(entity.getCreatedAt()).isNotNull();
@@ -75,30 +72,30 @@ class IndirectClientMapperTest {
         @Test
         @DisplayName("should map client without external reference")
         void shouldMapClientWithoutExternalReference() {
-            IndirectClientId indirectClientId = IndirectClientId.of(PARENT_CLIENT_ID, 1);
+            IndirectClientId indirectClientId = IndirectClientId.generate();
             IndirectClient client = IndirectClient.create(
                 indirectClientId,
                 PARENT_CLIENT_ID,
-                PROFILE_ID,
-                BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                NAME,
                 CREATED_BY
             );
 
             IndirectClientEntity entity = mapper.toEntity(client);
 
-            assertThat(entity.getBusinessName()).isEqualTo(BUSINESS_NAME);
+            assertThat(entity.getName()).isEqualTo(NAME);
             assertThat(entity.getExternalReference()).isNull();
         }
 
         @Test
         @DisplayName("should map related persons to entities")
         void shouldMapRelatedPersonsToEntities() {
-            IndirectClientId indirectClientId = IndirectClientId.of(PARENT_CLIENT_ID, 1);
+            IndirectClientId indirectClientId = IndirectClientId.generate();
             IndirectClient client = IndirectClient.create(
                 indirectClientId,
                 PARENT_CLIENT_ID,
-                PROFILE_ID,
-                BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                NAME,
                 CREATED_BY
             );
 
@@ -144,12 +141,12 @@ class IndirectClientMapperTest {
         @Test
         @DisplayName("should map related person with null email and phone")
         void shouldMapRelatedPersonWithNullEmailAndPhone() {
-            IndirectClientId indirectClientId = IndirectClientId.of(PARENT_CLIENT_ID, 1);
+            IndirectClientId indirectClientId = IndirectClientId.generate();
             IndirectClient client = IndirectClient.create(
                 indirectClientId,
                 PARENT_CLIENT_ID,
-                PROFILE_ID,
-                BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                NAME,
                 CREATED_BY
             );
 
@@ -172,12 +169,12 @@ class IndirectClientMapperTest {
         @Test
         @DisplayName("should map client with no related persons")
         void shouldMapClientWithNoRelatedPersons() {
-            IndirectClientId indirectClientId = IndirectClientId.of(PARENT_CLIENT_ID, 1);
+            IndirectClientId indirectClientId = IndirectClientId.generate();
             IndirectClient client = IndirectClient.create(
                 indirectClientId,
                 PARENT_CLIENT_ID,
-                PROFILE_ID,
-                BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                NAME,
                 CREATED_BY
             );
 
@@ -189,12 +186,12 @@ class IndirectClientMapperTest {
         @Test
         @DisplayName("should map active client status")
         void shouldMapActiveClientStatus() {
-            IndirectClientId indirectClientId = IndirectClientId.of(PARENT_CLIENT_ID, 1);
+            IndirectClientId indirectClientId = IndirectClientId.generate();
             IndirectClient client = IndirectClient.create(
                 indirectClientId,
                 PARENT_CLIENT_ID,
-                PROFILE_ID,
-                BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                NAME,
                 CREATED_BY
             );
 
@@ -214,12 +211,12 @@ class IndirectClientMapperTest {
         @Test
         @DisplayName("should map suspended client status")
         void shouldMapSuspendedClientStatus() {
-            IndirectClientId indirectClientId = IndirectClientId.of(PARENT_CLIENT_ID, 1);
+            IndirectClientId indirectClientId = IndirectClientId.generate();
             IndirectClient client = IndirectClient.create(
                 indirectClientId,
                 PARENT_CLIENT_ID,
-                PROFILE_ID,
-                BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                NAME,
                 CREATED_BY
             );
 
@@ -239,12 +236,12 @@ class IndirectClientMapperTest {
         @Test
         @DisplayName("should preserve person IDs when mapping")
         void shouldPreservePersonIdsWhenMapping() {
-            IndirectClientId indirectClientId = IndirectClientId.of(PARENT_CLIENT_ID, 1);
+            IndirectClientId indirectClientId = IndirectClientId.generate();
             IndirectClient client = IndirectClient.create(
                 indirectClientId,
                 PARENT_CLIENT_ID,
-                PROFILE_ID,
-                BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                NAME,
                 CREATED_BY
             );
 
@@ -266,12 +263,12 @@ class IndirectClientMapperTest {
         @Test
         @DisplayName("should map multiple related persons with different roles")
         void shouldMapMultipleRelatedPersonsWithDifferentRoles() {
-            IndirectClientId indirectClientId = IndirectClientId.of(PARENT_CLIENT_ID, 1);
+            IndirectClientId indirectClientId = IndirectClientId.generate();
             IndirectClient client = IndirectClient.create(
                 indirectClientId,
                 PARENT_CLIENT_ID,
-                PROFILE_ID,
-                BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                NAME,
                 CREATED_BY
             );
 
@@ -314,12 +311,12 @@ class IndirectClientMapperTest {
         @Test
         @DisplayName("should maintain bidirectional relationship between client and persons")
         void shouldMaintainBidirectionalRelationship() {
-            IndirectClientId indirectClientId = IndirectClientId.of(PARENT_CLIENT_ID, 1);
+            IndirectClientId indirectClientId = IndirectClientId.generate();
             IndirectClient client = IndirectClient.create(
                 indirectClientId,
                 PARENT_CLIENT_ID,
-                PROFILE_ID,
-                BUSINESS_NAME,
+                PARENT_PROFILE_ID,
+                NAME,
                 CREATED_BY
             );
 
