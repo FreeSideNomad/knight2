@@ -299,9 +299,21 @@ public class User {
     /**
      * Record a successful login event.
      * Updates the lastLoggedInAt timestamp to track user activity.
+     * Does NOT update lastSyncedAt - login and sync are separate events.
      */
     public void recordLogin() {
         this.lastLoggedInAt = Instant.now();
+        this.updatedAt = Instant.now();
+    }
+
+    /**
+     * Record a sync event (non-login identity provider activity).
+     * Updates the lastSyncedAt timestamp to track sync activity.
+     * Examples: profile updates, password changes (outside onboarding), MFA changes.
+     * Does NOT update lastLoggedInAt - login and sync are separate events.
+     */
+    public void recordSync() {
+        this.lastSyncedAt = Instant.now();
         this.updatedAt = Instant.now();
     }
 

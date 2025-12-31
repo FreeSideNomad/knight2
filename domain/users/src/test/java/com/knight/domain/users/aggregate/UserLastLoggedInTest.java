@@ -201,6 +201,136 @@ class UserLastLoggedInTest {
         assertThat(user.lastLoggedInAt()).isNull();
     }
 
+    // ==================== Sync Event Separation Tests (US-UM-002) ====================
+
+    @Test
+    @DisplayName("recordSync should only update lastSyncedAt, not lastLoggedInAt")
+    void recordSyncShouldOnlyUpdateLastSyncedAt() {
+        // given
+        User user = createUser();
+
+        // when
+        user.recordSync();
+
+        // then
+        assertThat(user.lastSyncedAt()).isNotNull();
+        assertThat(user.lastLoggedInAt()).isNull(); // Should remain null
+    }
+
+    @Test
+    @DisplayName("recordLogin should only update lastLoggedInAt, not lastSyncedAt")
+    void recordLoginShouldOnlyUpdateLastLoggedInAt() {
+        // given
+        User user = createUser();
+        Instant initialSyncedAt = user.lastSyncedAt(); // should be null
+
+        // when
+        user.recordLogin();
+
+        // then
+        assertThat(user.lastLoggedInAt()).isNotNull();
+        assertThat(user.lastSyncedAt()).isEqualTo(initialSyncedAt); // Should remain unchanged
+    }
+
+    @Test
+    @DisplayName("login and sync events should track independently")
+    void loginAndSyncEventsShouldTrackIndependently() throws Exception {
+        // given
+        User user = createUser();
+
+        // when - record a sync, then a login
+        user.recordSync();
+        Instant syncTime = user.lastSyncedAt();
+        Thread.sleep(10);
+
+        user.recordLogin();
+        Instant loginTime = user.lastLoggedInAt();
+
+        // then
+        assertThat(user.lastSyncedAt()).isEqualTo(syncTime); // Sync should not change
+        assertThat(user.lastLoggedInAt()).isEqualTo(loginTime);
+        assertThat(loginTime).isAfter(syncTime);
+    }
+
+    @Test
+    @DisplayName("login and sync timestamps can have different values")
+    void loginAndSyncTimestampsCanDiffer() throws Exception {
+        // given
+        User user = createUser();
+
+        // when - record sync first, then login later
+        user.recordSync();
+        Instant firstSyncTime = user.lastSyncedAt();
+        Thread.sleep(20);
+
+        user.recordLogin();
+        Instant loginTime = user.lastLoggedInAt();
+        Thread.sleep(20);
+
+        user.recordSync(); // Another sync event
+        Instant secondSyncTime = user.lastSyncedAt();
+
+        // then
+        assertThat(secondSyncTime).isAfter(firstSyncTime);
+        assertThat(loginTime).isAfter(firstSyncTime);
+        assertThat(secondSyncTime).isAfter(loginTime); // Latest sync is after login
+        assertThat(user.lastLoggedInAt()).isEqualTo(loginTime); // Login unchanged by sync
+    }
+
+    @Test
+    @DisplayName("updateOnboardingStatus should update lastSyncedAt, not lastLoggedInAt")
+    void updateOnboardingStatusShouldUpdateLastSyncedAt() {
+        // given
+        User user = createUser();
+        user.markProvisioned("auth0|12345");
+
+        // when
+        user.updateOnboardingStatus(true, false);
+
+        // then
+        assertThat(user.lastSyncedAt()).isNotNull(); // Should be set
+        assertThat(user.lastLoggedInAt()).isNull(); // Should remain null
+    }
+
+    @Test
+    @DisplayName("recordSync should update updatedAt")
+    void recordSyncShouldUpdateUpdatedAt() throws Exception {
+        // given
+        User user = createUser();
+        Thread.sleep(10);
+        Instant originalUpdatedAt = user.updatedAt();
+
+        // when
+        Thread.sleep(10);
+        user.recordSync();
+
+        // then
+        assertThat(user.updatedAt()).isAfter(originalUpdatedAt);
+    }
+
+    @Test
+    @DisplayName("multiple sync events should update lastSyncedAt each time")
+    void multipleSyncEventsShouldUpdateLastSyncedAt() throws Exception {
+        // given
+        User user = createUser();
+
+        // when
+        user.recordSync();
+        Instant firstSync = user.lastSyncedAt();
+        Thread.sleep(10);
+
+        user.recordSync();
+        Instant secondSync = user.lastSyncedAt();
+        Thread.sleep(10);
+
+        user.recordSync();
+        Instant thirdSync = user.lastSyncedAt();
+
+        // then
+        assertThat(secondSync).isAfter(firstSync);
+        assertThat(thirdSync).isAfter(secondSync);
+    }
+
     private User createUser() {
         return User.create(
             LOGIN_ID,
