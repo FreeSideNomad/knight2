@@ -494,6 +494,78 @@ class ClientAccountTest {
     }
 
     @Nested
+    @DisplayName("isActive() and isClosed() helper methods")
+    class StatusHelperMethodTests {
+
+        @Test
+        @DisplayName("isActive() should return true for active account")
+        void shouldReturnTrueForActiveAccount() {
+            // Given
+            ClientAccount account = ClientAccount.create(TEST_ACCOUNT_ID, TEST_CLIENT_ID, TEST_CURRENCY);
+
+            // Then
+            assertThat(account.isActive()).isTrue();
+            assertThat(account.isClosed()).isFalse();
+        }
+
+        @Test
+        @DisplayName("isClosed() should return true for closed account")
+        void shouldReturnTrueForClosedAccount() {
+            // Given
+            ClientAccount account = ClientAccount.create(TEST_ACCOUNT_ID, TEST_CLIENT_ID, TEST_CURRENCY);
+            account.close();
+
+            // Then
+            assertThat(account.isActive()).isFalse();
+            assertThat(account.isClosed()).isTrue();
+        }
+
+        @Test
+        @DisplayName("status helpers should reflect state changes correctly")
+        void shouldReflectStateChangesCorrectly() {
+            // Given
+            ClientAccount account = ClientAccount.create(TEST_ACCOUNT_ID, TEST_CLIENT_ID, TEST_CURRENCY);
+
+            // Initially active
+            assertThat(account.isActive()).isTrue();
+            assertThat(account.isClosed()).isFalse();
+
+            // Close it
+            account.close();
+            assertThat(account.isActive()).isFalse();
+            assertThat(account.isClosed()).isTrue();
+
+            // Reactivate it
+            account.reactivate();
+            assertThat(account.isActive()).isTrue();
+            assertThat(account.isClosed()).isFalse();
+        }
+
+        @Test
+        @DisplayName("reconstructed closed account should have correct status helpers")
+        void reconstructedClosedAccountShouldHaveCorrectStatusHelpers() {
+            // Given
+            Instant createdAt = Instant.now().minusSeconds(3600);
+            Instant updatedAt = Instant.now().minusSeconds(1800);
+
+            ClientAccount account = ClientAccount.reconstruct(
+                TEST_ACCOUNT_ID,
+                TEST_CLIENT_ID,
+                null,
+                TEST_CURRENCY,
+                null,
+                AccountStatus.CLOSED,
+                createdAt,
+                updatedAt
+            );
+
+            // Then
+            assertThat(account.isActive()).isFalse();
+            assertThat(account.isClosed()).isTrue();
+        }
+    }
+
+    @Nested
     @DisplayName("Account type identification")
     class AccountTypeIdentificationTests {
 

@@ -212,4 +212,18 @@ public class ClientAccount {
     public boolean isIndirectClientAccount() {
         return indirectClientId != null;
     }
+
+    /**
+     * Returns true if this account has ACTIVE status.
+     */
+    public boolean isActive() {
+        return status == AccountStatus.ACTIVE;
+    }
+
+    /**
+     * Returns true if this account has CLOSED status.
+     */
+    public boolean isClosed() {
+        return status == AccountStatus.CLOSED;
+    }
 }

@@ -25,5 +25,6 @@
         <module>approvals</module>
         <module>auth0-identity</module>
         <module>batch</module>
+        <module>services</module>
     </modules>
 </project>
