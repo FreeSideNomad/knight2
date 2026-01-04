@@ -626,9 +626,18 @@ public class BankAdminController {
 
         ProfileId profId = ProfileId.fromUrn(profileId);
 
+        // Determine userType based on profileType
+        ProfileSummary profile = profileQueries.getProfileSummary(profId);
+        String userType = switch (profile.profileType()) {
+            case "ONLINE" -> "CLIENT_USER";
+            case "INDIRECT" -> "INDIRECT_USER";
+            default -> throw new IllegalArgumentException(
+                "Cannot add users to " + profile.profileType() + " profiles");
+        };
+
         CreateUserCmd createCmd = new CreateUserCmd(
             request.loginId(), request.email(), request.firstName(), request.lastName(),
-            "INDIRECT_USER", "AUTH0", profId, request.roles(), createdBy
+            userType, "AUTH0", profId, request.roles(), createdBy
         );
 
         UserId userId = userCommands.createUser(createCmd);
