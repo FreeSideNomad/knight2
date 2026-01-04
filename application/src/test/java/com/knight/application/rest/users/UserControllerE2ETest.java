@@ -145,7 +145,7 @@ class UserControllerE2ETest {
     private ProfileId createTestProfile() {
         Profile profile = Profile.create(
             testClient.clientId(),
-            ProfileType.SERVICING,
+            ProfileType.ONLINE,
             "system"
         );
         profileRepository.save(profile);
@@ -449,7 +449,7 @@ class UserControllerE2ETest {
                 .andExpect(jsonPath("$.firstName").value("Details"))
                 .andExpect(jsonPath("$.lastName").value("User"))
                 .andExpect(jsonPath("$.status").value("PENDING_VERIFICATION"))
-                .andExpect(jsonPath("$.userType").value("INDIRECT_USER"))
+                .andExpect(jsonPath("$.userType").value("CLIENT_USER"))
                 .andExpect(jsonPath("$.identityProvider").value("AUTH0"))
                 .andExpect(jsonPath("$.profileId").value(testProfileId.urn()))
                 .andExpect(jsonPath("$.roles").isArray())
