@@ -169,6 +169,7 @@ CREATE TABLE users (
     identity_provider_user_id VARCHAR(255),       -- External provider ID
     profile_id VARCHAR(200) NOT NULL,
     status VARCHAR(30) NOT NULL,                  -- PENDING_CREATION, ACTIVE, LOCKED, etc.
+    email_verified BIT NOT NULL DEFAULT 0,        -- Email verification status from IdP
     password_set BIT NOT NULL DEFAULT 0,
     mfa_enrolled BIT NOT NULL DEFAULT 0,
     last_synced_at DATETIME2,                     -- Last IdP sync (password set, MFA enrolled, etc.)

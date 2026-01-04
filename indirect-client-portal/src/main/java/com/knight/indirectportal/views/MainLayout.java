@@ -185,7 +185,9 @@ public class MainLayout extends AppLayout implements RouterLayout {
         // Add navigation items
         nav.addItem(new SideNavItem("Dashboard", DashboardView.class, VaadinIcon.DASHBOARD.create()));
         nav.addItem(new SideNavItem("OFI Accounts", OfiAccountsView.class, VaadinIcon.WALLET.create()));
+        nav.addItem(new SideNavItem("Account Groups", AccountGroupsView.class, VaadinIcon.FOLDER.create()));
         nav.addItem(new SideNavItem("Users", UsersView.class, VaadinIcon.USERS.create()));
+        nav.addItem(new SideNavItem("User Groups", UserGroupsView.class, VaadinIcon.GROUP.create()));
 
         drawer.add(navHeader, nav);
         addToDrawer(drawer);

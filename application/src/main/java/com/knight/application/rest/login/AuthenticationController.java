@@ -99,4 +99,22 @@ public class AuthenticationController {
         ObjectNode response = auth0Adapter.cibaVerify(command.authReqId(), command.email());
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * Forgot password - send password reset email.
+     * Uses Auth0's standard password reset flow.
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ObjectNode> forgotPassword(@Valid @RequestBody ForgotPasswordCommand command) {
+        ObjectNode response = auth0Adapter.sendPasswordResetEmail(command.email());
+
+        // Always return success to prevent email enumeration attacks
+        // Even if the email doesn't exist, we don't want to reveal that
+        if (response.has("error")) {
+            // Log the error but return success to the client
+            return ResponseEntity.ok(response.removeAll().put("success", true));
+        }
+
+        return ResponseEntity.ok(response);
+    }
 }

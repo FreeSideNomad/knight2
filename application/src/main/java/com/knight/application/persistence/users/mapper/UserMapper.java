@@ -26,6 +26,7 @@ public class UserMapper {
         entity.setIdentityProvider(user.identityProvider().name());
         entity.setProfileId(user.profileId().urn());
         entity.setIdentityProviderUserId(user.identityProviderUserId());
+        entity.setEmailVerified(user.emailVerified());
         entity.setPasswordSet(user.passwordSet());
         entity.setMfaEnrolled(user.mfaEnrolled());
         entity.setLastSyncedAt(user.lastSyncedAt());
@@ -72,6 +73,7 @@ public class UserMapper {
             profileId,
             roles,
             entity.getIdentityProviderUserId(),
+            entity.isEmailVerified(),
             entity.isPasswordSet(),
             entity.isMfaEnrolled(),
             entity.getLastSyncedAt(),

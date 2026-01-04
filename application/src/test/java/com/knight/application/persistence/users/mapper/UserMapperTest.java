@@ -184,10 +184,11 @@ class UserMapperTest {
                 CREATED_BY
             );
             user.markProvisioned("auth0|12345");
-            user.updateOnboardingStatus(true, true);
+            user.updateOnboardingStatus(true, true, true);
 
             UserEntity entity = mapper.toEntity(user);
 
+            assertThat(entity.isEmailVerified()).isTrue();
             assertThat(entity.isPasswordSet()).isTrue();
             assertThat(entity.isMfaEnrolled()).isTrue();
             assertThat(entity.getStatus()).isEqualTo("ACTIVE");
@@ -209,7 +210,7 @@ class UserMapperTest {
                 CREATED_BY
             );
             user.markProvisioned("anp|12345");
-            user.updateOnboardingStatus(true, true);
+            user.updateOnboardingStatus(true, true, true);
             user.lock(User.LockType.SECURITY, "system");
 
             UserEntity entity = mapper.toEntity(user);
@@ -234,7 +235,7 @@ class UserMapperTest {
                 CREATED_BY
             );
             user.markProvisioned("anp|12345");
-            user.updateOnboardingStatus(true, true);
+            user.updateOnboardingStatus(true, true, true);
             user.deactivate("User left organization");
 
             UserEntity entity = mapper.toEntity(user);
@@ -480,12 +481,13 @@ class UserMapperTest {
                 CREATED_BY
             );
             original.markProvisioned("auth0|67890");
-            original.updateOnboardingStatus(true, false);
+            original.updateOnboardingStatus(true, true, false);
 
             UserEntity entity = mapper.toEntity(original);
             User reconstructed = mapper.toDomain(entity);
 
             assertThat(reconstructed.identityProviderUserId()).isEqualTo("auth0|67890");
+            assertThat(reconstructed.emailVerified()).isTrue();
             assertThat(reconstructed.passwordSet()).isTrue();
             assertThat(reconstructed.mfaEnrolled()).isFalse();
             assertThat(reconstructed.status()).isEqualTo(User.Status.PENDING_MFA);

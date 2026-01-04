@@ -358,7 +358,7 @@ public class Auth0Adapter {
             // Sync user status if login succeeded (without MFA or with MFA not required)
             if (!authResult.has("mfa_required") || !authResult.get("mfa_required").asBoolean()) {
                 // User logged in without MFA - they have password set but possibly not MFA enrolled
-                syncUserStatus(email, true, false);
+                syncUserStatus(email, true, true, false);
             }
         }
 
@@ -580,7 +580,7 @@ public class Auth0Adapter {
             PortalType portalType = determinePortalType(email);
 
             // Sync user status after successful MFA verification
-            syncUserStatus(email, true, true);
+            syncUserStatus(email, true, true, true);
 
             return result
                 .put("success", true)
@@ -668,7 +668,7 @@ public class Auth0Adapter {
             long mfaTokenExpiresAt = (System.currentTimeMillis() / 1000) + 600;
 
             // Sync user status after successful MFA verification
-            syncUserStatus(email, true, true);
+            syncUserStatus(email, true, true, true);
 
             // Determine portal type for routing
             PortalType portalType = determinePortalType(email);
@@ -1031,18 +1031,18 @@ public class Auth0Adapter {
      * Sync user onboarding status from Auth0 to local database.
      * Called after successful authentication to keep lastSyncedAt updated.
      */
-    public void syncUserStatus(String email, boolean passwordSet, boolean mfaEnrolled) {
+    public void syncUserStatus(String email, boolean emailVerified, boolean passwordSet, boolean mfaEnrolled) {
         try {
             userRepository.findByEmail(email).ifPresent(user -> {
                 // Only update if status has changed
-                if (user.passwordSet() != passwordSet || user.mfaEnrolled() != mfaEnrolled) {
-                    user.updateOnboardingStatus(passwordSet, mfaEnrolled);
+                if (user.emailVerified() != emailVerified || user.passwordSet() != passwordSet || user.mfaEnrolled() != mfaEnrolled) {
+                    user.updateOnboardingStatus(emailVerified, passwordSet, mfaEnrolled);
                     userRepository.save(user);
-                    log.info("Synced user status for {}: passwordSet={}, mfaEnrolled={}",
-                        email, passwordSet, mfaEnrolled);
+                    log.info("Synced user status for {}: emailVerified={}, passwordSet={}, mfaEnrolled={}",
+                        email, emailVerified, passwordSet, mfaEnrolled);
                 } else {
                     // Still update lastSyncedAt even if status hasn't changed
-                    user.updateOnboardingStatus(passwordSet, mfaEnrolled);
+                    user.updateOnboardingStatus(emailVerified, passwordSet, mfaEnrolled);
                     userRepository.save(user);
                     log.debug("Updated lastSyncedAt for user: {}", email);
                 }

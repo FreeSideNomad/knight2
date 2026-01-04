@@ -64,4 +64,23 @@ public interface IndirectClientRepository {
      * @return the indirect client if found
      */
     Optional<IndirectClient> findByProfileId(ProfileId profileId);
+
+    /**
+     * Checks if an indirect client with the given external reference exists
+     * under the specified parent profile.
+     *
+     * @param parentProfileId the parent profile identifier
+     * @param externalReference the external reference to check
+     * @return true if a client with this external reference exists
+     */
+    boolean existsByExternalReference(ProfileId parentProfileId, String externalReference);
+
+    /**
+     * Finds an indirect client by its external reference within a profile.
+     *
+     * @param parentProfileId the parent profile identifier
+     * @param externalReference the external reference
+     * @return the indirect client if found
+     */
+    Optional<IndirectClient> findByExternalReference(ProfileId parentProfileId, String externalReference);
 }

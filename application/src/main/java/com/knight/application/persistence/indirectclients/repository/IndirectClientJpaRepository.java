@@ -32,4 +32,14 @@ public interface IndirectClientJpaRepository extends JpaRepository<IndirectClien
      */
     @Query("SELECT DISTINCT ic.parentClientId FROM IndirectClientEntity ic ORDER BY ic.parentClientId")
     List<String> findDistinctParentClientIds();
+
+    /**
+     * Check if an indirect client with the given external reference exists within a profile.
+     */
+    boolean existsByParentProfileIdAndExternalReference(String parentProfileId, String externalReference);
+
+    /**
+     * Find an indirect client by external reference within a profile.
+     */
+    Optional<IndirectClientEntity> findByParentProfileIdAndExternalReference(String parentProfileId, String externalReference);
 }

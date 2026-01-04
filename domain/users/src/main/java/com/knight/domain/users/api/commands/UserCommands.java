@@ -52,6 +52,7 @@ public interface UserCommands {
 
     record UpdateOnboardingStatusCmd(
         String identityProviderUserId,
+        boolean emailVerified,
         boolean passwordSet,
         boolean mfaEnrolled
     ) {}

@@ -75,6 +75,7 @@ public class User {
 
     // Identity provider fields
     private String identityProviderUserId;
+    private boolean emailVerified;
     private boolean passwordSet;
     private boolean mfaEnrolled;
     private Instant lastSyncedAt;
@@ -107,6 +108,7 @@ public class User {
         this.createdBy = Objects.requireNonNull(createdBy, "createdBy cannot be null");
         this.status = Status.PENDING_CREATION;
         this.lockType = LockType.NONE;
+        this.emailVerified = false;
         this.passwordSet = false;
         this.mfaEnrolled = false;
         this.createdAt = Instant.now();
@@ -120,7 +122,7 @@ public class User {
             UserId id, String loginId, String email, String firstName, String lastName,
             UserType userType, IdentityProvider identityProvider,
             ProfileId profileId, Set<Role> roles, String identityProviderUserId,
-            boolean passwordSet, boolean mfaEnrolled, Instant lastSyncedAt,
+            boolean emailVerified, boolean passwordSet, boolean mfaEnrolled, Instant lastSyncedAt,
             Instant lastLoggedInAt,
             Status status, LockType lockType, String lockedBy, Instant lockedAt,
             String deactivationReason,
@@ -128,6 +130,7 @@ public class User {
         User user = new User(id, loginId, email, firstName, lastName, userType, identityProvider,
                 profileId, roles, createdBy);
         user.identityProviderUserId = identityProviderUserId;
+        user.emailVerified = emailVerified;
         user.passwordSet = passwordSet;
         user.mfaEnrolled = mfaEnrolled;
         user.lastSyncedAt = lastSyncedAt;
@@ -189,7 +192,8 @@ public class User {
     /**
      * Update onboarding status from identity provider events.
      */
-    public void updateOnboardingStatus(boolean passwordSet, boolean mfaEnrolled) {
+    public void updateOnboardingStatus(boolean emailVerified, boolean passwordSet, boolean mfaEnrolled) {
+        this.emailVerified = emailVerified;
         this.passwordSet = passwordSet;
         this.mfaEnrolled = mfaEnrolled;
         this.lastSyncedAt = Instant.now();
@@ -202,6 +206,19 @@ public class User {
             this.status = Status.PENDING_MFA;
         }
         // If neither, status remains PENDING_VERIFICATION
+    }
+
+    /**
+     * Mark email as verified.
+     * This is typically called when the user clicks a verification link or completes OTP verification.
+     */
+    public void markEmailVerified() {
+        if (this.emailVerified) {
+            return; // Already verified
+        }
+        this.emailVerified = true;
+        this.lastSyncedAt = Instant.now();
+        this.updatedAt = Instant.now();
     }
 
     public void activate() {
@@ -328,6 +345,7 @@ public class User {
     public ProfileId profileId() { return profileId; }
     public Set<Role> roles() { return Collections.unmodifiableSet(roles); }
     public String identityProviderUserId() { return identityProviderUserId; }
+    public boolean emailVerified() { return emailVerified; }
     public boolean passwordSet() { return passwordSet; }
     public boolean mfaEnrolled() { return mfaEnrolled; }
     public Instant lastSyncedAt() { return lastSyncedAt; }

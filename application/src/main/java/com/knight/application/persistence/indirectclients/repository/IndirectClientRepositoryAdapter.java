@@ -94,4 +94,17 @@ public class IndirectClientRepositoryAdapter implements IndirectClientRepository
         return jpaRepository.findByOwnProfileId(profileId.urn())
             .map(mapper::toDomain);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existsByExternalReference(ProfileId parentProfileId, String externalReference) {
+        return jpaRepository.existsByParentProfileIdAndExternalReference(parentProfileId.urn(), externalReference);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<IndirectClient> findByExternalReference(ProfileId parentProfileId, String externalReference) {
+        return jpaRepository.findByParentProfileIdAndExternalReference(parentProfileId.urn(), externalReference)
+            .map(mapper::toDomain);
+    }
 }

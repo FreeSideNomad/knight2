@@ -45,6 +45,9 @@ public class UserEntity {
     @Column(name = "identity_provider_user_id", unique = true, length = 255)
     private String identityProviderUserId;
 
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified;
+
     @Column(name = "password_set", nullable = false)
     private boolean passwordSet;
 

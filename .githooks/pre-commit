@@ -1,0 +1,75 @@
+#!/bin/bash
+#
+# Pre-commit hook to run quick validation checks
+# - Compiles changed modules
+# - Runs unit tests for changed modules
+#
+
+set -e
+
+echo "🔍 Pre-commit: Running quick validation..."
+
+# Get list of staged Java files
+STAGED_JAVA_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep "\.java$" || true)
+
+if [ -z "$STAGED_JAVA_FILES" ]; then
+    echo "✅ No Java files staged, skipping checks."
+    exit 0
+fi
+
+# Determine which modules have changes
+MODULES=""
+if echo "$STAGED_JAVA_FILES" | grep -q "^kernel/"; then
+    MODULES="$MODULES,kernel"
+fi
+if echo "$STAGED_JAVA_FILES" | grep -q "^domain/clients/"; then
+    MODULES="$MODULES,domain/clients"
+fi
+if echo "$STAGED_JAVA_FILES" | grep -q "^domain/profiles/"; then
+    MODULES="$MODULES,domain/profiles"
+fi
+if echo "$STAGED_JAVA_FILES" | grep -q "^domain/users/"; then
+    MODULES="$MODULES,domain/users"
+fi
+if echo "$STAGED_JAVA_FILES" | grep -q "^domain/policy/"; then
+    MODULES="$MODULES,domain/policy"
+fi
+if echo "$STAGED_JAVA_FILES" | grep -q "^application/"; then
+    MODULES="$MODULES,application"
+fi
+if echo "$STAGED_JAVA_FILES" | grep -q "^employee-portal/"; then
+    MODULES="$MODULES,employee-portal"
+fi
+if echo "$STAGED_JAVA_FILES" | grep -q "^client-portal/"; then
+    MODULES="$MODULES,client-portal"
+fi
+if echo "$STAGED_JAVA_FILES" | grep -q "^indirect-client-portal/"; then
+    MODULES="$MODULES,indirect-client-portal"
+fi
+if echo "$STAGED_JAVA_FILES" | grep -q "^client-login/"; then
+    MODULES="$MODULES,client-login"
+fi
+
+# Remove leading comma
+MODULES=$(echo "$MODULES" | sed 's/^,//')
+
+if [ -z "$MODULES" ]; then
+    echo "✅ No recognized modules changed, skipping checks."
+    exit 0
+fi
+
+echo "📦 Changed modules: $MODULES"
+
+# Run compile on changed modules (fast check)
+echo "🔨 Compiling changed modules..."
+./mvnw compile test-compile -pl "$MODULES" -am -q
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ Compilation failed!"
+    echo "Please fix compilation errors before committing."
+    exit 1
+fi
+
+echo "✅ Pre-commit checks passed!"
+exit 0

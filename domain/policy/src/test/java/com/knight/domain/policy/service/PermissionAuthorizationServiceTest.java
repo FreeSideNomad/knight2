@@ -1,6 +1,7 @@
 package com.knight.domain.policy.service;
 
 import com.knight.domain.policy.aggregate.PermissionPolicy;
+import com.knight.domain.policy.port.UserGroupLookup;
 import com.knight.domain.policy.repository.PermissionPolicyRepository;
 import com.knight.domain.policy.types.Action;
 import com.knight.domain.policy.types.Resource;
@@ -31,6 +32,9 @@ class PermissionAuthorizationServiceTest {
     @Mock
     private PermissionPolicyRepository policyRepository;
 
+    @Mock
+    private UserGroupLookup userGroupLookup;
+
     private PermissionAuthorizationServiceImpl authorizationService;
 
     private static final ProfileId TEST_PROFILE_ID = ProfileId.of("servicing", SrfClientId.of("srf:123456789"));
@@ -39,7 +43,9 @@ class PermissionAuthorizationServiceTest {
 
     @BeforeEach
     void setUp() {
-        authorizationService = new PermissionAuthorizationServiceImpl(policyRepository);
+        // By default, user has no group memberships
+        when(userGroupLookup.getGroupsForUser(any())).thenReturn(Set.of());
+        authorizationService = new PermissionAuthorizationServiceImpl(policyRepository, userGroupLookup);
     }
 
     @Nested
@@ -709,6 +715,83 @@ class PermissionAuthorizationServiceTest {
                 eq(TEST_PROFILE_ID),
                 argThat(subjects -> subjects.size() == 4)
             );
+        }
+
+        @Test
+        @DisplayName("should include user groups in subject list")
+        void shouldIncludeUserGroupsInSubjectList() {
+            // Given
+            Set<String> userRoles = Set.of("READER");
+            UUID groupId1 = UUID.randomUUID();
+            UUID groupId2 = UUID.randomUUID();
+
+            when(userGroupLookup.getGroupsForUser(TEST_USER_ID))
+                .thenReturn(Set.of(groupId1, groupId2));
+
+            when(policyRepository.findByProfileIdAndSubjects(any(), anyList()))
+                .thenReturn(List.of());
+
+            // When
+            authorizationService.getEffectivePermissions(
+                TEST_PROFILE_ID,
+                TEST_USER_ID,
+                userRoles
+            );
+
+            // Then - Should query with user subject + 2 group subjects + 1 role subject = 4 total
+            verify(policyRepository).findByProfileIdAndSubjects(
+                eq(TEST_PROFILE_ID),
+                argThat(subjects -> {
+                    boolean hasUser = subjects.stream().anyMatch(s ->
+                        s.type() == Subject.SubjectType.USER && s.identifier().equals(TEST_USER_ID.id()));
+                    boolean hasGroup1 = subjects.stream().anyMatch(s ->
+                        s.type() == Subject.SubjectType.GROUP && s.identifier().equals(groupId1.toString()));
+                    boolean hasGroup2 = subjects.stream().anyMatch(s ->
+                        s.type() == Subject.SubjectType.GROUP && s.identifier().equals(groupId2.toString()));
+                    boolean hasRole = subjects.stream().anyMatch(s ->
+                        s.type() == Subject.SubjectType.ROLE && s.identifier().equals("READER"));
+                    return hasUser && hasGroup1 && hasGroup2 && hasRole && subjects.size() == 4;
+                })
+            );
+        }
+
+        @Test
+        @DisplayName("should allow action when user has permission via group")
+        void shouldAllowActionWhenUserHasPermissionViaGroup() {
+            // Given
+            Set<String> userRoles = Set.of(); // No predefined roles
+            UUID groupId = UUID.randomUUID();
+            Action action = Action.of("group.action");
+
+            when(userGroupLookup.getGroupsForUser(TEST_USER_ID))
+                .thenReturn(Set.of(groupId));
+
+            // Create a policy that allows the group to perform the action
+            PermissionPolicy groupPolicy = PermissionPolicy.create(
+                TEST_PROFILE_ID,
+                Subject.group(groupId),
+                action,
+                Resource.all(),
+                PermissionPolicy.Effect.ALLOW,
+                "Group policy",
+                "admin"
+            );
+
+            when(policyRepository.findByProfileIdAndSubjects(any(), anyList()))
+                .thenReturn(List.of(groupPolicy));
+
+            // When
+            PermissionAuthorizationService.PermissionResult result = authorizationService.checkPermission(
+                TEST_PROFILE_ID,
+                TEST_USER_ID,
+                userRoles,
+                action,
+                RESOURCE_ID
+            );
+
+            // Then
+            assertThat(result.allowed()).isTrue();
+            assertThat(result.matchingPolicies()).contains(groupPolicy);
         }
 
         @Test

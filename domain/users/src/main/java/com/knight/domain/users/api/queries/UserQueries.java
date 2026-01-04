@@ -28,6 +28,7 @@ public interface UserQueries {
         String lastName,
         String status,
         String statusDisplayName,
+        String lockType,
         Set<String> roles,
         Instant createdAt,
         Instant lastLoggedInAt

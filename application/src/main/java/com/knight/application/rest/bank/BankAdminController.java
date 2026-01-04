@@ -7,7 +7,9 @@ import com.knight.application.rest.clients.ClientRestMapper;
 import com.knight.application.rest.clients.dto.*;
 import com.knight.application.rest.indirectclients.dto.*;
 import com.knight.application.rest.indirectprofiles.dto.*;
+import com.knight.application.rest.accountgroups.dto.*;
 import com.knight.application.rest.policies.dto.*;
+import com.knight.application.rest.usergroups.dto.*;
 import com.knight.application.rest.serviceprofiles.dto.*;
 import com.knight.application.rest.users.dto.*;
 import com.knight.application.security.access.BankAccess;
@@ -34,6 +36,11 @@ import com.knight.domain.policy.api.queries.PermissionPolicyQueries;
 import com.knight.domain.policy.api.queries.PermissionPolicyQueries.*;
 import com.knight.domain.policy.api.types.PolicyDto;
 import com.knight.domain.policy.service.PermissionAuthorizationService;
+import com.knight.domain.serviceprofiles.types.AccountGroupId;
+import com.knight.domain.serviceprofiles.api.commands.AccountGroupCommands;
+import com.knight.domain.serviceprofiles.api.commands.AccountGroupCommands.*;
+import com.knight.domain.serviceprofiles.api.queries.AccountGroupQueries;
+import com.knight.domain.serviceprofiles.api.queries.AccountGroupQueries.*;
 import com.knight.domain.serviceprofiles.api.commands.ProfileCommands;
 import com.knight.domain.serviceprofiles.api.commands.ProfileCommands.*;
 import com.knight.domain.serviceprofiles.api.queries.ProfileQueries;
@@ -42,8 +49,12 @@ import com.knight.domain.serviceprofiles.types.AccountEnrollmentType;
 import com.knight.domain.serviceprofiles.types.ProfileType;
 import com.knight.domain.users.api.commands.UserCommands;
 import com.knight.domain.users.api.commands.UserCommands.*;
+import com.knight.domain.users.api.commands.UserGroupCommands;
 import com.knight.domain.users.api.queries.UserQueries;
 import com.knight.domain.users.api.queries.UserQueries.*;
+import com.knight.domain.users.api.queries.UserGroupQueries;
+import com.knight.domain.users.api.queries.UserGroupQueries.*;
+import com.knight.domain.users.types.UserGroupId;
 import com.knight.platform.sharedkernel.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -102,6 +113,10 @@ public class BankAdminController {
     private final PermissionPolicyCommands policyCommands;
     private final PermissionPolicyQueries policyQueries;
     private final PermissionAuthorizationService authorizationService;
+    private final AccountGroupCommands accountGroupCommands;
+    private final AccountGroupQueries accountGroupQueries;
+    private final UserGroupCommands userGroupCommands;
+    private final UserGroupQueries userGroupQueries;
     private final PayorEnrolmentService payorEnrolmentService;
     private final ObjectMapper objectMapper;
 
@@ -866,6 +881,269 @@ public class BankAdminController {
         ));
     }
 
+    // ==================== Account Group Endpoints ====================
+
+    @GetMapping("/profiles/{profileId}/account-groups")
+    public ResponseEntity<List<AccountGroupDto>> listAccountGroups(
+            @PathVariable String profileId) {
+
+        ProfileId profId = ProfileId.fromUrn(profileId);
+        List<AccountGroupSummary> groups = accountGroupQueries.listGroupsByProfile(profId);
+
+        List<AccountGroupDto> dtos = groups.stream()
+            .map(this::toAccountGroupDto)
+            .toList();
+
+        return ResponseEntity.ok(dtos);
+    }
+
+    @GetMapping("/profiles/{profileId}/account-groups/{groupId}")
+    public ResponseEntity<AccountGroupDetailDto> getAccountGroup(
+            @PathVariable String profileId,
+            @PathVariable String groupId) {
+
+        return accountGroupQueries.getGroupById(AccountGroupId.of(groupId))
+            .filter(g -> g.profileId().equals(profileId))
+            .map(this::toAccountGroupDetailDto)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/profiles/{profileId}/account-groups")
+    public ResponseEntity<AccountGroupDetailDto> createAccountGroup(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String profileId,
+            @Valid @RequestBody CreateAccountGroupRequest request) {
+
+        String createdBy = getSubject(jwt);
+        ProfileId profId = ProfileId.fromUrn(profileId);
+
+        Set<ClientAccountId> accounts = request.accountIds() != null
+            ? request.accountIds().stream().map(ClientAccountId::of).collect(Collectors.toSet())
+            : Set.of();
+
+        CreateGroupCmd cmd = new CreateGroupCmd(
+            profId, request.name(), request.description(), accounts, createdBy
+        );
+
+        AccountGroupId groupId = accountGroupCommands.createGroup(cmd);
+
+        return accountGroupQueries.getGroupById(groupId)
+            .map(this::toAccountGroupDetailDto)
+            .map(dto -> ResponseEntity.status(HttpStatus.CREATED).body(dto))
+            .orElse(ResponseEntity.internalServerError().build());
+    }
+
+    @PutMapping("/profiles/{profileId}/account-groups/{groupId}")
+    public ResponseEntity<AccountGroupDetailDto> updateAccountGroup(
+            @PathVariable String profileId,
+            @PathVariable String groupId,
+            @Valid @RequestBody UpdateAccountGroupRequest request) {
+
+        var existing = accountGroupQueries.getGroupById(AccountGroupId.of(groupId));
+        if (existing.isEmpty() || !existing.get().profileId().equals(profileId)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        UpdateGroupCmd cmd = new UpdateGroupCmd(
+            AccountGroupId.of(groupId), request.name(), request.description()
+        );
+        accountGroupCommands.updateGroup(cmd);
+
+        return accountGroupQueries.getGroupById(AccountGroupId.of(groupId))
+            .map(this::toAccountGroupDetailDto)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/profiles/{profileId}/account-groups/{groupId}")
+    public ResponseEntity<Void> deleteAccountGroup(
+            @PathVariable String profileId,
+            @PathVariable String groupId) {
+
+        var existing = accountGroupQueries.getGroupById(AccountGroupId.of(groupId));
+        if (existing.isEmpty() || !existing.get().profileId().equals(profileId)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        accountGroupCommands.deleteGroup(new DeleteGroupCmd(AccountGroupId.of(groupId)));
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/profiles/{profileId}/account-groups/{groupId}/accounts")
+    public ResponseEntity<AccountGroupDetailDto> addAccountsToGroup(
+            @PathVariable String profileId,
+            @PathVariable String groupId,
+            @Valid @RequestBody ModifyAccountsRequest request) {
+
+        var existing = accountGroupQueries.getGroupById(AccountGroupId.of(groupId));
+        if (existing.isEmpty() || !existing.get().profileId().equals(profileId)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Set<ClientAccountId> accounts = request.accountIds().stream()
+            .map(ClientAccountId::of)
+            .collect(Collectors.toSet());
+
+        accountGroupCommands.addAccounts(new AddAccountsCmd(AccountGroupId.of(groupId), accounts));
+
+        return accountGroupQueries.getGroupById(AccountGroupId.of(groupId))
+            .map(this::toAccountGroupDetailDto)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/profiles/{profileId}/account-groups/{groupId}/accounts")
+    public ResponseEntity<AccountGroupDetailDto> removeAccountsFromGroup(
+            @PathVariable String profileId,
+            @PathVariable String groupId,
+            @Valid @RequestBody ModifyAccountsRequest request) {
+
+        var existing = accountGroupQueries.getGroupById(AccountGroupId.of(groupId));
+        if (existing.isEmpty() || !existing.get().profileId().equals(profileId)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Set<ClientAccountId> accounts = request.accountIds().stream()
+            .map(ClientAccountId::of)
+            .collect(Collectors.toSet());
+
+        accountGroupCommands.removeAccounts(new RemoveAccountsCmd(AccountGroupId.of(groupId), accounts));
+
+        return accountGroupQueries.getGroupById(AccountGroupId.of(groupId))
+            .map(this::toAccountGroupDetailDto)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    // ==================== User Group Endpoints ====================
+
+    @GetMapping("/profiles/{profileId}/user-groups")
+    public ResponseEntity<List<UserGroupDto>> listUserGroups(@PathVariable String profileId) {
+        ProfileId profId = ProfileId.fromUrn(profileId);
+        List<UserGroupDto> groups = userGroupQueries.listGroupsByProfile(profId).stream()
+            .map(this::toUserGroupDto)
+            .toList();
+        return ResponseEntity.ok(groups);
+    }
+
+    @GetMapping("/profiles/{profileId}/user-groups/{groupId}")
+    public ResponseEntity<UserGroupDetailDto> getUserGroup(
+            @PathVariable String profileId,
+            @PathVariable String groupId) {
+
+        return userGroupQueries.getGroupById(UserGroupId.of(groupId))
+            .filter(g -> g.profileId().equals(profileId))
+            .map(this::toUserGroupDetailDto)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/profiles/{profileId}/user-groups")
+    public ResponseEntity<UserGroupDetailDto> createUserGroup(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String profileId,
+            @Valid @RequestBody CreateUserGroupRequest request) {
+
+        ProfileId profId = ProfileId.fromUrn(profileId);
+        String createdBy = getSubject(jwt);
+
+        UserGroupId groupId = userGroupCommands.createGroup(new UserGroupCommands.CreateGroupCmd(
+            profId, request.name(), request.description(), createdBy
+        ));
+
+        return userGroupQueries.getGroupById(groupId)
+            .map(this::toUserGroupDetailDto)
+            .map(dto -> ResponseEntity.created(URI.create("/api/v1/bank/profiles/" + profileId + "/user-groups/" + groupId.id())).body(dto))
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/profiles/{profileId}/user-groups/{groupId}")
+    public ResponseEntity<UserGroupDetailDto> updateUserGroup(
+            @PathVariable String profileId,
+            @PathVariable String groupId,
+            @Valid @RequestBody UpdateUserGroupRequest request) {
+
+        var existing = userGroupQueries.getGroupById(UserGroupId.of(groupId));
+        if (existing.isEmpty() || !existing.get().profileId().equals(profileId)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        userGroupCommands.updateGroup(new UserGroupCommands.UpdateGroupCmd(
+            UserGroupId.of(groupId), request.name(), request.description()
+        ));
+
+        return userGroupQueries.getGroupById(UserGroupId.of(groupId))
+            .map(this::toUserGroupDetailDto)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/profiles/{profileId}/user-groups/{groupId}")
+    public ResponseEntity<Void> deleteUserGroup(
+            @PathVariable String profileId,
+            @PathVariable String groupId) {
+
+        var existing = userGroupQueries.getGroupById(UserGroupId.of(groupId));
+        if (existing.isEmpty() || !existing.get().profileId().equals(profileId)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        userGroupCommands.deleteGroup(new UserGroupCommands.DeleteGroupCmd(UserGroupId.of(groupId)));
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/profiles/{profileId}/user-groups/{groupId}/members")
+    public ResponseEntity<UserGroupDetailDto> addMembersToGroup(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String profileId,
+            @PathVariable String groupId,
+            @Valid @RequestBody ModifyMembersRequest request) {
+
+        var existing = userGroupQueries.getGroupById(UserGroupId.of(groupId));
+        if (existing.isEmpty() || !existing.get().profileId().equals(profileId)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Set<UserId> userIds = request.userIds().stream()
+            .map(UserId::of)
+            .collect(Collectors.toSet());
+
+        userGroupCommands.addMembers(new UserGroupCommands.AddMembersCmd(
+            UserGroupId.of(groupId), userIds, getSubject(jwt)
+        ));
+
+        return userGroupQueries.getGroupById(UserGroupId.of(groupId))
+            .map(this::toUserGroupDetailDto)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/profiles/{profileId}/user-groups/{groupId}/members")
+    public ResponseEntity<UserGroupDetailDto> removeMembersFromGroup(
+            @PathVariable String profileId,
+            @PathVariable String groupId,
+            @Valid @RequestBody ModifyMembersRequest request) {
+
+        var existing = userGroupQueries.getGroupById(UserGroupId.of(groupId));
+        if (existing.isEmpty() || !existing.get().profileId().equals(profileId)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Set<UserId> userIds = request.userIds().stream()
+            .map(UserId::of)
+            .collect(Collectors.toSet());
+
+        userGroupCommands.removeMembers(new UserGroupCommands.RemoveMembersCmd(
+            UserGroupId.of(groupId), userIds
+        ));
+
+        return userGroupQueries.getGroupById(UserGroupId.of(groupId))
+            .map(this::toUserGroupDetailDto)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
     // ==================== Batch & Payor Enrolment Endpoints ====================
 
     @PostMapping(value = "/profiles/{profileId}/payor-enrolment/validate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -1118,7 +1396,7 @@ public class BankAdminController {
 
         return new ProfileUserDto(
             summary.userId(), summary.loginId(), summary.email(), summary.firstName(), summary.lastName(),
-            summary.status(), summary.statusDisplayName(), summary.roles(),
+            summary.status(), summary.statusDisplayName(), summary.lockType(), summary.roles(),
             canResendInvitation, canLock, canDeactivate, summary.createdAt(), summary.lastLoggedInAt()
         );
     }
@@ -1138,6 +1416,42 @@ public class BankAdminController {
             policy.id(), policy.profileId(), policy.subjectUrn(), policy.actionPattern(),
             policy.resourcePattern(), policy.effect(), policy.description(),
             policy.systemPolicy(), policy.createdAt(), policy.createdBy(), policy.updatedAt()
+        );
+    }
+
+    private AccountGroupDto toAccountGroupDto(AccountGroupSummary summary) {
+        return new AccountGroupDto(
+            summary.groupId(), summary.profileId(), summary.name(),
+            summary.description(), summary.accountCount(),
+            summary.createdAt(), summary.createdBy()
+        );
+    }
+
+    private AccountGroupDetailDto toAccountGroupDetailDto(AccountGroupDetail detail) {
+        return new AccountGroupDetailDto(
+            detail.groupId(), detail.profileId(), detail.name(),
+            detail.description(), detail.accountIds(),
+            detail.createdAt(), detail.createdBy(), detail.updatedAt()
+        );
+    }
+
+    private UserGroupDto toUserGroupDto(UserGroupSummary summary) {
+        return new UserGroupDto(
+            summary.groupId(), summary.profileId(), summary.name(),
+            summary.description(), summary.memberCount(),
+            summary.createdAt(), summary.createdBy()
+        );
+    }
+
+    private UserGroupDetailDto toUserGroupDetailDto(UserGroupDetail detail) {
+        Set<UserGroupDetailDto.UserGroupMemberDto> members = detail.members().stream()
+            .map(m -> new UserGroupDetailDto.UserGroupMemberDto(m.userId(), m.addedAt(), m.addedBy()))
+            .collect(Collectors.toSet());
+
+        return new UserGroupDetailDto(
+            detail.groupId(), detail.profileId(), detail.name(),
+            detail.description(), members,
+            detail.createdAt(), detail.createdBy(), detail.updatedAt()
         );
     }
 

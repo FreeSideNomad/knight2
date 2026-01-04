@@ -25,6 +25,7 @@ import com.knight.domain.serviceprofiles.aggregate.Profile;
 import com.knight.domain.serviceprofiles.repository.ServicingProfileRepository;
 import com.knight.domain.serviceprofiles.types.ProfileType;
 import com.knight.domain.users.aggregate.User;
+import com.knight.domain.users.repository.UserRepository;
 import com.knight.platform.sharedkernel.*;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +35,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -116,6 +118,8 @@ class IndirectClientBffControllerE2ETest {
     @Autowired
     private UserJpaRepository userJpaRepository;
 
+    @Autowired
+    private UserRepository userRepository;
 
     // Test data
     private Client testBank;
@@ -654,4 +658,1552 @@ class IndirectClientBffControllerE2ETest {
                 .andExpect(jsonPath("$").isArray());
         }
     }
+
+    // ==================== User Group Tests ====================
+
+    @Nested
+    @DisplayName("GET /api/v1/indirect/groups - List User Groups")
+    class ListUserGroupsTests {
+
+        @Test
+        @DisplayName("should return empty list when no groups exist")
+        void shouldReturnEmptyListWhenNoGroups() throws Exception {
+            mockMvc.perform(get("/api/v1/indirect/groups")
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/v1/indirect/groups - Create User Group")
+    class CreateUserGroupTests {
+
+        @Test
+        @DisplayName("should create user group successfully")
+        void shouldCreateUserGroupSuccessfully() throws Exception {
+            String request = """
+                {
+                    "name": "Approvers Group",
+                    "description": "Users who can approve transactions"
+                }
+                """;
+
+            mockMvc.perform(post("/api/v1/indirect/groups")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value("Approvers Group"));
+        }
+
+        @Test
+        @DisplayName("should return 400 for invalid request")
+        void shouldReturn400ForInvalidRequest() throws Exception {
+            String request = """
+                {
+                    "name": ""
+                }
+                """;
+
+            mockMvc.perform(post("/api/v1/indirect/groups")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/indirect/groups/{groupId} - Get User Group")
+    class GetUserGroupTests {
+
+        @Test
+        @DisplayName("should return 404 for non-existent group")
+        void shouldReturn404ForNonExistentGroup() throws Exception {
+            mockMvc.perform(get("/api/v1/indirect/groups/{groupId}", UUID.randomUUID().toString())
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("PUT /api/v1/indirect/groups/{groupId} - Update User Group")
+    class UpdateUserGroupTests {
+
+        @Test
+        @DisplayName("should return 404 for non-existent group")
+        void shouldReturn404ForNonExistentGroup() throws Exception {
+            String request = """
+                {
+                    "name": "Updated Name",
+                    "description": "Updated Description"
+                }
+                """;
+
+            mockMvc.perform(put("/api/v1/indirect/groups/{groupId}", UUID.randomUUID().toString())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("DELETE /api/v1/indirect/groups/{groupId} - Delete User Group")
+    class DeleteUserGroupTests {
+
+        @Test
+        @DisplayName("should return 404 for non-existent group")
+        void shouldReturn404ForNonExistentGroup() throws Exception {
+            mockMvc.perform(delete("/api/v1/indirect/groups/{groupId}", UUID.randomUUID().toString())
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/v1/indirect/groups/{groupId}/members - Add Group Members")
+    class AddGroupMembersTests {
+
+        @Test
+        @DisplayName("should return 404 for non-existent group")
+        void shouldReturn404ForNonExistentGroup() throws Exception {
+            String request = """
+                {
+                    "userIds": ["user-id-1", "user-id-2"]
+                }
+                """;
+
+            mockMvc.perform(post("/api/v1/indirect/groups/{groupId}/members", UUID.randomUUID().toString())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("DELETE /api/v1/indirect/groups/{groupId}/members - Remove Group Members")
+    class RemoveGroupMembersTests {
+
+        @Test
+        @DisplayName("should return 404 for non-existent group")
+        void shouldReturn404ForNonExistentGroup() throws Exception {
+            String request = """
+                {
+                    "userIds": ["user-id-1"]
+                }
+                """;
+
+            mockMvc.perform(delete("/api/v1/indirect/groups/{groupId}/members", UUID.randomUUID().toString())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    // ==================== Account Group Tests ====================
+
+    @Nested
+    @DisplayName("GET /api/v1/indirect/account-groups - List Account Groups")
+    class ListAccountGroupsTests {
+
+        @Test
+        @DisplayName("should return empty list when no account groups exist")
+        void shouldReturnEmptyListWhenNoAccountGroups() throws Exception {
+            mockMvc.perform(get("/api/v1/indirect/account-groups")
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/v1/indirect/account-groups - Create Account Group")
+    class CreateAccountGroupTests {
+
+        @Test
+        @DisplayName("should create account group successfully")
+        void shouldCreateAccountGroupSuccessfully() throws Exception {
+            String request = """
+                {
+                    "name": "High Value Accounts",
+                    "description": "Accounts with high transaction limits"
+                }
+                """;
+
+            mockMvc.perform(post("/api/v1/indirect/account-groups")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value("High Value Accounts"));
+        }
+
+        @Test
+        @DisplayName("should return 400 for invalid request")
+        void shouldReturn400ForInvalidRequest() throws Exception {
+            String request = """
+                {
+                    "name": ""
+                }
+                """;
+
+            mockMvc.perform(post("/api/v1/indirect/account-groups")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/indirect/account-groups/{groupId} - Get Account Group")
+    class GetAccountGroupTests {
+
+        @Test
+        @DisplayName("should return 404 for non-existent account group")
+        void shouldReturn404ForNonExistentAccountGroup() throws Exception {
+            mockMvc.perform(get("/api/v1/indirect/account-groups/{groupId}", UUID.randomUUID().toString())
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("PUT /api/v1/indirect/account-groups/{groupId} - Update Account Group")
+    class UpdateAccountGroupTests {
+
+        @Test
+        @DisplayName("should return 404 for non-existent account group")
+        void shouldReturn404ForNonExistentAccountGroup() throws Exception {
+            String request = """
+                {
+                    "name": "Updated Name",
+                    "description": "Updated Description"
+                }
+                """;
+
+            mockMvc.perform(put("/api/v1/indirect/account-groups/{groupId}", UUID.randomUUID().toString())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("DELETE /api/v1/indirect/account-groups/{groupId} - Delete Account Group")
+    class DeleteAccountGroupTests {
+
+        @Test
+        @DisplayName("should return 404 for non-existent account group")
+        void shouldReturn404ForNonExistentAccountGroup() throws Exception {
+            mockMvc.perform(delete("/api/v1/indirect/account-groups/{groupId}", UUID.randomUUID().toString())
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/v1/indirect/account-groups/{groupId}/accounts - Add Accounts to Group")
+    class AddAccountsToGroupTests {
+
+        @Test
+        @DisplayName("should return 404 for non-existent account group")
+        void shouldReturn404ForNonExistentAccountGroup() throws Exception {
+            String request = """
+                {
+                    "accountIds": ["OFI:CAN:001:12345:000000001234"]
+                }
+                """;
+
+            mockMvc.perform(post("/api/v1/indirect/account-groups/{groupId}/accounts", UUID.randomUUID().toString())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("DELETE /api/v1/indirect/account-groups/{groupId}/accounts - Remove Accounts from Group")
+    class RemoveAccountsFromGroupTests {
+
+        @Test
+        @DisplayName("should return 404 for non-existent account group")
+        void shouldReturn404ForNonExistentAccountGroup() throws Exception {
+            String request = """
+                {
+                    "accountIds": ["OFI:CAN:001:12345:000000001234"]
+                }
+                """;
+
+            mockMvc.perform(delete("/api/v1/indirect/account-groups/{groupId}/accounts", UUID.randomUUID().toString())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    // ==================== User Operations Tests ====================
+
+    @Nested
+    @DisplayName("POST /api/v1/indirect/users - Create User")
+    class CreateUserTests {
+
+        @Test
+        @DisplayName("should create user successfully")
+        void shouldCreateUserSuccessfully() throws Exception {
+            String request = """
+                {
+                    "loginId": "newuser123",
+                    "email": "newuser@indirect.com",
+                    "firstName": "New",
+                    "lastName": "User",
+                    "roles": ["READER"]
+                }
+                """;
+
+            mockMvc.perform(post("/api/v1/indirect/users")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.email").value("newuser@indirect.com"));
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/indirect/users/{userId} - Get User Details")
+    class GetUserDetailsTests {
+
+        private User savedUser;
+
+        @BeforeEach
+        void setUp() {
+            savedUser = User.create(
+                "indirectprofileuser",
+                "profileuser@indirect.com",
+                "Profile",
+                "UserTest",
+                User.UserType.INDIRECT_USER,
+                User.IdentityProvider.AUTH0,
+                testIndirectProfile.profileId(),
+                Set.of(User.Role.READER),
+                "system"
+            );
+            userRepository.save(savedUser);
+        }
+
+        @Test
+        @DisplayName("should return user details for user in same profile")
+        void shouldReturnUserDetails() throws Exception {
+            mockMvc.perform(get("/api/v1/indirect/users/{userId}", savedUser.id().id())
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user.email").value("profileuser@indirect.com"));
+        }
+
+        @Test
+        @DisplayName("should return 404 for user in different profile")
+        void shouldReturn404ForUserInDifferentProfile() throws Exception {
+            // Create a user in the bank profile (different profile)
+            User otherUser = User.create(
+                "bankuser",
+                "bankuser@bank.com",
+                "Bank",
+                "User",
+                User.UserType.CLIENT_USER,
+                User.IdentityProvider.AUTH0,
+                testBankProfile.profileId(),
+                Set.of(User.Role.READER),
+                "system"
+            );
+            otherUser.markProvisioned("auth0|bankuser1");
+            userRepository.save(otherUser);
+
+            mockMvc.perform(get("/api/v1/indirect/users/{userId}", otherUser.id().id())
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/v1/indirect/users/{userId}/reset-password - Reset User Password")
+    class ResetUserPasswordTests {
+
+        @Test
+        @DisplayName("should return 404 for user in different profile")
+        void shouldReturn404ForUserInDifferentProfile() throws Exception {
+            User otherUser = User.create(
+                "otherpassword",
+                "otherpassword@other.com",
+                "Other",
+                "User",
+                User.UserType.CLIENT_USER,
+                User.IdentityProvider.AUTH0,
+                testBankProfile.profileId(),
+                Set.of(User.Role.READER),
+                "system"
+            );
+            otherUser.markProvisioned("auth0|otherpassword");
+            userRepository.save(otherUser);
+
+            mockMvc.perform(post("/api/v1/indirect/users/{userId}/reset-password", otherUser.id().id())
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("PUT /api/v1/indirect/users/{userId}/roles - Update User Roles")
+    class UpdateUserRolesTests {
+
+        private User savedUser;
+
+        @BeforeEach
+        void setUp() {
+            savedUser = User.create(
+                "rolesupdateuser",
+                "rolesupdate@indirect.com",
+                "Roles",
+                "Update",
+                User.UserType.INDIRECT_USER,
+                User.IdentityProvider.AUTH0,
+                testIndirectProfile.profileId(),
+                Set.of(User.Role.READER),
+                "system"
+            );
+            userRepository.save(savedUser);
+        }
+
+        @Test
+        @DisplayName("should update user roles")
+        void shouldUpdateUserRoles() throws Exception {
+            String request = """
+                {
+                    "roles": ["READER", "CREATOR"]
+                }
+                """;
+
+            mockMvc.perform(put("/api/v1/indirect/users/{userId}/roles", savedUser.id().id())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("should return 404 for user in different profile")
+        void shouldReturn404ForUserInDifferentProfile() throws Exception {
+            User otherUser = User.create(
+                "otherroles",
+                "otherroles@other.com",
+                "Other",
+                "User",
+                User.UserType.CLIENT_USER,
+                User.IdentityProvider.AUTH0,
+                testBankProfile.profileId(),
+                Set.of(User.Role.READER),
+                "system"
+            );
+            otherUser.markProvisioned("auth0|otherroles");
+            userRepository.save(otherUser);
+
+            String request = """
+                {
+                    "roles": ["READER", "CREATOR"]
+                }
+                """;
+
+            mockMvc.perform(put("/api/v1/indirect/users/{userId}/roles", otherUser.id().id())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/v1/indirect/users/{userId}/resend-invitation - Resend Invitation")
+    class ResendInvitationTests {
+
+        private User savedUser;
+
+        @BeforeEach
+        void setUp() {
+            savedUser = User.create(
+                "invitationuser",
+                "invitation@indirect.com",
+                "Invitation",
+                "User",
+                User.UserType.INDIRECT_USER,
+                User.IdentityProvider.AUTH0,
+                testIndirectProfile.profileId(),
+                Set.of(User.Role.READER),
+                "system"
+            );
+            savedUser.markProvisioned("auth0|invitation123");
+            userRepository.save(savedUser);
+        }
+
+        @Test
+        @DisplayName("should resend invitation for user in same profile")
+        void shouldResendInvitation() throws Exception {
+            mockMvc.perform(post("/api/v1/indirect/users/{userId}/resend-invitation", savedUser.id().id())
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("should return 404 for user in different profile")
+        void shouldReturn404ForUserInDifferentProfile() throws Exception {
+            User otherUser = User.create(
+                "otherinvite",
+                "otherinvite@other.com",
+                "Other",
+                "User",
+                User.UserType.CLIENT_USER,
+                User.IdentityProvider.AUTH0,
+                testBankProfile.profileId(),
+                Set.of(User.Role.READER),
+                "system"
+            );
+            otherUser.markProvisioned("auth0|otherinvite");
+            userRepository.save(otherUser);
+
+            mockMvc.perform(post("/api/v1/indirect/users/{userId}/resend-invitation", otherUser.id().id())
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/v1/indirect/users/{userId}/lock - Lock User")
+    class LockUserTests {
+
+        private User savedUser;
+
+        @BeforeEach
+        void setUp() {
+            savedUser = User.create(
+                "lockuserind",
+                "lockuserind@indirect.com",
+                "Lock",
+                "User",
+                User.UserType.INDIRECT_USER,
+                User.IdentityProvider.AUTH0,
+                testIndirectProfile.profileId(),
+                Set.of(User.Role.READER),
+                "system"
+            );
+            savedUser.activate();
+            userRepository.save(savedUser);
+        }
+
+        @Test
+        @DisplayName("should lock user in same profile")
+        void shouldLockUser() throws Exception {
+            String request = """
+                {
+                    "lockType": "CLIENT"
+                }
+                """;
+
+            mockMvc.perform(post("/api/v1/indirect/users/{userId}/lock", savedUser.id().id())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("should return 404 for user in different profile")
+        void shouldReturn404ForUserInDifferentProfile() throws Exception {
+            User otherUser = User.create(
+                "otherlockind",
+                "otherlockind@other.com",
+                "Other",
+                "User",
+                User.UserType.CLIENT_USER,
+                User.IdentityProvider.AUTH0,
+                testBankProfile.profileId(),
+                Set.of(User.Role.READER),
+                "system"
+            );
+            otherUser.markProvisioned("auth0|otherlockind");
+            userRepository.save(otherUser);
+
+            mockMvc.perform(post("/api/v1/indirect/users/{userId}/lock", otherUser.id().id())
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/v1/indirect/users/{userId}/unlock - Unlock User")
+    class UnlockUserTests {
+
+        private User savedUser;
+
+        @BeforeEach
+        void setUp() {
+            savedUser = User.create(
+                "unlockuserind",
+                "unlockuserind@indirect.com",
+                "Unlock",
+                "User",
+                User.UserType.INDIRECT_USER,
+                User.IdentityProvider.AUTH0,
+                testIndirectProfile.profileId(),
+                Set.of(User.Role.READER),
+                "system"
+            );
+            savedUser.activate();
+            savedUser.lock(User.LockType.CLIENT, "admin@company.com");
+            userRepository.save(savedUser);
+        }
+
+        @Test
+        @DisplayName("should unlock user in same profile")
+        void shouldUnlockUser() throws Exception {
+            mockMvc.perform(post("/api/v1/indirect/users/{userId}/unlock", savedUser.id().id())
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("should return 404 for user in different profile")
+        void shouldReturn404ForUserInDifferentProfile() throws Exception {
+            User otherUser = User.create(
+                "otherunlockind",
+                "otherunlockind@other.com",
+                "Other",
+                "User",
+                User.UserType.CLIENT_USER,
+                User.IdentityProvider.AUTH0,
+                testBankProfile.profileId(),
+                Set.of(User.Role.READER),
+                "system"
+            );
+            otherUser.markProvisioned("auth0|otherunlockind");
+            userRepository.save(otherUser);
+
+            mockMvc.perform(post("/api/v1/indirect/users/{userId}/unlock", otherUser.id().id())
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/v1/indirect/users/{userId}/deactivate - Deactivate User")
+    class DeactivateUserTests {
+
+        private User savedUser;
+
+        @BeforeEach
+        void setUp() {
+            savedUser = User.create(
+                "deactivateuserind",
+                "deactivateuserind@indirect.com",
+                "Deactivate",
+                "User",
+                User.UserType.INDIRECT_USER,
+                User.IdentityProvider.AUTH0,
+                testIndirectProfile.profileId(),
+                Set.of(User.Role.READER),
+                "system"
+            );
+            savedUser.activate();
+            userRepository.save(savedUser);
+        }
+
+        @Test
+        @DisplayName("should deactivate user in same profile")
+        void shouldDeactivateUser() throws Exception {
+            String request = """
+                {
+                    "reason": "No longer needed"
+                }
+                """;
+
+            mockMvc.perform(post("/api/v1/indirect/users/{userId}/deactivate", savedUser.id().id())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("should return 404 for user in different profile")
+        void shouldReturn404ForUserInDifferentProfile() throws Exception {
+            User otherUser = User.create(
+                "otherdeactivateind",
+                "otherdeactivateind@other.com",
+                "Other",
+                "User",
+                User.UserType.CLIENT_USER,
+                User.IdentityProvider.AUTH0,
+                testBankProfile.profileId(),
+                Set.of(User.Role.READER),
+                "system"
+            );
+            otherUser.markProvisioned("auth0|otherdeactivateind");
+            userRepository.save(otherUser);
+
+            mockMvc.perform(post("/api/v1/indirect/users/{userId}/deactivate", otherUser.id().id())
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("should deactivate without reason")
+        void shouldDeactivateWithoutReason() throws Exception {
+            mockMvc.perform(post("/api/v1/indirect/users/{userId}/deactivate", savedUser.id().id())
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+        }
+    }
+
+    // ==================== Additional Branch Coverage Tests ====================
+
+    @Nested
+    @DisplayName("Related Persons - Branch Coverage")
+    class RelatedPersonBranchTests {
+
+        @Test
+        @DisplayName("should add related person with blank email")
+        void shouldAddRelatedPersonWithBlankEmail() throws Exception {
+            String request = """
+                {
+                    "name": "Blank Email Person",
+                    "role": "ADMIN",
+                    "email": "",
+                    "phone": "555-1234"
+                }
+                """;
+
+            mockMvc.perform(post("/api/v1/indirect/persons")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("should add related person with blank phone")
+        void shouldAddRelatedPersonWithBlankPhone() throws Exception {
+            String request = """
+                {
+                    "name": "Blank Phone Person",
+                    "role": "CONTACT",
+                    "email": "email@test.com",
+                    "phone": ""
+                }
+                """;
+
+            mockMvc.perform(post("/api/v1/indirect/persons")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("should update related person with blank email and phone")
+        void shouldUpdateRelatedPersonWithBlankEmailPhone() throws Exception {
+            // First add a person
+            testIndirectClient.addRelatedPerson("Original Person", PersonRole.ADMIN, null, null);
+            indirectClientRepository.save(testIndirectClient);
+
+            String personId = testIndirectClient.relatedPersons().get(0).personId().value().toString();
+
+            String request = """
+                {
+                    "name": "Updated Person",
+                    "role": "CONTACT",
+                    "email": "",
+                    "phone": ""
+                }
+                """;
+
+            mockMvc.perform(put("/api/v1/indirect/persons/{personId}", personId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("should return 404 when updating non-existent person")
+        void shouldReturn404WhenUpdatingNonExistentPerson() throws Exception {
+            String request = """
+                {
+                    "name": "New Name",
+                    "role": "ADMIN"
+                }
+                """;
+
+            mockMvc.perform(put("/api/v1/indirect/persons/{personId}", UUID.randomUUID().toString())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("should return 400 when removing last related person")
+        void shouldReturn400WhenRemovingLastPerson() throws Exception {
+            // Add only one person
+            testIndirectClient.addRelatedPerson("Only Person", PersonRole.ADMIN, null, null);
+            indirectClientRepository.save(testIndirectClient);
+
+            String personId = testIndirectClient.relatedPersons().get(0).personId().value().toString();
+
+            mockMvc.perform(delete("/api/v1/indirect/persons/{personId}", personId))
+                .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Nested
+    @DisplayName("OFI Accounts - Branch Coverage")
+    class OfiAccountBranchTests {
+
+        @Test
+        @DisplayName("should update OFI account with blank holder name")
+        void shouldUpdateOfiAccountWithBlankHolderName() throws Exception {
+            // Create an OFI account first
+            ClientAccountId accountId = new ClientAccountId(
+                AccountSystem.OFI, "CAN", "001:12345:000000123456");
+            ClientAccount account = ClientAccount.createOfiAccount(
+                accountId, testIndirectClient.id().urn(), Currency.CAD, "Original Holder");
+            clientAccountRepository.save(account);
+
+            String request = """
+                {
+                    "accountHolderName": ""
+                }
+                """;
+
+            mockMvc.perform(put("/api/v1/indirect/accounts/{accountId}", accountId.urn())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("should return 404 when updating non-existent account")
+        void shouldReturn404WhenUpdatingNonExistentAccount() throws Exception {
+            String fakeAccountId = "OFI:CAN:999:99999:999999999999";
+
+            String request = """
+                {
+                    "accountHolderName": "New Holder"
+                }
+                """;
+
+            mockMvc.perform(put("/api/v1/indirect/accounts/{accountId}", fakeAccountId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("should return 404 when updating account belonging to other client")
+        void shouldReturn404WhenUpdatingOtherClientAccount() throws Exception {
+            // Create an account for a different client
+            ClientAccountId accountId = new ClientAccountId(
+                AccountSystem.OFI, "CAN", "002:22222:000000222222");
+            ClientAccount account = ClientAccount.createOfiAccount(
+                accountId, "other-client-urn", Currency.CAD, "Other Holder");
+            clientAccountRepository.save(account);
+
+            String request = """
+                {
+                    "accountHolderName": "Trying to update"
+                }
+                """;
+
+            mockMvc.perform(put("/api/v1/indirect/accounts/{accountId}", accountId.urn())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("should return 404 when deactivating account belonging to other client")
+        void shouldReturn404WhenDeactivatingOtherClientAccount() throws Exception {
+            ClientAccountId accountId = new ClientAccountId(
+                AccountSystem.OFI, "CAN", "003:33333:000000333333");
+            ClientAccount account = ClientAccount.createOfiAccount(
+                accountId, "other-client-urn", Currency.CAD, "Other Holder");
+            clientAccountRepository.save(account);
+
+            mockMvc.perform(delete("/api/v1/indirect/accounts/{accountId}", accountId.urn()))
+                .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("should return 404 when deactivating with invalid account ID format")
+        void shouldReturn404WhenDeactivatingInvalidAccountId() throws Exception {
+            mockMvc.perform(delete("/api/v1/indirect/accounts/{accountId}", "invalid-format"))
+                .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("should return 404 when updating with invalid account ID format")
+        void shouldReturn404WhenUpdatingInvalidAccountId() throws Exception {
+            String request = """
+                {
+                    "accountHolderName": "New Name"
+                }
+                """;
+
+            mockMvc.perform(put("/api/v1/indirect/accounts/{accountId}", "invalid-format")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("Lock/Unlock - Branch Coverage")
+    class LockUnlockBranchTests {
+
+        private User lockableUser;
+
+        @BeforeEach
+        void setUpLockableUser() {
+            lockableUser = User.create(
+                "lockableuser",
+                "lockableuser@test.com",
+                "Lockable",
+                "User",
+                User.UserType.INDIRECT_USER,
+                User.IdentityProvider.AUTH0,
+                testIndirectProfile.profileId(),
+                Set.of(User.Role.READER),
+                "system"
+            );
+            lockableUser.markProvisioned("auth0|lockableuser");
+            userRepository.save(lockableUser);
+        }
+
+        @Test
+        @DisplayName("should lock user without request body")
+        void shouldLockUserWithoutRequestBody() throws Exception {
+            mockMvc.perform(post("/api/v1/indirect/users/{userId}/lock", lockableUser.id().id())
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("should lock user with explicit lock type")
+        void shouldLockUserWithExplicitLockType() throws Exception {
+            String request = """
+                {
+                    "lockType": "CLIENT"
+                }
+                """;
+
+            mockMvc.perform(post("/api/v1/indirect/users/{userId}/lock", lockableUser.id().id())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("should lock user with null lock type in request")
+        void shouldLockUserWithNullLockType() throws Exception {
+            String request = """
+                {
+                }
+                """;
+
+            mockMvc.perform(post("/api/v1/indirect/users/{userId}/lock", lockableUser.id().id())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("should return 404 when locking user in different profile")
+        void shouldReturn404WhenLockingUserInDifferentProfile() throws Exception {
+            User otherUser = User.create(
+                "otherlocklind",
+                "otherlockind@other.com",
+                "Other",
+                "User",
+                User.UserType.CLIENT_USER,
+                User.IdentityProvider.AUTH0,
+                testBankProfile.profileId(),
+                Set.of(User.Role.READER),
+                "system"
+            );
+            otherUser.markProvisioned("auth0|otherlockind");
+            userRepository.save(otherUser);
+
+            mockMvc.perform(post("/api/v1/indirect/users/{userId}/lock", otherUser.id().id())
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("should return 404 when unlocking user in different profile")
+        void shouldReturn404WhenUnlockingUserInDifferentProfile() throws Exception {
+            User otherUser = User.create(
+                "otherunlockind",
+                "otherunlockind@other.com",
+                "Other",
+                "User",
+                User.UserType.CLIENT_USER,
+                User.IdentityProvider.AUTH0,
+                testBankProfile.profileId(),
+                Set.of(User.Role.READER),
+                "system"
+            );
+            otherUser.markProvisioned("auth0|otherunlockind");
+            userRepository.save(otherUser);
+
+            mockMvc.perform(post("/api/v1/indirect/users/{userId}/unlock", otherUser.id().id())
+                    .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("User Groups Members - Branch Coverage")
+    class UserGroupMemberBranchTests {
+
+        private String groupId;
+
+        @BeforeEach
+        void setUpGroup() throws Exception {
+            String request = """
+                {
+                    "name": "Test Member Group",
+                    "description": "For member tests"
+                }
+                """;
+
+            MvcResult result = mockMvc.perform(post("/api/v1/indirect/groups")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+            String response = result.getResponse().getContentAsString();
+            groupId = objectMapper.readTree(response).get("groupId").asText();
+        }
+
+        @Test
+        @DisplayName("should return 400 when adding user from different profile to group")
+        void shouldReturn400WhenAddingUserFromDifferentProfile() throws Exception {
+            User otherUser = User.create(
+                "othergroupind",
+                "othergroupind@other.com",
+                "Other",
+                "User",
+                User.UserType.CLIENT_USER,
+                User.IdentityProvider.AUTH0,
+                testBankProfile.profileId(),
+                Set.of(User.Role.READER),
+                "system"
+            );
+            otherUser.markProvisioned("auth0|othergroupind");
+            userRepository.save(otherUser);
+
+            String request = String.format("""
+                {
+                    "userIds": ["%s"]
+                }
+                """, otherUser.id().id());
+
+            mockMvc.perform(post("/api/v1/indirect/groups/{groupId}/members", groupId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(request))
+                .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Nested
+    @DisplayName("Account Groups - Branch Coverage")
+    class AccountGroupBranchTests {
+
+        @Test
+        @DisplayName("should return 400 when adding account from different indirect client")
+        void shouldReturn400WhenAddingAccountFromDifferentClient() throws Exception {
+            // Create a group
+            String createRequest = """
+                {
+                    "name": "Test Account Group",
+                    "description": "For account tests"
+                }
+                """;
+
+            MvcResult createResult = mockMvc.perform(post("/api/v1/indirect/account-groups")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createRequest))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+            String groupId = objectMapper.readTree(createResult.getResponse().getContentAsString())
+                .get("groupId").asText();
+
+            // Create an account for a different indirect client
+            ClientAccountId otherAccountId = new ClientAccountId(
+                AccountSystem.OFI, "CAN", "999:99999:000000999999");
+            ClientAccount otherAccount = ClientAccount.createOfiAccount(
+                otherAccountId, "other-indirect-client-urn", Currency.CAD, "Other Holder");
+            clientAccountRepository.save(otherAccount);
+
+            String addRequest = String.format("""
+                {
+                    "accountIds": ["%s"]
+                }
+                """, otherAccountId.urn());
+
+            mockMvc.perform(post("/api/v1/indirect/account-groups/{groupId}/accounts", groupId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(addRequest))
+                .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("should return 400 when adding non-existent account")
+        void shouldReturn400WhenAddingNonExistentAccount() throws Exception {
+            String createRequest = """
+                {
+                    "name": "Test Account Group 2",
+                    "description": "For non-existent account test"
+                }
+                """;
+
+            MvcResult createResult = mockMvc.perform(post("/api/v1/indirect/account-groups")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createRequest))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+            String groupId = objectMapper.readTree(createResult.getResponse().getContentAsString())
+                .get("groupId").asText();
+
+            String addRequest = """
+                {
+                    "accountIds": ["OFI:CAN:888:88888:000000888888"]
+                }
+                """;
+
+            mockMvc.perform(post("/api/v1/indirect/account-groups/{groupId}/accounts", groupId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(addRequest))
+                .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("should return 400 when adding account with invalid format")
+        void shouldReturn400WhenAddingInvalidAccountFormat() throws Exception {
+            String createRequest = """
+                {
+                    "name": "Test Account Group 3",
+                    "description": "For invalid format test"
+                }
+                """;
+
+            MvcResult createResult = mockMvc.perform(post("/api/v1/indirect/account-groups")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createRequest))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+            String groupId = objectMapper.readTree(createResult.getResponse().getContentAsString())
+                .get("groupId").asText();
+
+            String addRequest = """
+                {
+                    "accountIds": ["invalid-account-format"]
+                }
+                """;
+
+            mockMvc.perform(post("/api/v1/indirect/account-groups/{groupId}/accounts", groupId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(addRequest))
+                .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Nested
+    @DisplayName("User Group Operations - Additional Branch Coverage")
+    class UserGroupOperationsBranchTests {
+
+        @Test
+        @DisplayName("should update user group successfully")
+        void shouldUpdateUserGroupSuccessfully() throws Exception {
+            // Create a group first
+            String createRequest = """
+                {
+                    "name": "Group To Update",
+                    "description": "Will be updated"
+                }
+                """;
+
+            MvcResult createResult = mockMvc.perform(post("/api/v1/indirect/groups")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createRequest))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+            String groupId = objectMapper.readTree(createResult.getResponse().getContentAsString())
+                .get("groupId").asText();
+
+            // Update the group
+            String updateRequest = """
+                {
+                    "name": "Updated Group Name",
+                    "description": "Updated description"
+                }
+                """;
+
+            mockMvc.perform(put("/api/v1/indirect/groups/{groupId}", groupId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(updateRequest))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Updated Group Name"));
+        }
+
+        @Test
+        @DisplayName("should return 404 when updating non-existent user group")
+        void shouldReturn404WhenUpdatingNonExistentGroup() throws Exception {
+            String updateRequest = """
+                {
+                    "name": "Updated Name",
+                    "description": "Updated description"
+                }
+                """;
+
+            mockMvc.perform(put("/api/v1/indirect/groups/{groupId}", UUID.randomUUID())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(updateRequest))
+                .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("should delete user group successfully")
+        void shouldDeleteUserGroupSuccessfully() throws Exception {
+            // Create a group first
+            String createRequest = """
+                {
+                    "name": "Group To Delete",
+                    "description": "Will be deleted"
+                }
+                """;
+
+            MvcResult createResult = mockMvc.perform(post("/api/v1/indirect/groups")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createRequest))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+            String groupId = objectMapper.readTree(createResult.getResponse().getContentAsString())
+                .get("groupId").asText();
+
+            // Delete the group - the controller returns 200 OK after successful deletion
+            mockMvc.perform(delete("/api/v1/indirect/groups/{groupId}", groupId))
+                .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("should return 404 when deleting non-existent user group")
+        void shouldReturn404WhenDeletingNonExistentGroup() throws Exception {
+            mockMvc.perform(delete("/api/v1/indirect/groups/{groupId}", UUID.randomUUID()))
+                .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("should remove group member successfully")
+        void shouldRemoveGroupMemberSuccessfully() throws Exception {
+            // Create a user for our profile first
+            User user = User.create(
+                "member_to_remove",
+                "membertoremove@company.com",
+                "Remove",
+                "Member",
+                User.UserType.CLIENT_USER,
+                User.IdentityProvider.AUTH0,
+                testIndirectProfile.profileId(),
+                Set.of(User.Role.READER),
+                "system"
+            );
+            userRepository.save(user);
+
+            // Create a group
+            String createRequest = """
+                {
+                    "name": "Group With Member",
+                    "description": "Has member to remove"
+                }
+                """;
+
+            MvcResult createResult = mockMvc.perform(post("/api/v1/indirect/groups")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createRequest))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+            String groupId = objectMapper.readTree(createResult.getResponse().getContentAsString())
+                .get("groupId").asText();
+
+            // Add the user as member
+            String addRequest = String.format("""
+                {
+                    "userIds": ["%s"]
+                }
+                """, user.id().id());
+
+            mockMvc.perform(post("/api/v1/indirect/groups/{groupId}/members", groupId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(addRequest))
+                .andExpect(status().isOk());
+
+            // Remove the member
+            String removeRequest = String.format("""
+                {
+                    "userIds": ["%s"]
+                }
+                """, user.id().id());
+
+            mockMvc.perform(delete("/api/v1/indirect/groups/{groupId}/members", groupId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(removeRequest))
+                .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("should return 404 when removing member from non-existent group")
+        void shouldReturn404WhenRemovingMemberFromNonExistentGroup() throws Exception {
+            String removeRequest = String.format("""
+                {
+                    "userIds": ["%s"]
+                }
+                """, UUID.randomUUID());
+
+            mockMvc.perform(delete("/api/v1/indirect/groups/{groupId}/members", UUID.randomUUID())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(removeRequest))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("Account Group Operations - Additional Branch Coverage")
+    class AccountGroupOperationsBranchTests {
+
+        @Test
+        @DisplayName("should update account group successfully")
+        void shouldUpdateAccountGroupSuccessfully() throws Exception {
+            // Create a group first
+            String createRequest = """
+                {
+                    "name": "Account Group To Update",
+                    "description": "Will be updated"
+                }
+                """;
+
+            MvcResult createResult = mockMvc.perform(post("/api/v1/indirect/account-groups")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createRequest))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+            String groupId = objectMapper.readTree(createResult.getResponse().getContentAsString())
+                .get("groupId").asText();
+
+            // Update the group
+            String updateRequest = """
+                {
+                    "name": "Updated Account Group",
+                    "description": "Updated description"
+                }
+                """;
+
+            mockMvc.perform(put("/api/v1/indirect/account-groups/{groupId}", groupId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(updateRequest))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Updated Account Group"));
+        }
+
+        @Test
+        @DisplayName("should return 404 when updating non-existent account group")
+        void shouldReturn404WhenUpdatingNonExistentAccountGroup() throws Exception {
+            String updateRequest = """
+                {
+                    "name": "Updated Name",
+                    "description": "Updated description"
+                }
+                """;
+
+            mockMvc.perform(put("/api/v1/indirect/account-groups/{groupId}", UUID.randomUUID())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(updateRequest))
+                .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("should handle remove of account not in group gracefully")
+        void shouldHandleRemoveNonExistentAccountFromGroup() throws Exception {
+            // Create a group
+            String createRequest = """
+                {
+                    "name": "Account Group With Account",
+                    "description": "Has account to remove"
+                }
+                """;
+
+            MvcResult createResult = mockMvc.perform(post("/api/v1/indirect/account-groups")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createRequest))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+            String groupId = objectMapper.readTree(createResult.getResponse().getContentAsString())
+                .get("groupId").asText();
+
+            // Try to remove a non-existent account from the group
+            String removeRequest = """
+                {
+                    "accountIds": ["OFI:CAN:001:12345:001234567890"]
+                }
+                """;
+
+            // Controller handles gracefully and returns 200 even if account not in group
+            mockMvc.perform(delete("/api/v1/indirect/account-groups/{groupId}/accounts", groupId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(removeRequest))
+                .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("should return 404 when removing account from non-existent group")
+        void shouldReturn404WhenRemovingAccountFromNonExistentGroup() throws Exception {
+            String removeRequest = """
+                {
+                    "accountIds": ["OFI:CAN:001:12345:0001234567890"]
+                }
+                """;
+
+            mockMvc.perform(delete("/api/v1/indirect/account-groups/{groupId}/accounts", UUID.randomUUID())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(removeRequest))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("Get Group Details - Branch Coverage")
+    class GetGroupDetailsBranchTests {
+
+        @Test
+        @DisplayName("should return user group details")
+        void shouldReturnUserGroupDetails() throws Exception {
+            // Create a group first
+            String createRequest = """
+                {
+                    "name": "Group For Details",
+                    "description": "Testing details"
+                }
+                """;
+
+            MvcResult createResult = mockMvc.perform(post("/api/v1/indirect/groups")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createRequest))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+            String groupId = objectMapper.readTree(createResult.getResponse().getContentAsString())
+                .get("groupId").asText();
+
+            // Get the details
+            mockMvc.perform(get("/api/v1/indirect/groups/{groupId}", groupId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groupId").value(groupId))
+                .andExpect(jsonPath("$.name").value("Group For Details"));
+        }
+
+        @Test
+        @DisplayName("should return 404 for non-existent user group details")
+        void shouldReturn404ForNonExistentUserGroupDetails() throws Exception {
+            mockMvc.perform(get("/api/v1/indirect/groups/{groupId}", UUID.randomUUID()))
+                .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("should return account group details")
+        void shouldReturnAccountGroupDetails() throws Exception {
+            // Create a group first
+            String createRequest = """
+                {
+                    "name": "Account Group For Details",
+                    "description": "Testing account group details"
+                }
+                """;
+
+            MvcResult createResult = mockMvc.perform(post("/api/v1/indirect/account-groups")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(createRequest))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+            String groupId = objectMapper.readTree(createResult.getResponse().getContentAsString())
+                .get("groupId").asText();
+
+            // Get the details
+            mockMvc.perform(get("/api/v1/indirect/account-groups/{groupId}", groupId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groupId").value(groupId))
+                .andExpect(jsonPath("$.name").value("Account Group For Details"));
+        }
+
+        @Test
+        @DisplayName("should return 404 for non-existent account group details")
+        void shouldReturn404ForNonExistentAccountGroupDetails() throws Exception {
+            mockMvc.perform(get("/api/v1/indirect/account-groups/{groupId}", UUID.randomUUID()))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("OFI Account Segments - Branch Coverage")
+    class OfiAccountSegmentsBranchTests {
+
+        @Test
+        @DisplayName("should handle accounts with different segment lengths")
+        void shouldHandleAccountsWithDifferentSegmentLengths() throws Exception {
+            // Create an account for our indirect client first
+            ClientAccountId accountId = new ClientAccountId(
+                AccountSystem.OFI, "CAN", "001:12345:001234567890");
+            ClientAccount account = ClientAccount.createOfiAccount(
+                accountId, testIndirectClient.id().urn(), Currency.CAD, "Test Holder For Segments");
+            clientAccountRepository.save(account);
+
+            // Get accounts and verify segments are parsed correctly
+            mockMvc.perform(get("/api/v1/indirect/accounts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].bankCode").exists())
+                .andExpect(jsonPath("$[0].transitNumber").exists())
+                .andExpect(jsonPath("$[0].accountNumber").exists());
+        }
+
+        @Test
+        @DisplayName("should list all accounts for indirect client")
+        void shouldListAllAccountsForIndirectClient() throws Exception {
+            mockMvc.perform(get("/api/v1/indirect/accounts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+        }
+
+        @Test
+        @DisplayName("should list all users for indirect profile")
+        void shouldListAllUsersForIndirectProfile() throws Exception {
+            mockMvc.perform(get("/api/v1/indirect/users"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+        }
+
+        @Test
+        @DisplayName("should list users for profile with pagination")
+        void shouldListUsersForProfileWithPagination() throws Exception {
+            mockMvc.perform(get("/api/v1/indirect/users")
+                    .param("page", "0")
+                    .param("size", "5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+        }
+    }
+
 }

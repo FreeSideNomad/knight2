@@ -1,6 +1,7 @@
 package com.knight.domain.policy.service;
 
 import com.knight.domain.policy.aggregate.PermissionPolicy;
+import com.knight.domain.policy.port.UserGroupLookup;
 import com.knight.domain.policy.repository.PermissionPolicyRepository;
 import com.knight.domain.policy.types.Action;
 import com.knight.domain.policy.types.PredefinedRole;
@@ -20,9 +21,13 @@ import java.util.stream.Collectors;
 public class PermissionAuthorizationServiceImpl implements PermissionAuthorizationService {
 
     private final PermissionPolicyRepository policyRepository;
+    private final UserGroupLookup userGroupLookup;
 
-    public PermissionAuthorizationServiceImpl(PermissionPolicyRepository policyRepository) {
+    public PermissionAuthorizationServiceImpl(
+            PermissionPolicyRepository policyRepository,
+            UserGroupLookup userGroupLookup) {
         this.policyRepository = policyRepository;
+        this.userGroupLookup = userGroupLookup;
     }
 
     @Override
@@ -95,13 +100,19 @@ public class PermissionAuthorizationServiceImpl implements PermissionAuthorizati
     }
 
     /**
-     * Build list of subjects for a user (user ID + roles).
+     * Build list of subjects for a user (user ID + groups + roles).
      */
     private List<Subject> buildSubjectList(UserId userId, Set<String> userRoles) {
         List<Subject> subjects = new ArrayList<>();
 
         // Add user subject
         subjects.add(Subject.user(userId.id()));
+
+        // Add group subjects (from user's group memberships)
+        Set<UUID> groupIds = userGroupLookup.getGroupsForUser(userId);
+        for (UUID groupId : groupIds) {
+            subjects.add(Subject.group(groupId));
+        }
 
         // Add role subjects
         for (String role : userRoles) {

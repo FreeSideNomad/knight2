@@ -238,7 +238,7 @@ class UserApplicationServiceTest {
             User user = createProvisionedUser();
             String idpUserId = user.identityProviderUserId();
 
-            UpdateOnboardingStatusCmd cmd = new UpdateOnboardingStatusCmd(idpUserId, true, true);
+            UpdateOnboardingStatusCmd cmd = new UpdateOnboardingStatusCmd(idpUserId, true, true, true);
 
             when(userRepository.findByIdentityProviderUserId(idpUserId)).thenReturn(Optional.of(user));
 
@@ -257,7 +257,7 @@ class UserApplicationServiceTest {
         void shouldRejectUpdateForNonExistentIdpUserId() {
             // given
             String idpUserId = "auth0|nonexistent";
-            UpdateOnboardingStatusCmd cmd = new UpdateOnboardingStatusCmd(idpUserId, true, false);
+            UpdateOnboardingStatusCmd cmd = new UpdateOnboardingStatusCmd(idpUserId, true, true, false);
 
             when(userRepository.findByIdentityProviderUserId(idpUserId)).thenReturn(Optional.empty());
 
@@ -778,7 +778,7 @@ class UserApplicationServiceTest {
 
     private User createActiveUser() {
         User user = createProvisionedUser();
-        user.updateOnboardingStatus(true, true);
+        user.updateOnboardingStatus(true, true, true);
         return user;
     }
 

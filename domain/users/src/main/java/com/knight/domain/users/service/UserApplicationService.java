@@ -126,7 +126,7 @@ public class UserApplicationService implements UserCommands, UserQueries {
         User user = repository.findByIdentityProviderUserId(cmd.identityProviderUserId())
             .orElseThrow(() -> new IllegalArgumentException("User not found for IdP user ID: " + cmd.identityProviderUserId()));
 
-        user.updateOnboardingStatus(cmd.passwordSet(), cmd.mfaEnrolled());
+        user.updateOnboardingStatus(cmd.emailVerified(), cmd.passwordSet(), cmd.mfaEnrolled());
         repository.save(user);
     }
 
@@ -324,6 +324,7 @@ public class UserApplicationService implements UserCommands, UserQueries {
             user.lastName(),
             user.status().name(),
             getStatusDisplayName(user.status()),
+            user.lockType().name(),
             roles,
             user.createdAt(),
             user.lastLoggedInAt()

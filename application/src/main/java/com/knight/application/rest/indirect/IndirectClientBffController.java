@@ -19,9 +19,17 @@ import com.knight.domain.policy.api.queries.PermissionPolicyQueries;
 import com.knight.domain.policy.api.types.PolicyDto;
 import com.knight.domain.users.api.commands.UserCommands;
 import com.knight.domain.users.api.commands.UserCommands.*;
+import com.knight.domain.users.api.commands.UserGroupCommands;
 import com.knight.domain.users.api.queries.UserQueries;
 import com.knight.domain.users.api.queries.UserQueries.*;
+import com.knight.domain.users.api.queries.UserGroupQueries;
+import com.knight.domain.users.api.queries.UserGroupQueries.*;
 import com.knight.domain.users.repository.UserRepository;
+import com.knight.domain.users.types.UserGroupId;
+import com.knight.domain.serviceprofiles.api.commands.AccountGroupCommands;
+import com.knight.domain.serviceprofiles.api.queries.AccountGroupQueries;
+import com.knight.domain.serviceprofiles.api.queries.AccountGroupQueries.*;
+import com.knight.domain.serviceprofiles.types.AccountGroupId;
 import com.knight.platform.sharedkernel.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +40,9 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * BFF Controller for Indirect Client UI.
@@ -61,9 +71,13 @@ public class IndirectClientBffController {
     private final ClientAccountRepository clientAccountRepository;
     private final UserCommands userCommands;
     private final UserQueries userQueries;
+    private final UserGroupCommands userGroupCommands;
+    private final UserGroupQueries userGroupQueries;
     private final PermissionPolicyQueries policyQueries;
     private final Auth0Adapter auth0Adapter;
     private final UserRepository userRepository;
+    private final AccountGroupCommands accountGroupCommands;
+    private final AccountGroupQueries accountGroupQueries;
 
     // ==================== Helper Methods ====================
 
@@ -255,7 +269,7 @@ public class IndirectClientBffController {
         try {
             ClientAccountId clientAccountId = ClientAccountId.of(accountId);
             return clientAccountRepository.findById(clientAccountId)
-                .filter(account -> account.clientId().equals(clientId.urn()))
+                .filter(account -> clientId.urn().equals(account.indirectClientId()))
                 .map(account -> {
                     // Update account holder name if provided
                     if (request.accountHolderName() != null && !request.accountHolderName().isBlank()) {
@@ -282,7 +296,7 @@ public class IndirectClientBffController {
         try {
             ClientAccountId clientAccountId = ClientAccountId.of(accountId);
             return clientAccountRepository.findById(clientAccountId)
-                .filter(account -> account.clientId().equals(clientId.urn()))
+                .filter(account -> clientId.urn().equals(account.indirectClientId()))
                 .map(account -> {
                     account.close();
                     clientAccountRepository.save(account);
@@ -545,6 +559,320 @@ public class IndirectClientBffController {
         return ResponseEntity.ok().build();
     }
 
+    // ==================== User Group Management ====================
+
+    /**
+     * List all user groups in my profile.
+     */
+    @GetMapping("/groups")
+    public ResponseEntity<List<UserGroupSummaryDto>> listUserGroups() {
+        ProfileId profileId = getProfileIdFromContext();
+
+        List<UserGroupSummary> groups = userGroupQueries.listGroupsByProfile(profileId);
+        return ResponseEntity.ok(groups.stream().map(this::toUserGroupSummaryDto).toList());
+    }
+
+    /**
+     * Get user group details.
+     */
+    @GetMapping("/groups/{groupId}")
+    public ResponseEntity<UserGroupDetailResponseDto> getUserGroupDetail(@PathVariable String groupId) {
+        ProfileId profileId = getProfileIdFromContext();
+
+        return userGroupQueries.getGroupById(UserGroupId.of(groupId))
+            .filter(g -> g.profileId().equals(profileId.urn()))
+            .map(this::toUserGroupDetailResponseDto)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Create a new user group.
+     */
+    @PostMapping("/groups")
+    public ResponseEntity<UserGroupSummaryDto> createUserGroup(@Valid @RequestBody CreateUserGroupRequestDto request) {
+        ProfileId profileId = getProfileIdFromContext();
+        String createdBy = getUserEmail();
+
+        UserGroupId groupId = userGroupCommands.createGroup(new UserGroupCommands.CreateGroupCmd(
+            profileId,
+            request.name(),
+            request.description(),
+            createdBy
+        ));
+
+        return userGroupQueries.getGroupById(groupId)
+            .map(g -> new UserGroupSummaryDto(g.groupId(), g.profileId(), g.name(), g.description(), 0, g.createdAt(), g.createdBy()))
+            .map(dto -> ResponseEntity.created(URI.create("/api/v1/indirect/groups/" + dto.groupId())).body(dto))
+            .orElse(ResponseEntity.internalServerError().build());
+    }
+
+    /**
+     * Update a user group.
+     */
+    @PutMapping("/groups/{groupId}")
+    public ResponseEntity<UserGroupSummaryDto> updateUserGroup(
+            @PathVariable String groupId,
+            @Valid @RequestBody UpdateUserGroupRequestDto request) {
+
+        ProfileId profileId = getProfileIdFromContext();
+        UserGroupId gid = UserGroupId.of(groupId);
+
+        // Verify group belongs to this profile
+        Optional<UserGroupDetail> existingGroup = userGroupQueries.getGroupById(gid);
+        if (existingGroup.isEmpty() || !existingGroup.get().profileId().equals(profileId.urn())) {
+            return ResponseEntity.notFound().build();
+        }
+
+        userGroupCommands.updateGroup(new UserGroupCommands.UpdateGroupCmd(gid, request.name(), request.description()));
+
+        return userGroupQueries.getGroupById(gid)
+            .map(g -> new UserGroupSummaryDto(g.groupId(), g.profileId(), g.name(), g.description(), g.members().size(), g.createdAt(), g.createdBy()))
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Delete a user group.
+     */
+    @DeleteMapping("/groups/{groupId}")
+    public ResponseEntity<Void> deleteUserGroup(@PathVariable String groupId) {
+        ProfileId profileId = getProfileIdFromContext();
+        UserGroupId gid = UserGroupId.of(groupId);
+
+        // Verify group belongs to this profile
+        Optional<UserGroupDetail> existingGroup = userGroupQueries.getGroupById(gid);
+        if (existingGroup.isEmpty() || !existingGroup.get().profileId().equals(profileId.urn())) {
+            return ResponseEntity.notFound().build();
+        }
+
+        userGroupCommands.deleteGroup(new UserGroupCommands.DeleteGroupCmd(gid));
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Add members to a user group.
+     */
+    @PostMapping("/groups/{groupId}/members")
+    public ResponseEntity<UserGroupDetailResponseDto> addGroupMembers(
+            @PathVariable String groupId,
+            @Valid @RequestBody ModifyGroupMembersRequest request) {
+
+        ProfileId profileId = getProfileIdFromContext();
+        UserGroupId gid = UserGroupId.of(groupId);
+        String addedBy = getUserEmail();
+
+        // Verify group belongs to this profile
+        Optional<UserGroupDetail> existingGroup = userGroupQueries.getGroupById(gid);
+        if (existingGroup.isEmpty() || !existingGroup.get().profileId().equals(profileId.urn())) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Verify all users belong to this profile
+        for (String userId : request.userIds()) {
+            UserDetail user = userQueries.getUserDetail(UserId.of(userId));
+            if (!profileId.urn().equals(user.profileId())) {
+                return ResponseEntity.badRequest().build();
+            }
+        }
+
+        Set<UserId> userIds = request.userIds().stream().map(UserId::of).collect(Collectors.toSet());
+        userGroupCommands.addMembers(new UserGroupCommands.AddMembersCmd(gid, userIds, addedBy));
+
+        return userGroupQueries.getGroupById(gid)
+            .map(this::toUserGroupDetailResponseDto)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Remove members from a user group.
+     */
+    @DeleteMapping("/groups/{groupId}/members")
+    public ResponseEntity<UserGroupDetailResponseDto> removeGroupMembers(
+            @PathVariable String groupId,
+            @Valid @RequestBody ModifyGroupMembersRequest request) {
+
+        ProfileId profileId = getProfileIdFromContext();
+        UserGroupId gid = UserGroupId.of(groupId);
+
+        // Verify group belongs to this profile
+        Optional<UserGroupDetail> existingGroup = userGroupQueries.getGroupById(gid);
+        if (existingGroup.isEmpty() || !existingGroup.get().profileId().equals(profileId.urn())) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Set<UserId> userIds = request.userIds().stream().map(UserId::of).collect(Collectors.toSet());
+        userGroupCommands.removeMembers(new UserGroupCommands.RemoveMembersCmd(gid, userIds));
+
+        return userGroupQueries.getGroupById(gid)
+            .map(this::toUserGroupDetailResponseDto)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    // ==================== Account Group Management ====================
+
+    /**
+     * List all account groups in my profile.
+     */
+    @GetMapping("/account-groups")
+    public ResponseEntity<List<AccountGroupSummaryDto>> listAccountGroups() {
+        ProfileId profileId = getProfileIdFromContext();
+
+        List<AccountGroupSummary> groups = accountGroupQueries.listGroupsByProfile(profileId);
+        return ResponseEntity.ok(groups.stream().map(this::toAccountGroupSummaryDto).toList());
+    }
+
+    /**
+     * Get account group details.
+     */
+    @GetMapping("/account-groups/{groupId}")
+    public ResponseEntity<AccountGroupDetailResponseDto> getAccountGroupDetail(@PathVariable String groupId) {
+        ProfileId profileId = getProfileIdFromContext();
+
+        return accountGroupQueries.getGroupById(AccountGroupId.of(groupId))
+            .filter(g -> g.profileId().equals(profileId.urn()))
+            .map(this::toAccountGroupDetailResponseDto)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Create a new account group.
+     */
+    @PostMapping("/account-groups")
+    public ResponseEntity<AccountGroupSummaryDto> createAccountGroup(@Valid @RequestBody CreateAccountGroupRequestDto request) {
+        ProfileId profileId = getProfileIdFromContext();
+        String createdBy = getUserEmail();
+
+        AccountGroupId groupId = accountGroupCommands.createGroup(new AccountGroupCommands.CreateGroupCmd(
+            profileId,
+            request.name(),
+            request.description(),
+            Set.of(),
+            createdBy
+        ));
+
+        return accountGroupQueries.getGroupById(groupId)
+            .map(g -> new AccountGroupSummaryDto(g.groupId(), g.profileId(), g.name(), g.description(), 0, g.createdAt(), g.createdBy()))
+            .map(dto -> ResponseEntity.created(URI.create("/api/v1/indirect/account-groups/" + dto.groupId())).body(dto))
+            .orElse(ResponseEntity.internalServerError().build());
+    }
+
+    /**
+     * Update an account group.
+     */
+    @PutMapping("/account-groups/{groupId}")
+    public ResponseEntity<AccountGroupSummaryDto> updateAccountGroup(
+            @PathVariable String groupId,
+            @Valid @RequestBody UpdateAccountGroupRequestDto request) {
+
+        ProfileId profileId = getProfileIdFromContext();
+        AccountGroupId gid = AccountGroupId.of(groupId);
+
+        // Verify group belongs to this profile
+        Optional<AccountGroupDetail> existingGroup = accountGroupQueries.getGroupById(gid);
+        if (existingGroup.isEmpty() || !existingGroup.get().profileId().equals(profileId.urn())) {
+            return ResponseEntity.notFound().build();
+        }
+
+        accountGroupCommands.updateGroup(new AccountGroupCommands.UpdateGroupCmd(gid, request.name(), request.description()));
+
+        return accountGroupQueries.getGroupById(gid)
+            .map(g -> new AccountGroupSummaryDto(g.groupId(), g.profileId(), g.name(), g.description(), g.accountIds().size(), g.createdAt(), g.createdBy()))
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Delete an account group.
+     */
+    @DeleteMapping("/account-groups/{groupId}")
+    public ResponseEntity<Void> deleteAccountGroup(@PathVariable String groupId) {
+        ProfileId profileId = getProfileIdFromContext();
+        AccountGroupId gid = AccountGroupId.of(groupId);
+
+        // Verify group belongs to this profile
+        Optional<AccountGroupDetail> existingGroup = accountGroupQueries.getGroupById(gid);
+        if (existingGroup.isEmpty() || !existingGroup.get().profileId().equals(profileId.urn())) {
+            return ResponseEntity.notFound().build();
+        }
+
+        accountGroupCommands.deleteGroup(new AccountGroupCommands.DeleteGroupCmd(gid));
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Add accounts to an account group.
+     */
+    @PostMapping("/account-groups/{groupId}/accounts")
+    public ResponseEntity<AccountGroupDetailResponseDto> addAccountsToGroup(
+            @PathVariable String groupId,
+            @Valid @RequestBody ModifyGroupAccountsRequest request) {
+
+        ProfileId profileId = getProfileIdFromContext();
+        AccountGroupId gid = AccountGroupId.of(groupId);
+        IndirectClientId clientId = getIndirectClientIdFromContext();
+
+        // Verify group belongs to this profile
+        Optional<AccountGroupDetail> existingGroup = accountGroupQueries.getGroupById(gid);
+        if (existingGroup.isEmpty() || !existingGroup.get().profileId().equals(profileId.urn())) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Verify all accounts belong to this indirect client
+        for (String accountIdStr : request.accountIds()) {
+            try {
+                ClientAccountId accountId = ClientAccountId.of(accountIdStr);
+                Optional<ClientAccount> account = clientAccountRepository.findById(accountId);
+                if (account.isEmpty() || !account.get().clientId().equals(clientId.urn())) {
+                    return ResponseEntity.badRequest().build();
+                }
+            } catch (Exception e) {
+                return ResponseEntity.badRequest().build();
+            }
+        }
+
+        Set<ClientAccountId> accountIds = request.accountIds().stream()
+            .map(ClientAccountId::of)
+            .collect(Collectors.toSet());
+        accountGroupCommands.addAccounts(new AccountGroupCommands.AddAccountsCmd(gid, accountIds));
+
+        return accountGroupQueries.getGroupById(gid)
+            .map(this::toAccountGroupDetailResponseDto)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Remove accounts from an account group.
+     */
+    @DeleteMapping("/account-groups/{groupId}/accounts")
+    public ResponseEntity<AccountGroupDetailResponseDto> removeAccountsFromGroup(
+            @PathVariable String groupId,
+            @Valid @RequestBody ModifyGroupAccountsRequest request) {
+
+        ProfileId profileId = getProfileIdFromContext();
+        AccountGroupId gid = AccountGroupId.of(groupId);
+
+        // Verify group belongs to this profile
+        Optional<AccountGroupDetail> existingGroup = accountGroupQueries.getGroupById(gid);
+        if (existingGroup.isEmpty() || !existingGroup.get().profileId().equals(profileId.urn())) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Set<ClientAccountId> accountIds = request.accountIds().stream()
+            .map(ClientAccountId::of)
+            .collect(Collectors.toSet());
+        accountGroupCommands.removeAccounts(new AccountGroupCommands.RemoveAccountsCmd(gid, accountIds));
+
+        return accountGroupQueries.getGroupById(gid)
+            .map(this::toAccountGroupDetailResponseDto)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+
     // ==================== Permission Policies (Read-Only) ====================
 
     /**
@@ -602,7 +930,7 @@ public class IndirectClientBffController {
 
         return new ProfileUserDto(
             summary.userId(), summary.loginId(), summary.email(), summary.firstName(), summary.lastName(),
-            summary.status(), summary.statusDisplayName(), summary.roles(),
+            summary.status(), summary.statusDisplayName(), summary.lockType(), summary.roles(),
             canResendInvitation, canLock, canDeactivate, summary.createdAt(), summary.lastLoggedInAt()
         );
     }
@@ -624,4 +952,129 @@ public class IndirectClientBffController {
             policy.systemPolicy(), policy.createdAt(), policy.createdBy(), policy.updatedAt()
         );
     }
+
+    private UserGroupSummaryDto toUserGroupSummaryDto(UserGroupSummary summary) {
+        return new UserGroupSummaryDto(
+            summary.groupId(), summary.profileId(), summary.name(),
+            summary.description(), summary.memberCount(), summary.createdAt(), summary.createdBy()
+        );
+    }
+
+    private UserGroupDetailResponseDto toUserGroupDetailResponseDto(UserGroupDetail detail) {
+        Set<UserGroupMemberResponseDto> members = detail.members().stream()
+            .map(m -> new UserGroupMemberResponseDto(m.userId(), m.addedAt(), m.addedBy()))
+            .collect(Collectors.toSet());
+
+        return new UserGroupDetailResponseDto(
+            detail.groupId(), detail.profileId(), detail.name(), detail.description(),
+            members, detail.createdAt(), detail.createdBy(), detail.updatedAt()
+        );
+    }
+
+    private AccountGroupSummaryDto toAccountGroupSummaryDto(AccountGroupSummary summary) {
+        return new AccountGroupSummaryDto(
+            summary.groupId(), summary.profileId(), summary.name(),
+            summary.description(), summary.accountCount(), summary.createdAt(), summary.createdBy()
+        );
+    }
+
+    private AccountGroupDetailResponseDto toAccountGroupDetailResponseDto(AccountGroupDetail detail) {
+        return new AccountGroupDetailResponseDto(
+            detail.groupId(), detail.profileId(), detail.name(), detail.description(),
+            detail.accountIds(), detail.createdAt(), detail.createdBy(), detail.updatedAt()
+        );
+    }
+
+    // ==================== Request/Response DTOs ====================
+
+    public record UserGroupSummaryDto(
+        String groupId,
+        String profileId,
+        String name,
+        String description,
+        int memberCount,
+        java.time.Instant createdAt,
+        String createdBy
+    ) {}
+
+    public record UserGroupDetailResponseDto(
+        String groupId,
+        String profileId,
+        String name,
+        String description,
+        Set<UserGroupMemberResponseDto> members,
+        java.time.Instant createdAt,
+        String createdBy,
+        java.time.Instant updatedAt
+    ) {}
+
+    public record UserGroupMemberResponseDto(
+        String userId,
+        java.time.Instant addedAt,
+        String addedBy
+    ) {}
+
+    public record CreateUserGroupRequestDto(
+        @jakarta.validation.constraints.NotBlank(message = "Name is required")
+        @jakarta.validation.constraints.Size(max = 100, message = "Name cannot exceed 100 characters")
+        String name,
+        @jakarta.validation.constraints.Size(max = 500, message = "Description cannot exceed 500 characters")
+        String description
+    ) {}
+
+    public record UpdateUserGroupRequestDto(
+        @jakarta.validation.constraints.NotBlank(message = "Name is required")
+        @jakarta.validation.constraints.Size(max = 100, message = "Name cannot exceed 100 characters")
+        String name,
+        @jakarta.validation.constraints.Size(max = 500, message = "Description cannot exceed 500 characters")
+        String description
+    ) {}
+
+    public record ModifyGroupMembersRequest(
+        @jakarta.validation.constraints.NotEmpty(message = "At least one user ID is required")
+        Set<String> userIds
+    ) {}
+
+    // Account Group DTOs
+    public record AccountGroupSummaryDto(
+        String groupId,
+        String profileId,
+        String name,
+        String description,
+        int accountCount,
+        java.time.Instant createdAt,
+        String createdBy
+    ) {}
+
+    public record AccountGroupDetailResponseDto(
+        String groupId,
+        String profileId,
+        String name,
+        String description,
+        Set<String> accountIds,
+        java.time.Instant createdAt,
+        String createdBy,
+        java.time.Instant updatedAt
+    ) {}
+
+    public record CreateAccountGroupRequestDto(
+        @jakarta.validation.constraints.NotBlank(message = "Name is required")
+        @jakarta.validation.constraints.Size(max = 100, message = "Name cannot exceed 100 characters")
+        String name,
+        @jakarta.validation.constraints.Size(max = 500, message = "Description cannot exceed 500 characters")
+        String description
+    ) {}
+
+    public record UpdateAccountGroupRequestDto(
+        @jakarta.validation.constraints.NotBlank(message = "Name is required")
+        @jakarta.validation.constraints.Size(max = 100, message = "Name cannot exceed 100 characters")
+        String name,
+        @jakarta.validation.constraints.Size(max = 500, message = "Description cannot exceed 500 characters")
+        String description
+    ) {}
+
+    public record ModifyGroupAccountsRequest(
+        @jakarta.validation.constraints.NotEmpty(message = "At least one account ID is required")
+        Set<String> accountIds
+    ) {}
 }

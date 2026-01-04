@@ -62,7 +62,7 @@ public class UserOnboardingEventConsumer {
         userRepository.findByIdentityProviderUserId(auth0UserId)
             .ifPresentOrElse(
                 user -> {
-                    user.updateOnboardingStatus(true, user.mfaEnrolled());
+                    user.updateOnboardingStatus(user.emailVerified(), true, user.mfaEnrolled());
                     userRepository.save(user);
 
                     eventPublisher.publishEvent(new UserPasswordSetEvent(
@@ -83,7 +83,7 @@ public class UserOnboardingEventConsumer {
         userRepository.findByIdentityProviderUserId(auth0UserId)
             .ifPresentOrElse(
                 user -> {
-                    user.updateOnboardingStatus(user.passwordSet(), true);
+                    user.updateOnboardingStatus(user.emailVerified(), user.passwordSet(), true);
                     userRepository.save(user);
 
                     eventPublisher.publishEvent(new UserMfaEnrolledEvent(
@@ -104,7 +104,7 @@ public class UserOnboardingEventConsumer {
         userRepository.findByIdentityProviderUserId(auth0UserId)
             .ifPresentOrElse(
                 user -> {
-                    user.updateOnboardingStatus(true, true);
+                    user.updateOnboardingStatus(true, true, true);
                     userRepository.save(user);
 
                     eventPublisher.publishEvent(new UserOnboardingCompletedEvent(

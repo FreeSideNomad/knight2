@@ -62,6 +62,7 @@ class UserTest {
             assertThat(user.createdBy()).isEqualTo(CREATED_BY);
             assertThat(user.status()).isEqualTo(Status.PENDING_CREATION);
             assertThat(user.lockType()).isEqualTo(LockType.NONE);
+            assertThat(user.emailVerified()).isFalse();
             assertThat(user.passwordSet()).isFalse();
             assertThat(user.mfaEnrolled()).isFalse();
             assertThat(user.identityProviderUserId()).isNull();
@@ -220,9 +221,10 @@ class UserTest {
             User user = createProvisionedUser();
 
             // when
-            user.updateOnboardingStatus(true, true);
+            user.updateOnboardingStatus(true, true, true);
 
             // then
+            assertThat(user.emailVerified()).isTrue();
             assertThat(user.passwordSet()).isTrue();
             assertThat(user.mfaEnrolled()).isTrue();
             assertThat(user.status()).isEqualTo(Status.ACTIVE);
@@ -236,9 +238,10 @@ class UserTest {
             User user = createProvisionedUser();
 
             // when
-            user.updateOnboardingStatus(true, false);
+            user.updateOnboardingStatus(true, true, false);
 
             // then
+            assertThat(user.emailVerified()).isTrue();
             assertThat(user.passwordSet()).isTrue();
             assertThat(user.mfaEnrolled()).isFalse();
             assertThat(user.status()).isEqualTo(Status.PENDING_MFA);
@@ -251,9 +254,10 @@ class UserTest {
             User user = createProvisionedUser();
 
             // when
-            user.updateOnboardingStatus(false, false);
+            user.updateOnboardingStatus(false, false, false);
 
             // then
+            assertThat(user.emailVerified()).isFalse();
             assertThat(user.passwordSet()).isFalse();
             assertThat(user.mfaEnrolled()).isFalse();
             assertThat(user.status()).isEqualTo(Status.PENDING_VERIFICATION);
@@ -264,13 +268,64 @@ class UserTest {
         void shouldUpdateFromPendingMfaToActiveWhenMfaEnrolled() {
             // given
             User user = createProvisionedUser();
-            user.updateOnboardingStatus(true, false); // First set password only
+            user.updateOnboardingStatus(true, true, false); // First set password only
 
             // when
-            user.updateOnboardingStatus(true, true); // Now enroll MFA
+            user.updateOnboardingStatus(true, true, true); // Now enroll MFA
 
             // then
             assertThat(user.status()).isEqualTo(Status.ACTIVE);
+        }
+
+        @Test
+        @DisplayName("should track email verification separately from password")
+        void shouldTrackEmailVerificationSeparately() {
+            // given
+            User user = createProvisionedUser();
+
+            // when - email verified but password not set
+            user.updateOnboardingStatus(true, false, false);
+
+            // then
+            assertThat(user.emailVerified()).isTrue();
+            assertThat(user.passwordSet()).isFalse();
+            assertThat(user.status()).isEqualTo(Status.PENDING_VERIFICATION);
+        }
+    }
+
+    @Nested
+    @DisplayName("Mark Email Verified Tests")
+    class MarkEmailVerifiedTests {
+
+        @Test
+        @DisplayName("should mark email as verified")
+        void shouldMarkEmailAsVerified() {
+            // given
+            User user = createProvisionedUser();
+            assertThat(user.emailVerified()).isFalse();
+
+            // when
+            user.markEmailVerified();
+
+            // then
+            assertThat(user.emailVerified()).isTrue();
+            assertThat(user.lastSyncedAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("should be idempotent when already verified")
+        void shouldBeIdempotentWhenAlreadyVerified() {
+            // given
+            User user = createProvisionedUser();
+            user.markEmailVerified();
+            Instant firstSyncedAt = user.lastSyncedAt();
+
+            // when
+            user.markEmailVerified();
+
+            // then
+            assertThat(user.emailVerified()).isTrue();
+            assertThat(user.lastSyncedAt()).isEqualTo(firstSyncedAt);
         }
     }
 
@@ -838,8 +893,9 @@ class UserTest {
                 PROFILE_ID,
                 Set.of(Role.READER, Role.SECURITY_ADMIN),
                 idpUserId,
-                true,
-                true,
+                true,  // emailVerified
+                true,  // passwordSet
+                true,  // mfaEnrolled
                 lastSyncedAt,
                 lastLoggedInAt,
                 Status.ACTIVE,
@@ -862,6 +918,7 @@ class UserTest {
             assertThat(user.profileId()).isEqualTo(PROFILE_ID);
             assertThat(user.roles()).containsExactlyInAnyOrder(Role.READER, Role.SECURITY_ADMIN);
             assertThat(user.identityProviderUserId()).isEqualTo(idpUserId);
+            assertThat(user.emailVerified()).isTrue();
             assertThat(user.passwordSet()).isTrue();
             assertThat(user.mfaEnrolled()).isTrue();
             assertThat(user.lastSyncedAt()).isEqualTo(lastSyncedAt);
@@ -894,8 +951,9 @@ class UserTest {
                 PROFILE_ID,
                 VALID_ROLES,
                 "auth0|123",
-                true,
-                false,
+                true,   // emailVerified
+                true,   // passwordSet
+                false,  // mfaEnrolled
                 Instant.now(),
                 null,
                 Status.LOCKED,
@@ -933,8 +991,9 @@ class UserTest {
                 PROFILE_ID,
                 VALID_ROLES,
                 "auth0|123",
-                true,
-                true,
+                true,   // emailVerified
+                true,   // passwordSet
+                true,   // mfaEnrolled
                 Instant.now(),
                 null,
                 Status.ACTIVE,
@@ -970,8 +1029,9 @@ class UserTest {
                 PROFILE_ID,
                 VALID_ROLES,
                 null,
-                false,
-                false,
+                false,  // emailVerified
+                false,  // passwordSet
+                false,  // mfaEnrolled
                 null,
                 null,
                 Status.DEACTIVATED,
@@ -1213,7 +1273,7 @@ class UserTest {
 
     private static User createActiveUser() {
         User user = createProvisionedUser();
-        user.updateOnboardingStatus(true, true);
+        user.updateOnboardingStatus(true, true, true);
         return user;
     }
 }

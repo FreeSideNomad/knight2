@@ -37,6 +37,8 @@
         mfaChallengeTotp: document.getElementById('screen-mfa-challenge-totp'),
         mfaChallengeGuardian: document.getElementById('screen-mfa-challenge-guardian'),
         ciba: document.getElementById('screen-ciba'),
+        forgotPassword: document.getElementById('screen-forgot-password'),
+        forgotPasswordSent: document.getElementById('screen-forgot-password-sent'),
         success: document.getElementById('screen-success')
     };
 
@@ -133,6 +135,32 @@
         const cibaUsePassword = document.getElementById('ciba-use-password');
         if (cibaUsePassword) {
             cibaUsePassword.addEventListener('click', handleCibaUsePassword);
+        }
+
+        // Forgot Password
+        const forgotPassword = document.getElementById('forgot-password');
+        if (forgotPassword) {
+            forgotPassword.addEventListener('click', handleForgotPasswordClick);
+        }
+
+        const forgotPasswordForm = document.getElementById('forgot-password-form');
+        if (forgotPasswordForm) {
+            forgotPasswordForm.addEventListener('submit', handleForgotPasswordSubmit);
+        }
+
+        const forgotBackToLogin = document.getElementById('forgot-back-to-login');
+        if (forgotBackToLogin) {
+            forgotBackToLogin.addEventListener('click', handleBackToLogin);
+        }
+
+        const forgotSentBackToLogin = document.getElementById('forgot-sent-back-to-login');
+        if (forgotSentBackToLogin) {
+            forgotSentBackToLogin.addEventListener('click', handleBackToLogin);
+        }
+
+        const resendResetLink = document.getElementById('resend-reset-link');
+        if (resendResetLink) {
+            resendResetLink.addEventListener('click', handleResendResetLink);
         }
     }
 
@@ -421,6 +449,19 @@
             body: JSON.stringify({ user_id: userId })
         });
         return response.json();
+    }
+
+    async function sendPasswordReset(email) {
+        const response = await fetch('/api/auth/forgot-password', {
+            method: 'POST',
+            headers: getApiHeaders(),
+            body: JSON.stringify({ email })
+        });
+        const data = await response.json();
+        if (!response.ok && data.error) {
+            throw new Error(data.error_description || data.error || 'Failed to send reset link');
+        }
+        return data;
     }
 
     // ============================================
@@ -1163,6 +1204,110 @@
         const loginPassword = document.getElementById('login-password');
         if (loginPassword) loginPassword.value = '';
         showScreen('email');
+    }
+
+    // ============================================
+    // Forgot Password Handlers
+    // ============================================
+
+    function handleForgotPasswordClick(e) {
+        e.preventDefault();
+        hideError('login-error');
+
+        // Pre-fill email if user was on login screen
+        const forgotEmailInput = document.getElementById('forgot-email');
+        if (forgotEmailInput && state.email) {
+            forgotEmailInput.value = state.email;
+        }
+
+        showScreen('forgotPassword');
+        if (forgotEmailInput) {
+            forgotEmailInput.focus();
+        }
+    }
+
+    async function handleForgotPasswordSubmit(e) {
+        e.preventDefault();
+        if (state.submitting) return;
+
+        hideError('forgot-password-error');
+
+        const email = document.getElementById('forgot-email').value.trim();
+        if (!email) {
+            showError('forgot-password-error', 'Please enter your email address');
+            return;
+        }
+
+        state.submitting = true;
+        setLoading('forgot-password-submit', true);
+
+        try {
+            await sendPasswordReset(email);
+
+            // Store email for resend functionality
+            state.forgotPasswordEmail = email;
+
+            // Show success screen
+            document.getElementById('forgot-sent-email').textContent = email;
+            showScreen('forgotPasswordSent');
+
+        } catch (error) {
+            // For security, always show success even if email doesn't exist
+            // This prevents email enumeration attacks
+            console.log('Password reset request:', error.message);
+
+            // Still show success to not reveal if email exists
+            state.forgotPasswordEmail = email;
+            document.getElementById('forgot-sent-email').textContent = email;
+            showScreen('forgotPasswordSent');
+
+        } finally {
+            state.submitting = false;
+            setLoading('forgot-password-submit', false);
+        }
+    }
+
+    function handleBackToLogin(e) {
+        e.preventDefault();
+        hideError('forgot-password-error');
+
+        // Clear forgot password form
+        const forgotEmailInput = document.getElementById('forgot-email');
+        if (forgotEmailInput) {
+            forgotEmailInput.value = '';
+        }
+
+        // If we have a remembered email, go back to login screen
+        if (state.email) {
+            showLoginScreen();
+        } else {
+            showScreen('email');
+        }
+    }
+
+    async function handleResendResetLink(e) {
+        e.preventDefault();
+
+        const email = state.forgotPasswordEmail;
+        if (!email) {
+            showScreen('forgotPassword');
+            return;
+        }
+
+        try {
+            await sendPasswordReset(email);
+            // Show brief feedback
+            const sentEmail = document.getElementById('forgot-sent-email');
+            if (sentEmail) {
+                const originalText = sentEmail.textContent;
+                sentEmail.textContent = 'Email resent!';
+                setTimeout(() => {
+                    sentEmail.textContent = originalText;
+                }, 2000);
+            }
+        } catch (error) {
+            console.log('Resend password reset:', error.message);
+        }
     }
 
 })();

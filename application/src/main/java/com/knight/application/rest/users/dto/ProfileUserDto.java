@@ -14,6 +14,7 @@ public record ProfileUserDto(
     String lastName,
     String status,
     String statusDisplayName,
+    String lockType,
     Set<String> roles,
     boolean canResendInvitation,
     boolean canLock,

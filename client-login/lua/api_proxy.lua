@@ -572,6 +572,27 @@ function _M.handle_stepup_refresh_token()
     return ngx.exit(res.status)
 end
 
+-- Handle forgot password endpoint
+function _M.handle_forgot_password()
+    -- Read request body
+    ngx.req.read_body()
+    local body = ngx.req.get_body_data()
+
+    local res, err = _M.proxy_request("/api/auth/forgot-password", body)
+    if not res then
+        ngx.status = 500
+        ngx.header["Content-Type"] = "application/json"
+        ngx.say(cjson.encode({error = "proxy_error", error_description = err or "unknown"}))
+        return ngx.exit(500)
+    end
+
+    -- Return response from platform
+    ngx.status = res.status
+    ngx.header["Content-Type"] = "application/json"
+    ngx.say(res.body)
+    return ngx.exit(res.status)
+end
+
 -- Handle login endpoint
 function _M.handle_login()
     -- Read request body first

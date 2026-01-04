@@ -1,0 +1,34 @@
+#!/bin/bash
+#
+# Pre-push hook to run full verification
+# - Runs all tests
+# - Enforces JaCoCo coverage requirements (80% line, 80% branch)
+# - Ensures build passes before pushing
+#
+
+set -e
+
+echo "🚀 Pre-push: Running full verification..."
+echo ""
+
+# Run full verify (includes tests and coverage checks)
+echo "🧪 Running tests with coverage checks..."
+./mvnw verify -q
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ Verification failed!"
+    echo ""
+    echo "Possible issues:"
+    echo "  - Tests failing"
+    echo "  - Coverage requirements not met (80% line, 80% branch)"
+    echo "  - Build errors"
+    echo ""
+    echo "Run './mvnw verify' to see details."
+    echo ""
+    exit 1
+fi
+
+echo ""
+echo "✅ All checks passed! Pushing..."
+exit 0

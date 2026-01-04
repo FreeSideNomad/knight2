@@ -685,7 +685,7 @@ public class DirectClientController {
 
         return new ProfileUserDto(
             summary.userId(), summary.loginId(), summary.email(), summary.firstName(), summary.lastName(),
-            summary.status(), summary.statusDisplayName(), summary.roles(),
+            summary.status(), summary.statusDisplayName(), summary.lockType(), summary.roles(),
             canResendInvitation, canLock, canDeactivate, summary.createdAt(), summary.lastLoggedInAt()
         );
     }

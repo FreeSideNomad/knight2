@@ -147,8 +147,9 @@ class UserLastLoggedInTest {
             PROFILE_ID,
             ROLES,
             "auth0|123456",
-            true,
-            true,
+            true,   // emailVerified
+            true,   // passwordSet
+            true,   // mfaEnrolled
             Instant.now().minusSeconds(900),
             lastLoggedInAt,
             Status.ACTIVE,
@@ -183,8 +184,9 @@ class UserLastLoggedInTest {
             PROFILE_ID,
             ROLES,
             "auth0|123",
-            true,
-            true,
+            true,   // emailVerified
+            true,   // passwordSet
+            true,   // mfaEnrolled
             Instant.now(),
             null,
             Status.ACTIVE,
@@ -285,7 +287,7 @@ class UserLastLoggedInTest {
         user.markProvisioned("auth0|12345");
 
         // when
-        user.updateOnboardingStatus(true, false);
+        user.updateOnboardingStatus(true, true, false);
 
         // then
         assertThat(user.lastSyncedAt()).isNotNull(); // Should be set
