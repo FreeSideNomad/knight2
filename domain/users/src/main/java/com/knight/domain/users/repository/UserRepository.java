@@ -37,6 +37,14 @@ public interface UserRepository {
     Optional<User> findByEmail(String email);
 
     /**
+     * Retrieves a User by login ID.
+     *
+     * @param loginId the login ID
+     * @return the user if found
+     */
+    Optional<User> findByLoginId(String loginId);
+
+    /**
      * Retrieves a User by identity provider user ID.
      *
      * @param identityProviderUserId the IdP user ID (e.g., auth0|xxx)

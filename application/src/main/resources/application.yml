@@ -134,3 +134,21 @@ jwt:
     enabled: ${JWT_AUTH0_ENABLED:true}
     domain: ${AUTH0_DOMAIN:dbc-test.auth0.com}
     audience: ${AUTH0_API_AUDIENCE:https://auth-gateway.local/api}
+
+# Email Service Configuration
+email:
+  provider: ${EMAIL_PROVIDER:mock}
+  from-address: ${EMAIL_FROM_ADDRESS:noreply@knight.example.com}
+  from-name: ${EMAIL_FROM_NAME:Knight Platform}
+  ahasend:
+    account-id: ${AHASEND_ACCOUNT_ID:}
+    api-key: ${AHASEND_API_KEY:}
+    api-url: ${AHASEND_API_URL:https://api.ahasend.com/v2}
+
+# OTP Verification Configuration
+otp:
+  expiration-seconds: ${OTP_EXPIRATION_SECONDS:120}
+  max-attempts: ${OTP_MAX_ATTEMPTS:3}
+  rate-limit-window-seconds: ${OTP_RATE_LIMIT_WINDOW:60}
+  rate-limit-max-requests: ${OTP_RATE_LIMIT_MAX:3}
+  resend-cooldown-seconds: ${OTP_RESEND_COOLDOWN:30}

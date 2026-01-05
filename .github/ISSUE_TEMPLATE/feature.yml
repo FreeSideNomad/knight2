@@ -1,0 +1,91 @@
+name: Feature
+description: Create a new feature request
+title: "[Feature]: "
+labels: ["feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Feature Request
+        Use this template to propose a new feature or enhancement.
+
+  - type: input
+    id: feature-name
+    attributes:
+      label: Feature Name
+      description: A short, descriptive name for the feature
+      placeholder: e.g., Email OTP Verification
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of the feature
+      placeholder: Describe what this feature does and why it's needed
+    validations:
+      required: true
+
+  - type: textarea
+    id: business-value
+    attributes:
+      label: Business Value
+      description: What business problem does this solve?
+      placeholder: Describe the value this feature provides to users or the business
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: What conditions must be met for this feature to be complete?
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+        - [ ] Criterion 3
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical-notes
+    attributes:
+      label: Technical Notes
+      description: Any technical considerations, constraints, or implementation notes
+      placeholder: Architecture decisions, dependencies, API changes, etc.
+    validations:
+      required: false
+
+  - type: textarea
+    id: user-stories
+    attributes:
+      label: Related User Stories
+      description: List the user stories that implement this feature
+      placeholder: |
+        - #123 User story 1
+        - #124 User story 2
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature?
+      options:
+        - Critical
+        - High
+        - Medium
+        - Low
+    validations:
+      required: true
+
+  - type: input
+    id: documentation
+    attributes:
+      label: Documentation Reference
+      description: Link to related documentation
+      placeholder: e.g., docs/features/09-authentication.md
+    validations:
+      required: false

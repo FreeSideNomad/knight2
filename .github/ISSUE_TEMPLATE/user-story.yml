@@ -1,0 +1,132 @@
+name: User Story
+description: Create a new user story
+title: "[Story]: "
+labels: ["user-story"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## User Story
+        Use this template to create a user story that describes a specific piece of functionality.
+
+  - type: textarea
+    id: user-story
+    attributes:
+      label: User Story
+      description: Write the user story in the standard format
+      placeholder: |
+        As a [type of user],
+        I want [an action or feature],
+        So that [benefit/value].
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Additional context and details about this story
+      placeholder: Provide any additional details that help understand the story
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: Specific conditions that must be met for this story to be complete
+      placeholder: |
+        Given [context],
+        When [action],
+        Then [expected result].
+
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical-tasks
+    attributes:
+      label: Technical Tasks
+      description: Break down the implementation into specific tasks
+      placeholder: |
+        - [ ] Task 1
+        - [ ] Task 2
+        - [ ] Write unit tests
+        - [ ] Write integration tests
+    validations:
+      required: false
+
+  - type: textarea
+    id: api-changes
+    attributes:
+      label: API Changes
+      description: Document any API endpoints or contracts affected
+      placeholder: |
+        **New Endpoints:**
+        - `POST /api/example` - Description
+
+        **Modified Endpoints:**
+        - `GET /api/existing` - What changed
+    validations:
+      required: false
+
+  - type: textarea
+    id: database-changes
+    attributes:
+      label: Database Changes
+      description: Document any database schema changes
+      placeholder: |
+        **New Tables:**
+        - `table_name` - Purpose
+
+        **Modified Tables:**
+        - `existing_table` - What changed
+    validations:
+      required: false
+
+  - type: input
+    id: parent-feature
+    attributes:
+      label: Parent Feature
+      description: Link to the parent feature issue
+      placeholder: "#123"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this story?
+      options:
+        - Critical
+        - High
+        - Medium
+        - Low
+    validations:
+      required: true
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: Complexity
+      description: Estimated complexity of this story
+      options:
+        - XS (< 2 hours)
+        - S (2-4 hours)
+        - M (1-2 days)
+        - L (3-5 days)
+        - XL (> 1 week)
+    validations:
+      required: true
+
+  - type: input
+    id: documentation
+    attributes:
+      label: Documentation Reference
+      description: Link to related documentation
+      placeholder: e.g., docs/features/09-authentication.md#email-otp
+    validations:
+      required: false
