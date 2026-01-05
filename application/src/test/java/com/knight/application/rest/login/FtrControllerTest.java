@@ -392,6 +392,345 @@ class FtrControllerTest {
     }
 
     @Nested
+    @DisplayName("complete()")
+    class CompleteAdditionalTests {
+
+        @Test
+        @DisplayName("should complete without updating MFA when null")
+        void shouldCompleteWithoutUpdatingMfaWhenNull() {
+            User user = createTestUser(true, true, true);
+            when(userRepository.findByLoginId("test_user")).thenReturn(Optional.of(user));
+
+            FtrCompleteRequest request = new FtrCompleteRequest("test_user", null);
+            ResponseEntity<ObjectNode> response = controller.complete(request);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody().get("success").asBoolean()).isTrue();
+        }
+
+        @Test
+        @DisplayName("should complete without calling Auth0 when not provisioned")
+        void shouldCompleteWithoutAuth0WhenNotProvisioned() {
+            User user = User.reconstitute(
+                UserId.of("user-123"),
+                "test_user",
+                "test@example.com",
+                "Test",
+                "User",
+                User.UserType.INDIRECT_USER,
+                User.IdentityProvider.AUTH0,
+                ProfileId.fromUrn("online:srf:123456789"),
+                Set.of(User.Role.CREATOR),
+                null, // no identityProviderUserId
+                true,
+                true,
+                true,
+                Instant.now(),
+                null,
+                User.Status.PENDING_VERIFICATION,
+                User.LockType.NONE,
+                null,
+                null,
+                null,
+                Instant.now(),
+                "system",
+                Instant.now()
+            );
+            when(userRepository.findByLoginId("test_user")).thenReturn(Optional.of(user));
+
+            FtrCompleteRequest request = new FtrCompleteRequest("test_user", true);
+            ResponseEntity<ObjectNode> response = controller.complete(request);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            verify(auth0Adapter, never()).markOnboardingComplete(anyString());
+        }
+    }
+
+    @Nested
+    @DisplayName("setPassword() additional tests")
+    class SetPasswordAdditionalTests {
+
+        @Test
+        @DisplayName("should return error when Auth0 fails")
+        void shouldReturnErrorWhenAuth0Fails() {
+            User user = createTestUser(true, false, false);
+            when(userRepository.findByLoginId("test_user")).thenReturn(Optional.of(user));
+
+            ObjectNode auth0Response = objectMapper.createObjectNode();
+            auth0Response.put("error", "password_too_weak");
+            auth0Response.put("error_description", "Password does not meet requirements");
+            when(auth0Adapter.completeOnboarding(anyString(), anyString(), anyString()))
+                .thenReturn(auth0Response);
+
+            FtrSetPasswordRequest request = new FtrSetPasswordRequest("test_user", "weak");
+            ResponseEntity<ObjectNode> response = controller.setPassword(request);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(response.getBody().get("error").asText()).isEqualTo("password_too_weak");
+            assertThat(response.getBody().get("error_description").asText()).contains("requirements");
+        }
+
+        @Test
+        @DisplayName("should return error when user not provisioned")
+        void shouldReturnErrorWhenUserNotProvisioned() {
+            User user = User.reconstitute(
+                UserId.of("user-123"),
+                "test_user",
+                "test@example.com",
+                "Test",
+                "User",
+                User.UserType.INDIRECT_USER,
+                User.IdentityProvider.AUTH0,
+                ProfileId.fromUrn("online:srf:123456789"),
+                Set.of(User.Role.CREATOR),
+                null, // no identityProviderUserId
+                true,  // email verified
+                false, // password not set
+                false,
+                Instant.now(),
+                null,
+                User.Status.PENDING_VERIFICATION,
+                User.LockType.NONE,
+                null,
+                null,
+                null,
+                Instant.now(),
+                "system",
+                Instant.now()
+            );
+            when(userRepository.findByLoginId("test_user")).thenReturn(Optional.of(user));
+
+            FtrSetPasswordRequest request = new FtrSetPasswordRequest("test_user", "SecurePass123!");
+            ResponseEntity<ObjectNode> response = controller.setPassword(request);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+            assertThat(response.getBody().get("error").asText()).isEqualTo("not_provisioned");
+        }
+
+        @Test
+        @DisplayName("should return 404 when user not found")
+        void shouldReturn404WhenUserNotFound() {
+            when(userRepository.findByLoginId("unknown")).thenReturn(Optional.empty());
+
+            FtrSetPasswordRequest request = new FtrSetPasswordRequest("unknown", "SecurePass123!");
+            ResponseEntity<ObjectNode> response = controller.setPassword(request);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @Nested
+    @DisplayName("sendOtp() additional tests")
+    class SendOtpAdditionalTests {
+
+        @Test
+        @DisplayName("should handle send failure")
+        void shouldHandleSendFailure() {
+            User user = createTestUser(false, false, false);
+            when(userRepository.findByLoginId("test_user")).thenReturn(Optional.of(user));
+            when(otpService.sendOtp(anyString(), anyString(), anyString()))
+                .thenReturn(OtpResult.sendFailed("SMTP error"));
+
+            FtrSendOtpRequest request = new FtrSendOtpRequest("test_user");
+            ResponseEntity<ObjectNode> response = controller.sendOtp(request);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+            assertThat(response.getBody().get("error").asText()).isEqualTo("send_failed");
+        }
+
+        @Test
+        @DisplayName("should handle user with only first name")
+        void shouldHandleUserWithOnlyFirstName() {
+            User user = User.reconstitute(
+                UserId.of("user-123"),
+                "test_user",
+                "test@example.com",
+                "John",
+                null,
+                User.UserType.INDIRECT_USER,
+                User.IdentityProvider.AUTH0,
+                ProfileId.fromUrn("online:srf:123456789"),
+                Set.of(User.Role.CREATOR),
+                "auth0|user123",
+                false,
+                false,
+                false,
+                Instant.now(),
+                null,
+                User.Status.PENDING_VERIFICATION,
+                User.LockType.NONE,
+                null,
+                null,
+                null,
+                Instant.now(),
+                "system",
+                Instant.now()
+            );
+            when(userRepository.findByLoginId("test_user")).thenReturn(Optional.of(user));
+            when(otpService.sendOtp(eq("test@example.com"), eq("John"), anyString()))
+                .thenReturn(OtpResult.sent(120));
+
+            FtrSendOtpRequest request = new FtrSendOtpRequest("test_user");
+            ResponseEntity<ObjectNode> response = controller.sendOtp(request);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            verify(otpService).sendOtp(eq("test@example.com"), eq("John"), anyString());
+        }
+
+        @Test
+        @DisplayName("should handle user with only last name")
+        void shouldHandleUserWithOnlyLastName() {
+            User user = User.reconstitute(
+                UserId.of("user-123"),
+                "test_user",
+                "test@example.com",
+                null,
+                "Doe",
+                User.UserType.INDIRECT_USER,
+                User.IdentityProvider.AUTH0,
+                ProfileId.fromUrn("online:srf:123456789"),
+                Set.of(User.Role.CREATOR),
+                "auth0|user123",
+                false,
+                false,
+                false,
+                Instant.now(),
+                null,
+                User.Status.PENDING_VERIFICATION,
+                User.LockType.NONE,
+                null,
+                null,
+                null,
+                Instant.now(),
+                "system",
+                Instant.now()
+            );
+            when(userRepository.findByLoginId("test_user")).thenReturn(Optional.of(user));
+            when(otpService.sendOtp(eq("test@example.com"), eq("Doe"), anyString()))
+                .thenReturn(OtpResult.sent(120));
+
+            FtrSendOtpRequest request = new FtrSendOtpRequest("test_user");
+            ResponseEntity<ObjectNode> response = controller.sendOtp(request);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            verify(otpService).sendOtp(eq("test@example.com"), eq("Doe"), anyString());
+        }
+
+        @Test
+        @DisplayName("should handle user with no name")
+        void shouldHandleUserWithNoName() {
+            User user = User.reconstitute(
+                UserId.of("user-123"),
+                "test_user",
+                "test@example.com",
+                null,
+                null,
+                User.UserType.INDIRECT_USER,
+                User.IdentityProvider.AUTH0,
+                ProfileId.fromUrn("online:srf:123456789"),
+                Set.of(User.Role.CREATOR),
+                "auth0|user123",
+                false,
+                false,
+                false,
+                Instant.now(),
+                null,
+                User.Status.PENDING_VERIFICATION,
+                User.LockType.NONE,
+                null,
+                null,
+                null,
+                Instant.now(),
+                "system",
+                Instant.now()
+            );
+            when(userRepository.findByLoginId("test_user")).thenReturn(Optional.of(user));
+            when(otpService.sendOtp(eq("test@example.com"), isNull(), anyString()))
+                .thenReturn(OtpResult.sent(120));
+
+            FtrSendOtpRequest request = new FtrSendOtpRequest("test_user");
+            ResponseEntity<ObjectNode> response = controller.sendOtp(request);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            verify(otpService).sendOtp(eq("test@example.com"), isNull(), anyString());
+        }
+
+        @Test
+        @DisplayName("should mask short email correctly")
+        void shouldMaskShortEmailCorrectly() {
+            User user = User.reconstitute(
+                UserId.of("user-123"),
+                "test_user",
+                "ab@example.com",
+                "Test",
+                "User",
+                User.UserType.INDIRECT_USER,
+                User.IdentityProvider.AUTH0,
+                ProfileId.fromUrn("online:srf:123456789"),
+                Set.of(User.Role.CREATOR),
+                "auth0|user123",
+                false,
+                false,
+                false,
+                Instant.now(),
+                null,
+                User.Status.PENDING_VERIFICATION,
+                User.LockType.NONE,
+                null,
+                null,
+                null,
+                Instant.now(),
+                "system",
+                Instant.now()
+            );
+            when(userRepository.findByLoginId("test_user")).thenReturn(Optional.of(user));
+            when(otpService.sendOtp(anyString(), anyString(), anyString()))
+                .thenReturn(OtpResult.sent(120));
+
+            FtrSendOtpRequest request = new FtrSendOtpRequest("test_user");
+            ResponseEntity<ObjectNode> response = controller.sendOtp(request);
+
+            // For short emails (2 chars before @), it should show ***@domain
+            assertThat(response.getBody().get("email").asText()).isEqualTo("***@example.com");
+        }
+    }
+
+    @Nested
+    @DisplayName("verifyOtp() additional tests")
+    class VerifyOtpAdditionalTests {
+
+        @Test
+        @DisplayName("should handle max attempts exceeded")
+        void shouldHandleMaxAttemptsExceeded() {
+            User user = createTestUser(false, false, false);
+            when(userRepository.findByLoginId("test_user")).thenReturn(Optional.of(user));
+            when(otpService.verifyOtp(anyString(), anyString(), anyString()))
+                .thenReturn(OtpResult.maxAttemptsExceeded());
+
+            FtrVerifyOtpRequest request = new FtrVerifyOtpRequest("test_user", "000000");
+            ResponseEntity<ObjectNode> response = controller.verifyOtp(request);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(response.getBody().get("error").asText()).isEqualTo("max_attempts");
+        }
+
+        @Test
+        @DisplayName("should handle already verified")
+        void shouldHandleAlreadyVerified() {
+            User user = createTestUser(false, false, false);
+            when(userRepository.findByLoginId("test_user")).thenReturn(Optional.of(user));
+            when(otpService.verifyOtp(anyString(), anyString(), anyString()))
+                .thenReturn(OtpResult.alreadyVerified());
+
+            FtrVerifyOtpRequest request = new FtrVerifyOtpRequest("test_user", "123456");
+            ResponseEntity<ObjectNode> response = controller.verifyOtp(request);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(response.getBody().get("error").asText()).isEqualTo("already_verified");
+        }
+    }
+
+    @Nested
     @DisplayName("getStatus()")
     class GetStatusTests {
 
