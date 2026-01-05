@@ -30,6 +30,12 @@ public record UserCheckResponse(
     @JsonProperty("email_verified")
     boolean emailVerified,
 
+    @JsonProperty("passkey_enrolled")
+    boolean passkeyEnrolled,
+
+    @JsonProperty("passkey_offered")
+    boolean passkeyOffered,
+
     @JsonProperty("mfa_factors")
     List<String> mfaFactors,
 
@@ -42,13 +48,14 @@ public record UserCheckResponse(
     }
 
     public static UserCheckResponse notFound() {
-        return new UserCheckResponse(false, null, null, null, false, false, false, false, false, List.of(), List.of());
+        return new UserCheckResponse(false, null, null, null, false, false, false, false, false, false, false, List.of(), List.of());
     }
 
     public static UserCheckResponse found(String userId, String email, ClientType clientType,
                                           boolean mfaEnrolled, boolean hasMfa, boolean hasPassword,
-                                          boolean onboardingComplete, boolean emailVerified) {
+                                          boolean onboardingComplete, boolean emailVerified,
+                                          boolean passkeyEnrolled, boolean passkeyOffered) {
         return new UserCheckResponse(true, userId, email, clientType, mfaEnrolled, hasMfa, hasPassword,
-                                     onboardingComplete, emailVerified, List.of(), List.of());
+                                     onboardingComplete, emailVerified, passkeyEnrolled, passkeyOffered, List.of(), List.of());
     }
 }

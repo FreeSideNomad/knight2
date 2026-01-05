@@ -152,3 +152,14 @@ otp:
   rate-limit-window-seconds: ${OTP_RATE_LIMIT_WINDOW:60}
   rate-limit-max-requests: ${OTP_RATE_LIMIT_MAX:3}
   resend-cooldown-seconds: ${OTP_RESEND_COOLDOWN:30}
+
+# Passkey/WebAuthn Configuration
+passkey:
+  rp-id: ${PASSKEY_RP_ID:localhost}
+  rp-name: ${PASSKEY_RP_NAME:Knight Platform}
+  allowed-origins: ${PASSKEY_ALLOWED_ORIGINS:http://localhost:8001}
+  timeout: ${PASSKEY_TIMEOUT:60000}
+  user-verification: ${PASSKEY_USER_VERIFICATION:preferred}
+  resident-key: ${PASSKEY_RESIDENT_KEY:preferred}
+  attestation: ${PASSKEY_ATTESTATION:none}
+  max-passkeys-per-user: ${PASSKEY_MAX_PER_USER:10}

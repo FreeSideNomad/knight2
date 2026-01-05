@@ -81,6 +81,12 @@
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
 
+        <!-- WebAuthn/Passkey support -->
+        <dependency>
+            <groupId>com.webauthn4j</groupId>
+            <artifactId>webauthn4j-core</artifactId>
+        </dependency>
+
         <!-- Database -->
         <dependency>
             <groupId>com.microsoft.sqlserver</groupId>

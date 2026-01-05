@@ -31,7 +31,13 @@
         resetLoginId: '',           // Login ID for password reset flow
         resetToken: '',             // Reset token after OTP verification
         resetOtpCountdownInterval: null,
-        resetOtpExpiresAt: null
+        resetOtpExpiresAt: null,
+        // Passkey state
+        passkeySupported: false,     // Whether browser supports WebAuthn
+        passkeyEnrolled: false,      // Whether user has a passkey enrolled
+        passkeyChallengeId: '',      // Challenge ID for registration/authentication
+        passkeyCredential: null,     // Credential during registration
+        sessionId: ''                // Session ID to use after passkey enrollment
     };
 
     // DOM Elements
@@ -51,6 +57,10 @@
         forgotPasswordOtp: document.getElementById('screen-forgot-password-otp'),
         forgotPasswordNew: document.getElementById('screen-forgot-password-new'),
         forgotPasswordSuccess: document.getElementById('screen-forgot-password-success'),
+        passkeyOffer: document.getElementById('screen-passkey-offer'),
+        passkeyRegister: document.getElementById('screen-passkey-register'),
+        passkeySuccess: document.getElementById('screen-passkey-success'),
+        passkeyAuth: document.getElementById('screen-passkey-auth'),
         success: document.getElementById('screen-success')
     };
 
@@ -232,6 +242,57 @@
         const forgotSuccessLogin = document.getElementById('forgot-success-login');
         if (forgotSuccessLogin) {
             forgotSuccessLogin.addEventListener('click', handleForgotSuccessLogin);
+        }
+
+        // Passkey event listeners
+        setupPasskeyEventListeners();
+    }
+
+    // Setup passkey-related event listeners
+    function setupPasskeyEventListeners() {
+        // Check if WebAuthn is supported
+        state.passkeySupported = window.PublicKeyCredential !== undefined;
+
+        // Passkey offer - accept
+        const passkeyOfferAccept = document.getElementById('passkey-offer-accept');
+        if (passkeyOfferAccept) {
+            passkeyOfferAccept.addEventListener('click', handlePasskeyEnrollmentStart);
+        }
+
+        // Passkey offer - skip
+        const passkeyOfferSkip = document.getElementById('passkey-offer-skip');
+        if (passkeyOfferSkip) {
+            passkeyOfferSkip.addEventListener('click', handlePasskeyOfferSkip);
+        }
+
+        // Passkey register - cancel
+        const passkeyRegisterCancel = document.getElementById('passkey-register-cancel');
+        if (passkeyRegisterCancel) {
+            passkeyRegisterCancel.addEventListener('click', handlePasskeyRegisterCancel);
+        }
+
+        // Passkey success - continue
+        const passkeySuccessContinue = document.getElementById('passkey-success-continue');
+        if (passkeySuccessContinue) {
+            passkeySuccessContinue.addEventListener('click', handlePasskeySuccessContinue);
+        }
+
+        // Passkey auth - retry
+        const passkeyAuthRetry = document.getElementById('passkey-auth-retry');
+        if (passkeyAuthRetry) {
+            passkeyAuthRetry.addEventListener('click', handlePasskeyAuthRetry);
+        }
+
+        // Passkey auth - use password instead
+        const passkeyAuthUsePassword = document.getElementById('passkey-auth-use-password');
+        if (passkeyAuthUsePassword) {
+            passkeyAuthUsePassword.addEventListener('click', handlePasskeyUsePassword);
+        }
+
+        // Passkey auth - change user
+        const passkeyAuthChangeUser = document.getElementById('passkey-auth-change-user');
+        if (passkeyAuthChangeUser) {
+            passkeyAuthChangeUser.addEventListener('click', handleChangeEmail);
         }
     }
 
@@ -855,6 +916,7 @@
                 state.isOnboarding = false;
                 state.isFtr = false;
                 state.enrolledAuthenticators = userStatus.authenticators || [];
+                state.passkeyEnrolled = userStatus.passkey_enrolled || false;
 
                 // If has_mfa but not onboarding_complete, mark it complete now
                 if (userStatus.has_mfa && !userStatus.onboarding_complete) {
@@ -862,9 +924,15 @@
                     markOnboardingComplete(userStatus.user_id).catch(e => console.error('Failed to mark complete:', e));
                 }
 
-                // All returning users use password login
-                console.log('Returning user, showing password screen');
-                showLoginScreen();
+                // If user has passkey and browser supports it, try passkey auth first
+                if (state.passkeyEnrolled && state.passkeySupported) {
+                    console.log('User has passkey enrolled, starting passkey authentication');
+                    startPasskeyAuthentication();
+                } else {
+                    // Fall back to password login
+                    console.log('Returning user, showing password screen');
+                    showLoginScreen();
+                }
             } else if (userStatus.has_password) {
                 // User already set password but hasn't completed MFA enrollment
                 // Authenticate them and then show MFA enrollment
@@ -1544,11 +1612,20 @@
                         console.error('Failed to mark onboarding complete:', e);
                     }
 
-                    showScreen('success');
-                    document.getElementById('success-message').textContent = 'Setup complete! Redirecting...';
-                    setTimeout(() => {
-                        setSessionAndRedirect(result.session_id);
-                    }, 1000);
+                    // Store session for later redirect
+                    state.sessionId = result.session_id;
+
+                    // Offer passkey enrollment if supported and not already offered
+                    if (state.passkeySupported && !state.passkeyEnrolled) {
+                        console.log('Offering passkey enrollment');
+                        showPasskeyOffer();
+                    } else {
+                        showScreen('success');
+                        document.getElementById('success-message').textContent = 'Setup complete! Redirecting...';
+                        setTimeout(() => {
+                            setSessionAndRedirect(result.session_id);
+                        }, 1000);
+                    }
                 } else if (result.error === 'authorization_pending') {
                     if (statusEl) statusEl.textContent = 'Waiting for approval in Guardian app...';
                 } else if (result.error === 'slow_down') {
@@ -1941,6 +2018,395 @@
                 el.classList.remove('met');
             }
         }
+    }
+
+    // ============================================
+    // Passkey API Calls
+    // ============================================
+
+    async function passkeyGetRegistrationOptions() {
+        // Use email as login ID (same pattern as other endpoints)
+        const loginId = state.loginId || state.email;
+        const response = await fetch('/api/passkey/register/options', {
+            method: 'POST',
+            headers: getApiHeaders(),
+            body: JSON.stringify({ loginId: loginId })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.message || data.error || 'Failed to get registration options');
+        }
+        return data;
+    }
+
+    async function passkeyCompleteRegistration(clientDataJSON, attestationObject, transports, displayName) {
+        const response = await fetch('/api/passkey/register/complete', {
+            method: 'POST',
+            headers: getApiHeaders(),
+            body: JSON.stringify({
+                challengeId: state.passkeyChallengeId,
+                clientDataJSON: clientDataJSON,
+                attestationObject: attestationObject,
+                transports: transports,
+                displayName: displayName
+            })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.message || data.error || 'Failed to complete registration');
+        }
+        return data;
+    }
+
+    async function passkeyGetAuthenticationOptions() {
+        // Use email as login ID
+        const loginId = state.loginId || state.email;
+        const response = await fetch('/api/passkey/authenticate/options', {
+            method: 'POST',
+            headers: getApiHeaders(),
+            body: JSON.stringify({ loginId: loginId })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.message || data.error || 'Failed to get authentication options');
+        }
+        return data;
+    }
+
+    async function passkeyCompleteAuthentication(credentialId, clientDataJSON, authenticatorData, signature, userHandle) {
+        const response = await fetch('/api/passkey/authenticate/complete', {
+            method: 'POST',
+            headers: getApiHeaders(),
+            body: JSON.stringify({
+                challengeId: state.passkeyChallengeId,
+                credentialId: credentialId,
+                clientDataJSON: clientDataJSON,
+                authenticatorData: authenticatorData,
+                signature: signature,
+                userHandle: userHandle
+            })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.message || data.error || 'Failed to complete authentication');
+        }
+        return data;
+    }
+
+    async function passkeyMarkOffered() {
+        // Mark passkey offered in user record
+        const response = await fetch('/api/user/mark-passkey-offered', {
+            method: 'POST',
+            headers: getApiHeaders(),
+            body: JSON.stringify({ loginId: state.loginId || state.email })
+        });
+        return response.json();
+    }
+
+    // ============================================
+    // Passkey Handlers
+    // ============================================
+
+    // Start passkey enrollment when user accepts the offer
+    async function handlePasskeyEnrollmentStart(e) {
+        e.preventDefault();
+        if (state.submitting) return;
+
+        if (!state.passkeySupported) {
+            showError('passkey-offer-error', 'Passkeys are not supported on this device/browser');
+            return;
+        }
+
+        hideError('passkey-offer-error');
+        state.submitting = true;
+        setLoading('passkey-offer-accept', true);
+
+        try {
+            // Get registration options from server
+            const options = await passkeyGetRegistrationOptions();
+            console.log('Passkey registration options:', options);
+
+            state.passkeyChallengeId = options.challengeId;
+
+            // Show registration in progress screen
+            showScreen('passkeyRegister');
+
+            // Convert base64url to ArrayBuffer for WebAuthn API
+            const publicKeyOptions = {
+                challenge: base64UrlToArrayBuffer(options.challenge),
+                rp: options.rp,
+                user: {
+                    id: base64UrlToArrayBuffer(options.user.id),
+                    name: options.user.name,
+                    displayName: options.user.displayName
+                },
+                pubKeyCredParams: options.pubKeyCredParams,
+                timeout: options.timeout,
+                authenticatorSelection: options.authenticatorSelection,
+                attestation: options.attestation
+            };
+
+            // Add excludeCredentials if present
+            if (options.excludeCredentials && options.excludeCredentials.length > 0) {
+                publicKeyOptions.excludeCredentials = options.excludeCredentials.map(cred => ({
+                    type: cred.type,
+                    id: base64UrlToArrayBuffer(cred.id),
+                    transports: cred.transports
+                }));
+            }
+
+            // Call WebAuthn API to create credential
+            const credential = await navigator.credentials.create({
+                publicKey: publicKeyOptions
+            });
+
+            console.log('Passkey credential created:', credential);
+
+            // Get transports if available
+            let transports = null;
+            if (credential.response.getTransports) {
+                transports = credential.response.getTransports();
+            }
+
+            // Get display name for the passkey
+            const displayName = 'Passkey ' + new Date().toLocaleDateString();
+
+            // Complete registration with server
+            const result = await passkeyCompleteRegistration(
+                arrayBufferToBase64Url(credential.response.clientDataJSON),
+                arrayBufferToBase64Url(credential.response.attestationObject),
+                transports,
+                displayName
+            );
+            console.log('Passkey registration complete:', result);
+
+            if (result.success) {
+                state.passkeyEnrolled = true;
+                showScreen('passkeySuccess');
+            } else {
+                throw new Error(result.error || 'Registration failed');
+            }
+        } catch (error) {
+            console.error('Passkey enrollment error:', error);
+
+            // Handle specific WebAuthn errors
+            let errorMessage = error.message;
+            if (error.name === 'NotAllowedError') {
+                errorMessage = 'Passkey creation was cancelled or timed out';
+            } else if (error.name === 'InvalidStateError') {
+                errorMessage = 'A passkey for this account already exists on this device';
+            } else if (error.name === 'NotSupportedError') {
+                errorMessage = 'Passkeys are not supported on this device';
+            }
+
+            showError('passkey-register-error', errorMessage);
+            showScreen('passkeyOffer');
+        } finally {
+            state.submitting = false;
+            setLoading('passkey-offer-accept', false);
+        }
+    }
+
+    // Skip passkey enrollment
+    async function handlePasskeyOfferSkip(e) {
+        e.preventDefault();
+
+        // Mark passkey as offered so we don't ask again
+        try {
+            await passkeyMarkOffered();
+        } catch (error) {
+            console.error('Failed to mark passkey offered:', error);
+        }
+
+        // Continue to success/redirect
+        showScreen('success');
+        document.getElementById('success-message').textContent = 'Setup complete! Redirecting...';
+        setTimeout(() => {
+            if (state.sessionId) {
+                setSessionAndRedirect(state.sessionId);
+            } else {
+                window.location.href = getReturnUrl();
+            }
+        }, 1500);
+    }
+
+    // Cancel passkey registration
+    function handlePasskeyRegisterCancel(e) {
+        e.preventDefault();
+        showScreen('passkeyOffer');
+    }
+
+    // Continue after successful passkey registration
+    function handlePasskeySuccessContinue(e) {
+        e.preventDefault();
+        showScreen('success');
+        document.getElementById('success-message').textContent = 'Setup complete! Redirecting...';
+        setTimeout(() => {
+            if (state.sessionId) {
+                setSessionAndRedirect(state.sessionId);
+            } else {
+                window.location.href = getReturnUrl();
+            }
+        }, 1500);
+    }
+
+    // Start passkey authentication for returning user
+    async function startPasskeyAuthentication() {
+        if (!state.passkeySupported) {
+            // Fall back to password
+            showLoginScreen();
+            return;
+        }
+
+        hideError('passkey-auth-error');
+        showScreen('passkeyAuth');
+
+        // Set user info on passkey auth screen
+        document.getElementById('passkey-auth-user-email').textContent = state.email;
+        document.getElementById('passkey-auth-user-initial').textContent = state.email.charAt(0).toUpperCase();
+
+        try {
+            // Get authentication options from server
+            const options = await passkeyGetAuthenticationOptions();
+            console.log('Passkey authentication options:', options);
+
+            state.passkeyChallengeId = options.challengeId;
+
+            // Build WebAuthn authentication options
+            const publicKeyOptions = {
+                challenge: base64UrlToArrayBuffer(options.challenge),
+                rpId: options.rpId,
+                timeout: options.timeout,
+                userVerification: options.userVerification
+            };
+
+            // Add allowed credentials if present
+            if (options.allowCredentials && options.allowCredentials.length > 0) {
+                publicKeyOptions.allowCredentials = options.allowCredentials.map(cred => ({
+                    type: cred.type,
+                    id: base64UrlToArrayBuffer(cred.id),
+                    transports: cred.transports
+                }));
+            }
+
+            // Call WebAuthn API to get assertion
+            const credential = await navigator.credentials.get({
+                publicKey: publicKeyOptions
+            });
+
+            console.log('Passkey assertion:', credential);
+
+            // Get userHandle if present
+            let userHandle = null;
+            if (credential.response.userHandle) {
+                userHandle = arrayBufferToBase64Url(credential.response.userHandle);
+            }
+
+            // Complete authentication with server
+            const result = await passkeyCompleteAuthentication(
+                credential.id,
+                arrayBufferToBase64Url(credential.response.clientDataJSON),
+                arrayBufferToBase64Url(credential.response.authenticatorData),
+                arrayBufferToBase64Url(credential.response.signature),
+                userHandle
+            );
+            console.log('Passkey authentication complete:', result);
+
+            if (result.success) {
+                // Store user info from result
+                state.userId = result.userId;
+                state.email = result.email || state.email;
+
+                // Authentication successful - need to create session via nginx
+                // The nginx proxy will handle session creation
+                showScreen('success');
+                document.getElementById('success-message').textContent = 'Signed in successfully!';
+
+                // Redirect - the passkey auth endpoint should have set session
+                setTimeout(() => {
+                    window.location.href = getReturnUrl();
+                }, 1000);
+            } else {
+                throw new Error(result.error || 'Authentication failed');
+            }
+        } catch (error) {
+            console.error('Passkey authentication error:', error);
+
+            // Handle specific WebAuthn errors
+            let errorMessage = error.message;
+            if (error.name === 'NotAllowedError') {
+                errorMessage = 'Passkey authentication was cancelled or timed out';
+            } else if (error.name === 'NotFoundError') {
+                errorMessage = 'No matching passkey found on this device';
+            }
+
+            showError('passkey-auth-error', errorMessage);
+        }
+    }
+
+    // Retry passkey authentication
+    async function handlePasskeyAuthRetry(e) {
+        e.preventDefault();
+        await startPasskeyAuthentication();
+    }
+
+    // Fall back to password authentication
+    function handlePasskeyUsePassword(e) {
+        e.preventDefault();
+        hideError('passkey-auth-error');
+        showLoginScreen();
+    }
+
+    // Show passkey offer screen after successful MFA enrollment
+    function showPasskeyOffer() {
+        if (!state.passkeySupported) {
+            // Skip passkey offer if not supported
+            showScreen('success');
+            document.getElementById('success-message').textContent = 'Setup complete! Redirecting...';
+            setTimeout(() => {
+                window.location.href = getReturnUrl();
+            }, 1500);
+            return;
+        }
+
+        document.getElementById('passkey-offer-user-email').textContent = state.email;
+        document.getElementById('passkey-offer-user-initial').textContent = state.email.charAt(0).toUpperCase();
+        showScreen('passkeyOffer');
+    }
+
+    // ============================================
+    // WebAuthn Utility Functions
+    // ============================================
+
+    // Convert base64url string to ArrayBuffer
+    function base64UrlToArrayBuffer(base64url) {
+        // Replace URL-safe characters
+        let base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+
+        // Add padding if necessary
+        while (base64.length % 4 !== 0) {
+            base64 += '=';
+        }
+
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes.buffer;
+    }
+
+    // Convert ArrayBuffer to base64url string
+    function arrayBufferToBase64Url(buffer) {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        const base64 = btoa(binary);
+
+        // Convert to URL-safe base64
+        return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
     }
 
 })();
