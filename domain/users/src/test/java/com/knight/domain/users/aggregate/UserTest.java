@@ -1202,6 +1202,110 @@ class UserTest {
     }
 
     @Nested
+    @DisplayName("Update Email Tests")
+    class UpdateEmailTests {
+
+        @Test
+        @DisplayName("should update email and set emailVerified to false")
+        void shouldUpdateEmailAndSetEmailVerifiedToFalse() {
+            // given
+            User user = createActiveUser();
+            assertThat(user.emailVerified()).isTrue();
+            String newEmail = "newemail@example.com";
+
+            // when
+            String previousEmail = user.updateEmail(newEmail);
+
+            // then
+            assertThat(user.email()).isEqualTo(newEmail);
+            assertThat(user.emailVerified()).isFalse();
+            assertThat(previousEmail).isEqualTo(VALID_EMAIL);
+            assertThat(user.previousEmail()).isEqualTo(VALID_EMAIL);
+        }
+
+        @Test
+        @DisplayName("should reject null email")
+        void shouldRejectNullEmail() {
+            // given
+            User user = createActiveUser();
+
+            // when/then
+            assertThatThrownBy(() -> user.updateEmail(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Valid email is required");
+        }
+
+        @Test
+        @DisplayName("should reject blank email")
+        void shouldRejectBlankEmail() {
+            // given
+            User user = createActiveUser();
+
+            // when/then
+            assertThatThrownBy(() -> user.updateEmail("   "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Valid email is required");
+        }
+
+        @Test
+        @DisplayName("should reject email without @ symbol")
+        void shouldRejectEmailWithoutAtSymbol() {
+            // given
+            User user = createActiveUser();
+
+            // when/then
+            assertThatThrownBy(() -> user.updateEmail("invalidemail"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Valid email is required");
+        }
+
+        @Test
+        @DisplayName("should reject same email (case insensitive)")
+        void shouldRejectSameEmailCaseInsensitive() {
+            // given
+            User user = createActiveUser();
+
+            // when/then
+            assertThatThrownBy(() -> user.updateEmail(VALID_EMAIL.toUpperCase()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("New email must be different from current email");
+        }
+
+        @Test
+        @DisplayName("should update updatedAt timestamp")
+        void shouldUpdateUpdatedAtTimestamp() {
+            // given
+            User user = createActiveUser();
+            Instant beforeUpdate = user.updatedAt();
+
+            // when
+            user.updateEmail("new@example.com");
+
+            // then
+            assertThat(user.updatedAt()).isAfterOrEqualTo(beforeUpdate);
+        }
+
+        @Test
+        @DisplayName("should work for users who already had email re-verification pending")
+        void shouldWorkForUsersWithPendingReverification() {
+            // given
+            User user = createActiveUser();
+            user.updateEmail("first@example.com");
+            assertThat(user.emailVerified()).isFalse();
+            assertThat(user.previousEmail()).isEqualTo(VALID_EMAIL);
+
+            // when
+            String previous = user.updateEmail("second@example.com");
+
+            // then
+            assertThat(user.email()).isEqualTo("second@example.com");
+            assertThat(user.emailVerified()).isFalse();
+            assertThat(previous).isEqualTo("first@example.com");
+            assertThat(user.previousEmail()).isEqualTo("first@example.com");
+        }
+    }
+
+    @Nested
     @DisplayName("Last Logged In Tests")
     class LastLoggedInTests {
 

@@ -65,7 +65,8 @@ public class User {
     // Core fields
     private final UserId id;
     private final String loginId;
-    private final String email;
+    private String email;
+    private String previousEmail;  // Track previous email for audit purposes
     private String firstName;
     private String lastName;
     private final UserType userType;
@@ -311,6 +312,41 @@ public class User {
         this.firstName = firstName;
         this.lastName = lastName;
         this.updatedAt = Instant.now();
+    }
+
+    /**
+     * Update user's email address.
+     * This operation:
+     * - Stores the previous email for audit purposes
+     * - Sets emailVerified to false (requires re-verification on next login)
+     * - Updates the email to the new value
+     *
+     * @param newEmail The new email address
+     * @return The previous email address (for audit logging)
+     * @throws IllegalArgumentException if email is invalid or same as current
+     */
+    public String updateEmail(String newEmail) {
+        if (newEmail == null || newEmail.isBlank() || !newEmail.contains("@")) {
+            throw new IllegalArgumentException("Valid email is required");
+        }
+        if (newEmail.equalsIgnoreCase(this.email)) {
+            throw new IllegalArgumentException("New email must be different from current email");
+        }
+
+        this.previousEmail = this.email;
+        this.email = newEmail;
+        this.emailVerified = false;  // Require re-verification
+        this.updatedAt = Instant.now();
+
+        return this.previousEmail;
+    }
+
+    /**
+     * Get the previous email address (if email was changed).
+     * Used for audit logging.
+     */
+    public String previousEmail() {
+        return previousEmail;
     }
 
     /**

@@ -105,6 +105,18 @@ public interface Auth0IdentityService {
     void updateUser(String auth0UserId, UpdateAuth0UserRequest request);
 
     /**
+     * Updates a user's email address in Auth0.
+     * This is a convenience method that calls updateUser with just the email field.
+     * Note: This does NOT set email_verified in Auth0 - we manage email verification ourselves.
+     *
+     * @param auth0UserId the Auth0 user ID
+     * @param newEmail the new email address
+     */
+    default void updateUserEmail(String auth0UserId, String newEmail) {
+        updateUser(auth0UserId, new UpdateAuth0UserRequest(null, newEmail, null));
+    }
+
+    /**
      * Blocks a user in Auth0.
      *
      * @param auth0UserId the Auth0 user ID

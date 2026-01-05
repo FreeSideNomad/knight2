@@ -10,6 +10,7 @@ import com.knight.domain.users.aggregate.User.Status;
 import com.knight.domain.users.aggregate.User.UserType;
 import com.knight.domain.users.api.commands.UserCommands.*;
 import com.knight.domain.users.api.events.UserCreated;
+import com.knight.domain.users.api.events.UserEmailChanged;
 import com.knight.domain.users.api.queries.UserQueries.*;
 import com.knight.domain.users.repository.UserRepository;
 import com.knight.platform.sharedkernel.ClientId;
@@ -792,5 +793,154 @@ class UserApplicationServiceTest {
         User user = createActiveUser();
         user.lock(User.LockType.CLIENT, "test-actor");
         return user;
+    }
+
+    @Nested
+    @DisplayName("Update User Email Tests")
+    class UpdateUserEmailTests {
+
+        @Test
+        @DisplayName("should update email and set emailVerified to false")
+        void shouldUpdateEmailAndSetEmailVerifiedToFalse() {
+            // given
+            User user = createActiveUser();
+            UserId userId = user.id();
+            String newEmail = "newemail@example.com";
+            String updatedBy = "admin@example.com";
+
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(userRepository.existsByEmail(newEmail)).thenReturn(false);
+
+            // when
+            UpdateEmailResult result = service.updateUserEmail(new UpdateUserEmailCmd(userId, newEmail, updatedBy));
+
+            // then
+            assertThat(result.previousEmail()).isEqualTo(VALID_EMAIL);
+            assertThat(result.newEmail()).isEqualTo(newEmail);
+            assertThat(user.email()).isEqualTo(newEmail);
+            assertThat(user.emailVerified()).isFalse();
+
+            verify(userRepository).save(user);
+        }
+
+        @Test
+        @DisplayName("should publish UserEmailChanged event")
+        void shouldPublishUserEmailChangedEvent() {
+            // given
+            User user = createActiveUser();
+            UserId userId = user.id();
+            String newEmail = "newemail@example.com";
+            String updatedBy = "admin@example.com";
+
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(userRepository.existsByEmail(newEmail)).thenReturn(false);
+
+            // when
+            service.updateUserEmail(new UpdateUserEmailCmd(userId, newEmail, updatedBy));
+
+            // then
+            ArgumentCaptor<UserEmailChanged> eventCaptor = ArgumentCaptor.forClass(UserEmailChanged.class);
+            verify(eventPublisher).publishEvent(eventCaptor.capture());
+
+            UserEmailChanged event = eventCaptor.getValue();
+            assertThat(event.userId()).isEqualTo(userId.id());
+            assertThat(event.previousEmail()).isEqualTo(VALID_EMAIL);
+            assertThat(event.newEmail()).isEqualTo(newEmail);
+            assertThat(event.changedBy()).isEqualTo(updatedBy);
+            assertThat(event.changedAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("should update email in Auth0 when user is provisioned")
+        void shouldUpdateEmailInAuth0WhenProvisioned() {
+            // given
+            User user = createActiveUser();
+            UserId userId = user.id();
+            String newEmail = "newemail@example.com";
+            String updatedBy = "admin@example.com";
+
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(userRepository.existsByEmail(newEmail)).thenReturn(false);
+
+            // when
+            service.updateUserEmail(new UpdateUserEmailCmd(userId, newEmail, updatedBy));
+
+            // then
+            verify(auth0IdentityService).updateUserEmail(user.identityProviderUserId(), newEmail);
+        }
+
+        @Test
+        @DisplayName("should throw when user not found")
+        void shouldThrowWhenUserNotFound() {
+            // given
+            UserId userId = UserId.of("nonexistent-id");
+
+            when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+            // when/then
+            assertThatThrownBy(() -> service.updateUserEmail(
+                new UpdateUserEmailCmd(userId, "new@example.com", "admin")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("User not found");
+        }
+
+        @Test
+        @DisplayName("should throw when email already in use by another user")
+        void shouldThrowWhenEmailAlreadyInUse() {
+            // given
+            User user = createActiveUser();
+            UserId userId = user.id();
+            String existingEmail = "existing@example.com";
+
+            User otherUser = User.reconstitute(
+                UserId.of("other-user-id"),
+                "other",
+                existingEmail,
+                "Other",
+                "User",
+                UserType.CLIENT_USER,
+                IdentityProvider.AUTH0,
+                PROFILE_ID,
+                Set.of(Role.READER),
+                "auth0|other",
+                true, true, true,
+                Instant.now(),
+                Instant.now(),
+                Status.ACTIVE,
+                User.LockType.NONE,
+                null, null, null,
+                Instant.now(), "admin", Instant.now()
+            );
+
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(userRepository.existsByEmail(existingEmail)).thenReturn(true);
+            when(userRepository.findByEmail(existingEmail)).thenReturn(Optional.of(otherUser));
+
+            // when/then
+            assertThatThrownBy(() -> service.updateUserEmail(
+                new UpdateUserEmailCmd(userId, existingEmail, "admin")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Email already in use");
+        }
+
+        @Test
+        @DisplayName("should allow updating to same email if it belongs to same user")
+        void shouldAllowUpdatingToSameEmailIfBelongsToSameUser() {
+            // given
+            User user = createActiveUser();
+            UserId userId = user.id();
+            // First update email
+            user.updateEmail("first@example.com");
+
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
+
+            // when - should not throw
+            UpdateEmailResult result = service.updateUserEmail(
+                new UpdateUserEmailCmd(userId, "new@example.com", "admin"));
+
+            // then
+            assertThat(result.newEmail()).isEqualTo("new@example.com");
+        }
     }
 }

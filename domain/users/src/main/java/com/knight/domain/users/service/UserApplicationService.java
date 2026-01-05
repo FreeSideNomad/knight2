@@ -4,6 +4,7 @@ import com.knight.domain.auth0identity.api.Auth0IdentityService;
 import com.knight.domain.users.aggregate.User;
 import com.knight.domain.users.api.commands.UserCommands;
 import com.knight.domain.users.api.events.UserCreated;
+import com.knight.domain.users.api.events.UserEmailChanged;
 import com.knight.domain.users.api.queries.UserQueries;
 import com.knight.domain.users.repository.UserRepository;
 import com.knight.platform.sharedkernel.ProfileId;
@@ -240,6 +241,42 @@ public class UserApplicationService implements UserCommands, UserQueries {
 
         user.updateName(cmd.firstName(), cmd.lastName());
         repository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public UpdateEmailResult updateUserEmail(UpdateUserEmailCmd cmd) {
+        User user = repository.findById(cmd.userId())
+            .orElseThrow(() -> new IllegalArgumentException("User not found: " + cmd.userId().id()));
+
+        // Check if new email is already in use by another user
+        if (repository.existsByEmail(cmd.newEmail())) {
+            User existingUser = repository.findByEmail(cmd.newEmail())
+                .orElse(null);
+            if (existingUser != null && !existingUser.id().equals(user.id())) {
+                throw new IllegalArgumentException("Email already in use by another user");
+            }
+        }
+
+        // Update email - this sets emailVerified to false
+        String previousEmail = user.updateEmail(cmd.newEmail());
+        repository.save(user);
+
+        // Update email in Auth0 if user is provisioned
+        if (user.identityProviderUserId() != null) {
+            auth0IdentityService.updateUserEmail(user.identityProviderUserId(), cmd.newEmail());
+        }
+
+        // Publish audit event
+        eventPublisher.publishEvent(new UserEmailChanged(
+            user.id().id(),
+            previousEmail,
+            cmd.newEmail(),
+            cmd.updatedBy(),
+            Instant.now()
+        ));
+
+        return new UpdateEmailResult(previousEmail, cmd.newEmail());
     }
 
     // ==================== Queries ====================
