@@ -26,7 +26,12 @@
         isReturningUser: false,
         isOnboarding: false,  // True when user needs MFA enrollment (password already set)
         isFtr: false,         // True when user is in First-Time Registration flow
-        loginCsrfToken: ''    // HMAC-signed CSRF token for login flow
+        loginCsrfToken: '',   // HMAC-signed CSRF token for login flow
+        // Password reset state
+        resetLoginId: '',           // Login ID for password reset flow
+        resetToken: '',             // Reset token after OTP verification
+        resetOtpCountdownInterval: null,
+        resetOtpExpiresAt: null
     };
 
     // DOM Elements
@@ -43,7 +48,9 @@
         mfaChallengeGuardian: document.getElementById('screen-mfa-challenge-guardian'),
         ciba: document.getElementById('screen-ciba'),
         forgotPassword: document.getElementById('screen-forgot-password'),
-        forgotPasswordSent: document.getElementById('screen-forgot-password-sent'),
+        forgotPasswordOtp: document.getElementById('screen-forgot-password-otp'),
+        forgotPasswordNew: document.getElementById('screen-forgot-password-new'),
+        forgotPasswordSuccess: document.getElementById('screen-forgot-password-success'),
         success: document.getElementById('screen-success')
     };
 
@@ -183,14 +190,48 @@
             forgotBackToLogin.addEventListener('click', handleBackToLogin);
         }
 
-        const forgotSentBackToLogin = document.getElementById('forgot-sent-back-to-login');
-        if (forgotSentBackToLogin) {
-            forgotSentBackToLogin.addEventListener('click', handleBackToLogin);
+        // Password Reset OTP Form
+        const forgotOtpForm = document.getElementById('forgot-otp-form');
+        if (forgotOtpForm) {
+            forgotOtpForm.addEventListener('submit', handleForgotOtpSubmit);
         }
 
-        const resendResetLink = document.getElementById('resend-reset-link');
-        if (resendResetLink) {
-            resendResetLink.addEventListener('click', handleResendResetLink);
+        // Password Reset OTP inputs
+        const forgotOtpInputs = document.querySelectorAll('.forgot-otp-input');
+        forgotOtpInputs.forEach(input => {
+            input.addEventListener('input', handleOtpInput);
+            input.addEventListener('keydown', handleOtpKeydown);
+            input.addEventListener('paste', handleOtpPaste);
+        });
+
+        // Password Reset - Resend code
+        const forgotResendCode = document.getElementById('forgot-resend-code');
+        if (forgotResendCode) {
+            forgotResendCode.addEventListener('click', handleForgotResendCode);
+        }
+
+        // Password Reset - Change login ID
+        const forgotChangeLogin = document.getElementById('forgot-change-login');
+        if (forgotChangeLogin) {
+            forgotChangeLogin.addEventListener('click', handleForgotChangeLogin);
+        }
+
+        // Password Reset - New password form
+        const forgotNewPasswordForm = document.getElementById('forgot-new-password-form');
+        if (forgotNewPasswordForm) {
+            forgotNewPasswordForm.addEventListener('submit', handleForgotNewPasswordSubmit);
+        }
+
+        // Password Reset - New password input (for strength indicator)
+        const forgotNewPasswordInput = document.getElementById('forgot-new-password');
+        if (forgotNewPasswordInput) {
+            forgotNewPasswordInput.addEventListener('input', updateForgotPasswordRequirements);
+        }
+
+        // Password Reset Success - Back to login
+        const forgotSuccessLogin = document.getElementById('forgot-success-login');
+        if (forgotSuccessLogin) {
+            forgotSuccessLogin.addEventListener('click', handleForgotSuccessLogin);
         }
     }
 
@@ -543,6 +584,46 @@
             method: 'POST',
             headers: getApiHeaders(),
             body: JSON.stringify({ login_id: loginId, mfa_enrolled: mfaEnrolled })
+        });
+        return response.json();
+    }
+
+    // ============================================
+    // Password Reset API Calls
+    // ============================================
+
+    async function passwordResetRequest(loginId) {
+        const response = await fetch('/api/password/reset-request', {
+            method: 'POST',
+            headers: getApiHeaders(),
+            body: JSON.stringify({ loginId: loginId })
+        });
+        return response.json();
+    }
+
+    async function passwordResetVerifyOtp(loginId, code) {
+        const response = await fetch('/api/password/verify-otp', {
+            method: 'POST',
+            headers: getApiHeaders(),
+            body: JSON.stringify({ loginId: loginId, code: code })
+        });
+        return response.json();
+    }
+
+    async function passwordResetResendOtp(loginId) {
+        const response = await fetch('/api/password/resend-otp', {
+            method: 'POST',
+            headers: getApiHeaders(),
+            body: JSON.stringify({ loginId: loginId })
+        });
+        return response.json();
+    }
+
+    async function passwordReset(loginId, resetToken, password) {
+        const response = await fetch('/api/password/reset', {
+            method: 'POST',
+            headers: getApiHeaders(),
+            body: JSON.stringify({ loginId: loginId, resetToken: resetToken, password: password })
         });
         return response.json();
     }
@@ -1571,15 +1652,15 @@
         e.preventDefault();
         hideError('login-error');
 
-        // Pre-fill email if user was on login screen
-        const forgotEmailInput = document.getElementById('forgot-email');
-        if (forgotEmailInput && state.email) {
-            forgotEmailInput.value = state.email;
+        // Pre-fill login ID if user was on login screen
+        const forgotLoginIdInput = document.getElementById('forgot-login-id');
+        if (forgotLoginIdInput && state.email) {
+            forgotLoginIdInput.value = state.email;
         }
 
         showScreen('forgotPassword');
-        if (forgotEmailInput) {
-            forgotEmailInput.focus();
+        if (forgotLoginIdInput) {
+            forgotLoginIdInput.focus();
         }
     }
 
@@ -1589,9 +1670,9 @@
 
         hideError('forgot-password-error');
 
-        const email = document.getElementById('forgot-email').value.trim();
-        if (!email) {
-            showError('forgot-password-error', 'Please enter your email address');
+        const loginId = document.getElementById('forgot-login-id').value.trim();
+        if (!loginId) {
+            showError('forgot-password-error', 'Please enter your login ID');
             return;
         }
 
@@ -1599,24 +1680,37 @@
         setLoading('forgot-password-submit', true);
 
         try {
-            await sendPasswordReset(email);
+            const result = await passwordResetRequest(loginId);
+            console.log('Password reset request result:', result);
 
-            // Store email for resend functionality
-            state.forgotPasswordEmail = email;
+            if (result.success) {
+                // Store login ID for the flow
+                state.resetLoginId = loginId;
 
-            // Show success screen
-            document.getElementById('forgot-sent-email').textContent = email;
-            showScreen('forgotPasswordSent');
+                // Show OTP screen
+                const emailMasked = result.email_masked || loginId;
+                document.getElementById('forgot-otp-email').textContent = emailMasked;
+                showScreen('forgotPasswordOtp');
+
+                // Start countdown
+                startResetOtpCountdown(result.expires_in_seconds || 300);
+
+                // Clear and focus first OTP input
+                clearOtpInputs('#screen-forgot-password-otp .otp-container');
+                const firstInput = document.querySelector('#screen-forgot-password-otp .forgot-otp-input');
+                if (firstInput) firstInput.focus();
+            } else if (result.error === 'account_locked') {
+                showError('forgot-password-error', result.error_description || 'Your account is locked. Please contact support.');
+            } else if (result.error === 'invalid_state') {
+                showError('forgot-password-error', result.error_description || 'Please complete your account setup first.');
+            } else {
+                // For security, generic message for other errors
+                showError('forgot-password-error', 'Unable to process your request. Please try again.');
+            }
 
         } catch (error) {
-            // For security, always show success even if email doesn't exist
-            // This prevents email enumeration attacks
-            console.log('Password reset request:', error.message);
-
-            // Still show success to not reveal if email exists
-            state.forgotPasswordEmail = email;
-            document.getElementById('forgot-sent-email').textContent = email;
-            showScreen('forgotPasswordSent');
+            console.error('Password reset request error:', error);
+            showError('forgot-password-error', 'An error occurred. Please try again.');
 
         } finally {
             state.submitting = false;
@@ -1624,15 +1718,200 @@
         }
     }
 
+    // Password Reset OTP Countdown
+    function startResetOtpCountdown(expiresInSeconds) {
+        stopResetOtpCountdown();
+        state.resetOtpExpiresAt = Date.now() + (expiresInSeconds * 1000);
+        updateResetOtpCountdown();
+        state.resetOtpCountdownInterval = setInterval(updateResetOtpCountdown, 1000);
+    }
+
+    function updateResetOtpCountdown() {
+        const countdownEl = document.getElementById('forgot-otp-countdown');
+        if (!countdownEl) return;
+
+        const remaining = Math.max(0, state.resetOtpExpiresAt - Date.now());
+        const seconds = Math.floor(remaining / 1000);
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+
+        countdownEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+        if (remaining <= 0) {
+            stopResetOtpCountdown();
+            countdownEl.textContent = 'Expired';
+            showError('forgot-otp-error', 'Code has expired. Please request a new one.');
+        }
+    }
+
+    function stopResetOtpCountdown() {
+        if (state.resetOtpCountdownInterval) {
+            clearInterval(state.resetOtpCountdownInterval);
+            state.resetOtpCountdownInterval = null;
+        }
+    }
+
+    async function handleForgotOtpSubmit(e) {
+        e.preventDefault();
+        if (state.submitting) return;
+
+        hideError('forgot-otp-error');
+
+        const code = getOtpValue('#screen-forgot-password-otp .otp-container');
+        if (code.length !== 6) {
+            showError('forgot-otp-error', 'Please enter the 6-digit code');
+            return;
+        }
+
+        state.submitting = true;
+        setLoading('forgot-otp-submit', true);
+
+        try {
+            const result = await passwordResetVerifyOtp(state.resetLoginId, code);
+            console.log('OTP verify result:', result);
+
+            if (result.success) {
+                stopResetOtpCountdown();
+
+                // Store the reset token
+                state.resetToken = result.reset_token;
+
+                // Show password screen
+                showScreen('forgotPasswordNew');
+                document.getElementById('forgot-new-password').focus();
+            } else {
+                let errorMsg = result.error_description || 'Invalid code';
+                if (result.remaining_attempts !== undefined) {
+                    errorMsg += ` (${result.remaining_attempts} attempts remaining)`;
+                }
+                showError('forgot-otp-error', errorMsg);
+                clearOtpInputs('#screen-forgot-password-otp .otp-container');
+            }
+        } catch (error) {
+            showError('forgot-otp-error', error.message);
+            clearOtpInputs('#screen-forgot-password-otp .otp-container');
+        } finally {
+            state.submitting = false;
+            setLoading('forgot-otp-submit', false);
+        }
+    }
+
+    async function handleForgotResendCode(e) {
+        e.preventDefault();
+        if (state.submitting) return;
+
+        hideError('forgot-otp-error');
+        state.submitting = true;
+
+        try {
+            const result = await passwordResetResendOtp(state.resetLoginId);
+            console.log('Resend OTP result:', result);
+
+            if (result.success) {
+                showSuccess('forgot-otp-success', 'A new code has been sent to your email.');
+                startResetOtpCountdown(result.expires_in_seconds || 300);
+                clearOtpInputs('#screen-forgot-password-otp .otp-container');
+
+                // Hide success after 3 seconds
+                setTimeout(() => {
+                    const successEl = document.getElementById('forgot-otp-success');
+                    if (successEl) successEl.style.display = 'none';
+                }, 3000);
+            } else {
+                let errorMsg = result.error_description || 'Failed to resend code';
+                if (result.retry_after_seconds) {
+                    errorMsg += ` Please wait ${result.retry_after_seconds} seconds.`;
+                }
+                showError('forgot-otp-error', errorMsg);
+            }
+        } catch (error) {
+            showError('forgot-otp-error', error.message);
+        } finally {
+            state.submitting = false;
+        }
+    }
+
+    function handleForgotChangeLogin(e) {
+        e.preventDefault();
+        stopResetOtpCountdown();
+        state.resetLoginId = '';
+        state.resetToken = '';
+        document.getElementById('forgot-login-id').value = '';
+        showScreen('forgotPassword');
+    }
+
+    async function handleForgotNewPasswordSubmit(e) {
+        e.preventDefault();
+        if (state.submitting) return;
+
+        hideError('forgot-new-password-error');
+
+        const password = document.getElementById('forgot-new-password').value;
+        const confirmPassword = document.getElementById('forgot-confirm-password').value;
+
+        // Validate password
+        if (!password || password.length < 12) {
+            showError('forgot-new-password-error', 'Password must be at least 12 characters');
+            return;
+        }
+        if (password !== confirmPassword) {
+            showError('forgot-new-password-error', 'Passwords do not match');
+            return;
+        }
+        if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+            showError('forgot-new-password-error', 'Password must contain uppercase, lowercase, numbers, and a special character');
+            return;
+        }
+
+        state.submitting = true;
+        setLoading('forgot-new-password-submit', true);
+
+        try {
+            const result = await passwordReset(state.resetLoginId, state.resetToken, password);
+            console.log('Password reset result:', result);
+
+            if (result.success) {
+                // Clear reset state
+                state.resetLoginId = '';
+                state.resetToken = '';
+
+                // Show success screen
+                showScreen('forgotPasswordSuccess');
+            } else {
+                let errorMsg = result.error_description || 'Failed to reset password';
+                showError('forgot-new-password-error', errorMsg);
+            }
+        } catch (error) {
+            showError('forgot-new-password-error', error.message);
+        } finally {
+            state.submitting = false;
+            setLoading('forgot-new-password-submit', false);
+        }
+    }
+
+    function handleForgotSuccessLogin(e) {
+        e.preventDefault();
+        // Clear any state
+        state.resetLoginId = '';
+        state.resetToken = '';
+
+        // Go back to email screen
+        showScreen('email');
+        document.getElementById('email').focus();
+    }
+
     function handleBackToLogin(e) {
         e.preventDefault();
         hideError('forgot-password-error');
+        stopResetOtpCountdown();
 
-        // Clear forgot password form
-        const forgotEmailInput = document.getElementById('forgot-email');
-        if (forgotEmailInput) {
-            forgotEmailInput.value = '';
+        // Clear forgot password form and state
+        const forgotLoginIdInput = document.getElementById('forgot-login-id');
+        if (forgotLoginIdInput) {
+            forgotLoginIdInput.value = '';
         }
+        state.resetLoginId = '';
+        state.resetToken = '';
 
         // If we have a remembered email, go back to login screen
         if (state.email) {
@@ -1642,28 +1921,25 @@
         }
     }
 
-    async function handleResendResetLink(e) {
-        e.preventDefault();
+    // Password strength indicator for forgot password flow
+    function updateForgotPasswordRequirements() {
+        const password = document.getElementById('forgot-new-password')?.value || '';
 
-        const email = state.forgotPasswordEmail;
-        if (!email) {
-            showScreen('forgotPassword');
-            return;
-        }
+        updateRequirement('forgot-req-length', password.length >= 12);
+        updateRequirement('forgot-req-upper', /[A-Z]/.test(password));
+        updateRequirement('forgot-req-lower', /[a-z]/.test(password));
+        updateRequirement('forgot-req-number', /[0-9]/.test(password));
+        updateRequirement('forgot-req-special', /[!@#$%^&*(),.?":{}|<>]/.test(password));
+    }
 
-        try {
-            await sendPasswordReset(email);
-            // Show brief feedback
-            const sentEmail = document.getElementById('forgot-sent-email');
-            if (sentEmail) {
-                const originalText = sentEmail.textContent;
-                sentEmail.textContent = 'Email resent!';
-                setTimeout(() => {
-                    sentEmail.textContent = originalText;
-                }, 2000);
+    function updateRequirement(id, met) {
+        const el = document.getElementById(id);
+        if (el) {
+            if (met) {
+                el.classList.add('met');
+            } else {
+                el.classList.remove('met');
             }
-        } catch (error) {
-            console.log('Resend password reset:', error.message);
         }
     }
 
