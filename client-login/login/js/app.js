@@ -37,7 +37,12 @@
         passkeyEnrolled: false,      // Whether user has a passkey enrolled
         passkeyChallengeId: '',      // Challenge ID for registration/authentication
         passkeyCredential: null,     // Credential during registration
-        sessionId: ''                // Session ID to use after passkey enrollment
+        sessionId: '',               // Session ID to use after passkey enrollment
+        // Passkey fallback state
+        isPasskeyFallback: false,    // True when user is in passkey fallback flow
+        fallbackOtpExpiresAt: null,  // Fallback OTP expiration timestamp
+        fallbackOtpCountdownInterval: null, // Fallback OTP countdown interval
+        fallbackToken: ''            // Token from OTP verification for fallback
     };
 
     // DOM Elements
@@ -61,6 +66,7 @@
         passkeyRegister: document.getElementById('screen-passkey-register'),
         passkeySuccess: document.getElementById('screen-passkey-success'),
         passkeyAuth: document.getElementById('screen-passkey-auth'),
+        passkeyFallbackOtp: document.getElementById('screen-passkey-fallback-otp'),
         success: document.getElementById('screen-success')
     };
 
@@ -293,6 +299,24 @@
         const passkeyAuthChangeUser = document.getElementById('passkey-auth-change-user');
         if (passkeyAuthChangeUser) {
             passkeyAuthChangeUser.addEventListener('click', handleChangeEmail);
+        }
+
+        // Passkey fallback OTP form
+        const fallbackOtpForm = document.getElementById('fallback-otp-form');
+        if (fallbackOtpForm) {
+            fallbackOtpForm.addEventListener('submit', handleFallbackOtpSubmit);
+        }
+
+        // Passkey fallback OTP resend
+        const fallbackOtpResend = document.getElementById('fallback-otp-resend');
+        if (fallbackOtpResend) {
+            fallbackOtpResend.addEventListener('click', handleFallbackOtpResend);
+        }
+
+        // Passkey fallback OTP cancel
+        const fallbackOtpCancel = document.getElementById('fallback-otp-cancel');
+        if (fallbackOtpCancel) {
+            fallbackOtpCancel.addEventListener('click', handleFallbackOtpCancel);
         }
     }
 
@@ -1066,11 +1090,19 @@
                     }
                 }
             } else if (result.authenticated && result.session_id) {
-                showScreen('success');
-                document.getElementById('success-message').textContent = 'Signed in successfully!';
-                setTimeout(() => {
-                    setSessionAndRedirect(result.session_id);
-                }, 1000);
+                // Check if we're in passkey fallback mode - offer passkey enrollment on this device
+                if (state.isPasskeyFallback && state.passkeySupported) {
+                    state.sessionId = result.session_id;
+                    state.isPasskeyFallback = false; // Reset fallback mode
+                    console.log('Passkey fallback login successful, offering passkey enrollment');
+                    showPasskeyOffer();
+                } else {
+                    showScreen('success');
+                    document.getElementById('success-message').textContent = 'Signed in successfully!';
+                    setTimeout(() => {
+                        setSessionAndRedirect(result.session_id);
+                    }, 1000);
+                }
             } else {
                 throw new Error('Unexpected response');
             }
@@ -1290,11 +1322,19 @@
 
                 if (result.authenticated && result.session_id) {
                     stopGuardianPolling();
-                    showScreen('success');
-                    document.getElementById('success-message').textContent = 'Signed in successfully!';
-                    setTimeout(() => {
-                        setSessionAndRedirect(result.session_id);
-                    }, 1000);
+                    // Check if we're in passkey fallback mode - offer passkey enrollment
+                    if (state.isPasskeyFallback && state.passkeySupported) {
+                        state.sessionId = result.session_id;
+                        state.isPasskeyFallback = false;
+                        console.log('Passkey fallback MFA successful, offering passkey enrollment');
+                        showPasskeyOffer();
+                    } else {
+                        showScreen('success');
+                        document.getElementById('success-message').textContent = 'Signed in successfully!';
+                        setTimeout(() => {
+                            setSessionAndRedirect(result.session_id);
+                        }, 1000);
+                    }
                 } else if (result.error === 'authorization_pending') {
                     if (statusEl) statusEl.textContent = 'Waiting for approval...';
                 } else if (result.error === 'slow_down') {
@@ -1329,11 +1369,19 @@
             console.log('MFA challenge result:', result);
 
             if (result.authenticated && result.session_id) {
-                showScreen('success');
-                document.getElementById('success-message').textContent = 'Signed in successfully!';
-                setTimeout(() => {
-                    setSessionAndRedirect(result.session_id);
-                }, 1000);
+                // Check if we're in passkey fallback mode - offer passkey enrollment
+                if (state.isPasskeyFallback && state.passkeySupported) {
+                    state.sessionId = result.session_id;
+                    state.isPasskeyFallback = false;
+                    console.log('Passkey fallback TOTP MFA successful, offering passkey enrollment');
+                    showPasskeyOffer();
+                } else {
+                    showScreen('success');
+                    document.getElementById('success-message').textContent = 'Signed in successfully!';
+                    setTimeout(() => {
+                        setSessionAndRedirect(result.session_id);
+                    }, 1000);
+                }
             } else {
                 throw new Error('Verification failed');
             }
@@ -2104,6 +2152,32 @@
     }
 
     // ============================================
+    // Passkey Fallback API Calls
+    // ============================================
+
+    async function passkeyFallbackSendOtp(email) {
+        const response = await fetch('/api/passkey-fallback/send-otp', {
+            method: 'POST',
+            headers: getApiHeaders(),
+            body: JSON.stringify({ email: email })
+        });
+        return response.json();
+    }
+
+    async function passkeyFallbackVerifyOtp(email, code) {
+        const response = await fetch('/api/passkey-fallback/verify-otp', {
+            method: 'POST',
+            headers: getApiHeaders(),
+            body: JSON.stringify({ email: email, code: code })
+        });
+        return response.json();
+    }
+
+    async function passkeyFallbackResendOtp(email) {
+        return passkeyFallbackSendOtp(email);
+    }
+
+    // ============================================
     // Passkey Handlers
     // ============================================
 
@@ -2350,11 +2424,168 @@
         await startPasskeyAuthentication();
     }
 
-    // Fall back to password authentication
-    function handlePasskeyUsePassword(e) {
+    // Fall back to password authentication - requires OTP verification first
+    async function handlePasskeyUsePassword(e) {
         e.preventDefault();
         hideError('passkey-auth-error');
-        showLoginScreen();
+
+        // Mark that we're in passkey fallback mode
+        state.isPasskeyFallback = true;
+
+        // Send OTP for verification
+        try {
+            console.log('Sending passkey fallback OTP to', state.email);
+            const result = await passkeyFallbackSendOtp(state.email);
+            console.log('Passkey fallback OTP result:', result);
+
+            if (result.success) {
+                // Show fallback OTP screen
+                showPasskeyFallbackOtpScreen(result.masked_email || state.email, result.expires_in_seconds);
+            } else {
+                // If OTP send fails (e.g., user doesn't have passkey enrolled),
+                // fall back directly to password
+                console.log('Fallback OTP failed, going directly to password:', result.error);
+                showLoginScreen();
+            }
+        } catch (error) {
+            console.error('Error sending fallback OTP:', error);
+            // On error, fall back to password screen
+            showLoginScreen();
+        }
+    }
+
+    // Show the passkey fallback OTP verification screen
+    function showPasskeyFallbackOtpScreen(maskedEmail, expiresInSeconds) {
+        document.getElementById('fallback-otp-email').textContent = maskedEmail;
+        hideError('fallback-otp-error');
+        clearOtpInputs('#fallback-otp-container');
+        showScreen('passkeyFallbackOtp');
+
+        // Start countdown
+        startFallbackOtpCountdown(expiresInSeconds || 300);
+
+        // Focus first input
+        const firstInput = document.querySelector('#fallback-otp-container .otp-input');
+        if (firstInput) firstInput.focus();
+    }
+
+    // Start fallback OTP countdown timer
+    function startFallbackOtpCountdown(seconds) {
+        stopFallbackOtpCountdown();
+        state.fallbackOtpExpiresAt = Date.now() + (seconds * 1000);
+        updateFallbackOtpCountdown();
+        state.fallbackOtpCountdownInterval = setInterval(updateFallbackOtpCountdown, 1000);
+    }
+
+    function stopFallbackOtpCountdown() {
+        if (state.fallbackOtpCountdownInterval) {
+            clearInterval(state.fallbackOtpCountdownInterval);
+            state.fallbackOtpCountdownInterval = null;
+        }
+    }
+
+    function updateFallbackOtpCountdown() {
+        const countdownEl = document.getElementById('fallback-otp-countdown');
+        if (!countdownEl) return;
+
+        const remaining = Math.max(0, Math.floor((state.fallbackOtpExpiresAt - Date.now()) / 1000));
+        const minutes = Math.floor(remaining / 60);
+        const secs = remaining % 60;
+        countdownEl.textContent = `Code expires in ${minutes}:${secs.toString().padStart(2, '0')}`;
+
+        if (remaining <= 0) {
+            stopFallbackOtpCountdown();
+            countdownEl.textContent = 'Code expired';
+            countdownEl.style.color = 'var(--error-color)';
+        }
+    }
+
+    // Handle fallback OTP form submission
+    async function handleFallbackOtpSubmit(e) {
+        e.preventDefault();
+        if (state.submitting) return;
+
+        hideError('fallback-otp-error');
+
+        const code = getOtpValue('#fallback-otp-container');
+        if (code.length !== 6) {
+            showError('fallback-otp-error', 'Please enter the 6-digit code');
+            return;
+        }
+
+        state.submitting = true;
+        setLoading('fallback-otp-submit', true);
+
+        try {
+            const result = await passkeyFallbackVerifyOtp(state.email, code);
+            console.log('Fallback OTP verify result:', result);
+
+            if (result.success && result.verified) {
+                stopFallbackOtpCountdown();
+                state.fallbackToken = result.fallback_token;
+                // OTP verified, now show password screen
+                showLoginScreen();
+            } else {
+                let errorMsg = result.error_description || 'Invalid code';
+                if (result.attempts_remaining !== undefined && result.attempts_remaining >= 0) {
+                    errorMsg += ` (${result.attempts_remaining} attempts remaining)`;
+                }
+                showError('fallback-otp-error', errorMsg);
+                clearOtpInputs('#fallback-otp-container');
+            }
+        } catch (error) {
+            console.error('Fallback OTP verification error:', error);
+            showError('fallback-otp-error', error.message || 'Verification failed');
+        } finally {
+            state.submitting = false;
+            setLoading('fallback-otp-submit', false);
+        }
+    }
+
+    // Handle fallback OTP resend
+    async function handleFallbackOtpResend(e) {
+        e.preventDefault();
+        if (state.submitting) return;
+
+        hideError('fallback-otp-error');
+        state.submitting = true;
+
+        try {
+            const result = await passkeyFallbackResendOtp(state.email);
+            console.log('Fallback OTP resend result:', result);
+
+            if (result.success) {
+                showSuccess('fallback-otp-success', 'A new code has been sent to your email.');
+                startFallbackOtpCountdown(result.expires_in_seconds || 300);
+                clearOtpInputs('#fallback-otp-container');
+
+                // Hide success after 3 seconds
+                setTimeout(() => {
+                    const successEl = document.getElementById('fallback-otp-success');
+                    if (successEl) successEl.style.display = 'none';
+                }, 3000);
+            } else {
+                let errorMsg = result.error_description || 'Failed to resend code';
+                if (result.retry_after_seconds) {
+                    errorMsg += ` Please wait ${result.retry_after_seconds} seconds.`;
+                }
+                showError('fallback-otp-error', errorMsg);
+            }
+        } catch (error) {
+            console.error('Fallback OTP resend error:', error);
+            showError('fallback-otp-error', error.message || 'Failed to resend code');
+        } finally {
+            state.submitting = false;
+        }
+    }
+
+    // Handle fallback OTP cancel - go back to passkey auth
+    function handleFallbackOtpCancel(e) {
+        e.preventDefault();
+        stopFallbackOtpCountdown();
+        state.isPasskeyFallback = false;
+        // Go back to passkey auth screen
+        startPasskeyAuthentication();
     }
 
     // Show passkey offer screen after successful MFA enrollment
