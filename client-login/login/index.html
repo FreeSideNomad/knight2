@@ -387,30 +387,30 @@
                 </div>
             </div>
 
-            <!-- Screen 12: Forgot Password - Enter Email -->
+            <!-- Screen 12: Forgot Password - Enter Login ID -->
             <div id="screen-forgot-password" class="screen">
                 <div class="login-card-header">
                     <h1>Reset your password</h1>
-                    <p>Enter your email address and we'll send you a link to reset your password</p>
+                    <p>Enter your login ID and we'll send a verification code to your email</p>
                 </div>
                 <div class="login-card-body">
                     <div id="forgot-password-error" class="message message-error" style="display: none;"></div>
 
                     <form id="forgot-password-form">
                         <div class="form-group">
-                            <label for="forgot-email" class="form-label">Email address</label>
+                            <label for="forgot-login-id" class="form-label">Login ID</label>
                             <input
-                                type="email"
-                                id="forgot-email"
-                                name="email"
+                                type="text"
+                                id="forgot-login-id"
+                                name="loginId"
                                 class="form-input"
-                                placeholder="name@company.com"
+                                placeholder="Enter your login ID"
                                 required
-                                autocomplete="email"
+                                autocomplete="username"
                             >
                         </div>
                         <button type="submit" id="forgot-password-submit" class="btn btn-primary">
-                            <span class="btn-text">Send Reset Link</span>
+                            <span class="btn-text">Send Verification Code</span>
                             <span class="spinner" style="display: none;"></span>
                         </button>
                     </form>
@@ -421,25 +421,107 @@
                 </div>
             </div>
 
-            <!-- Screen 13: Forgot Password - Email Sent -->
-            <div id="screen-forgot-password-sent" class="screen">
+            <!-- Screen 13: Password Reset - OTP Verification -->
+            <div id="screen-forgot-password-otp" class="screen">
                 <div class="login-card-header">
                     <h1>Check your email</h1>
-                    <p>We've sent a password reset link to <strong id="forgot-sent-email"></strong></p>
+                    <p>We sent a verification code to <strong id="forgot-otp-email"></strong></p>
+                </div>
+                <div class="login-card-body">
+                    <div id="forgot-otp-error" class="message message-error" style="display: none;"></div>
+                    <div id="forgot-otp-success" class="message message-success" style="display: none;"></div>
+
+                    <form id="forgot-otp-form">
+                        <div class="form-group">
+                            <label class="form-label">Enter 6-digit code</label>
+                            <div class="otp-container">
+                                <input type="text" class="otp-input forgot-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="0">
+                                <input type="text" class="otp-input forgot-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="1">
+                                <input type="text" class="otp-input forgot-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="2">
+                                <input type="text" class="otp-input forgot-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="3">
+                                <input type="text" class="otp-input forgot-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="4">
+                                <input type="text" class="otp-input forgot-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="5">
+                            </div>
+                        </div>
+                        <button type="submit" id="forgot-otp-submit" class="btn btn-primary">
+                            <span class="btn-text">Verify Code</span>
+                            <span class="spinner" style="display: none;"></span>
+                        </button>
+                    </form>
+
+                    <div class="countdown">Code expires in <strong id="forgot-otp-countdown">5:00</strong></div>
+                    <div class="help-link"><a href="#" id="forgot-resend-code">Didn't receive the code? Resend</a></div>
+                    <div class="help-link"><a href="#" id="forgot-change-login">Use a different login ID</a></div>
+                </div>
+            </div>
+
+            <!-- Screen 14: Password Reset - New Password -->
+            <div id="screen-forgot-password-new" class="screen">
+                <div class="login-card-header">
+                    <h1>Create new password</h1>
+                    <p>Enter your new password below</p>
+                </div>
+                <div class="login-card-body">
+                    <div id="forgot-new-password-error" class="message message-error" style="display: none;"></div>
+
+                    <form id="forgot-new-password-form">
+                        <div class="form-group">
+                            <label for="forgot-new-password" class="form-label">New password</label>
+                            <input
+                                type="password"
+                                id="forgot-new-password"
+                                name="password"
+                                class="form-input"
+                                placeholder="Enter new password"
+                                required
+                                minlength="12"
+                                autocomplete="new-password"
+                            >
+                        </div>
+                        <div class="form-group">
+                            <label for="forgot-confirm-password" class="form-label">Confirm password</label>
+                            <input
+                                type="password"
+                                id="forgot-confirm-password"
+                                name="confirmPassword"
+                                class="form-input"
+                                placeholder="Confirm new password"
+                                required
+                                autocomplete="new-password"
+                            >
+                        </div>
+
+                        <ul class="password-requirements">
+                            <li id="forgot-req-length">At least 12 characters</li>
+                            <li id="forgot-req-upper">One uppercase letter</li>
+                            <li id="forgot-req-lower">One lowercase letter</li>
+                            <li id="forgot-req-number">One number</li>
+                            <li id="forgot-req-special">One special character</li>
+                        </ul>
+
+                        <button type="submit" id="forgot-new-password-submit" class="btn btn-primary">
+                            <span class="btn-text">Reset Password</span>
+                            <span class="spinner" style="display: none;"></span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Screen 15: Password Reset - Success -->
+            <div id="screen-forgot-password-success" class="screen">
+                <div class="login-card-header">
+                    <h1>Password Reset Complete</h1>
+                    <p>Your password has been successfully reset</p>
                 </div>
                 <div class="login-card-body" style="text-align: center;">
-                    <div style="font-size: 4rem; margin-bottom: var(--spacing-lg);">📧</div>
+                    <div style="font-size: 4rem; margin-bottom: var(--spacing-lg);">&#10003;</div>
                     <p style="color: var(--gray-600); margin-bottom: var(--spacing-lg);">
-                        Click the link in the email to reset your password. The link will expire in 24 hours.
-                    </p>
-                    <p style="font-size: 0.85rem; color: var(--gray-500);">
-                        Didn't receive the email? Check your spam folder or
-                        <a href="#" id="resend-reset-link">try again</a>.
+                        You can now sign in with your new password.
                     </p>
 
-                    <div class="help-link" style="margin-top: var(--spacing-xl);">
-                        <a href="#" id="forgot-sent-back-to-login">Return to sign in</a>
-                    </div>
+                    <button type="button" id="forgot-success-login" class="btn btn-primary">
+                        Sign In
+                    </button>
                 </div>
             </div>
 
