@@ -654,4 +654,88 @@ function _M.handle_login()
     return ngx.exit(res.status)
 end
 
+-- Handle passkey authentication - creates session on success
+function _M.handle_passkey_authenticate()
+    -- Read request body first
+    ngx.req.read_body()
+    local body = ngx.req.get_body_data()
+    local req_data = {}
+    if body then
+        local ok, parsed = pcall(cjson.decode, body)
+        if ok then req_data = parsed end
+    end
+
+    utils.log_info("handle_passkey_authenticate: proxying to /api/passkey/authenticate/complete")
+    local res, err = _M.proxy_request("/api/passkey/authenticate/complete", body)
+    if not res then
+        utils.log_error("handle_passkey_authenticate: proxy error: " .. (err or "unknown"))
+        ngx.status = 500
+        ngx.header["Content-Type"] = "application/json"
+        ngx.say(cjson.encode({error = "proxy_error", error_description = err or "unknown"}))
+        return ngx.exit(500)
+    end
+
+    utils.log_info("handle_passkey_authenticate: response status=" .. res.status .. " body_len=" .. (res.body and #res.body or 0))
+    local ok, data = pcall(cjson.decode, res.body)
+    if not ok then
+        utils.log_error("handle_passkey_authenticate: JSON decode failed")
+        ngx.status = res.status
+        ngx.header["Content-Type"] = "application/json"
+        ngx.say(res.body or "{}")
+        return ngx.exit(res.status)
+    end
+
+    -- If authentication success, create session
+    if data.success and data.userId and data.loginId then
+        -- Create session for passkey auth
+        local session_id = utils.generate_random_string(48)
+        local csrf_token = utils.generate_random_string(32)
+
+        -- Determine client type based on profileId
+        local client_type = "INDIRECT"  -- Default for passkey users
+        if data.profileId and data.profileId:find("^srf:") then
+            client_type = "CLIENT"
+        end
+
+        -- Store session in Redis
+        local session_data = {
+            user_id = data.userId,
+            login_id = data.loginId,
+            email = data.email,
+            profile_id = data.profileId,
+            user_verification = data.userVerification,
+            auth_method = "passkey",
+            client_type = client_type,
+            csrf_token = csrf_token,
+            created_at = utils.now(),
+            last_activity = utils.now()
+        }
+
+        local session_ttl = config.get("session_ttl") or 1200
+        local saved, err = redis_client.set_session(session_id, session_data, session_ttl)
+
+        if saved then
+            _M.set_session_cookies(session_id, csrf_token)
+            ngx.status = 200
+            ngx.header["Content-Type"] = "application/json"
+            ngx.say(cjson.encode({
+                success = true,
+                authenticated = true,
+                session_id = session_id,
+                loginId = data.loginId,
+                userVerification = data.userVerification
+            }))
+            return ngx.exit(200)
+        else
+            utils.log_error("handle_passkey_authenticate: failed to save session: " .. (err or "unknown"))
+        end
+    end
+
+    -- Return original response (error, etc.)
+    ngx.status = res.status
+    ngx.header["Content-Type"] = "application/json"
+    ngx.say(res.body)
+    return ngx.exit(res.status)
+end
+
 return _M

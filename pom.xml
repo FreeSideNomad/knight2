@@ -40,6 +40,7 @@
         <archunit.version>1.4.1</archunit.version>
         <testcontainers.version>1.20.4</testcontainers.version>
         <awaitility.version>4.2.2</awaitility.version>
+        <webauthn4j.version>0.30.2.RELEASE</webauthn4j.version>
     </properties>
 
     <dependencyManagement>
@@ -125,6 +126,13 @@
                 <artifactId>awaitility</artifactId>
                 <version>${awaitility.version}</version>
                 <scope>test</scope>
+            </dependency>
+
+            <!-- WebAuthn4j for passkey/FIDO2 support -->
+            <dependency>
+                <groupId>com.webauthn4j</groupId>
+                <artifactId>webauthn4j-core</artifactId>
+                <version>${webauthn4j.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

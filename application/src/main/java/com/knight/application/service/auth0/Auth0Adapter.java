@@ -293,8 +293,21 @@ public class Auth0Adapter {
                 log.warn("Failed to get authenticators for user {}: {}", userId, e.getMessage());
             }
 
-            // Determine portal type from profile ID in database
-            PortalType portalType = determinePortalType(email);
+            // Determine portal type and passkey status from profile ID in database
+            PortalType portalType = PortalType.CLIENT;
+            boolean passkeyEnrolled = false;
+            boolean passkeyOffered = false;
+            try {
+                var localUser = userRepository.findByEmail(email);
+                if (localUser.isPresent()) {
+                    var user = localUser.get();
+                    portalType = PortalType.fromProfileId(user.profileId().urn());
+                    passkeyEnrolled = user.passkeyEnrolled();
+                    passkeyOffered = user.passkeyOffered();
+                }
+            } catch (Exception e) {
+                log.warn("Failed to get local user data for {}: {}", email, e.getMessage());
+            }
 
             result
                 .put("exists", true)
@@ -304,6 +317,8 @@ public class Auth0Adapter {
                 .put("user_id", userId)
                 .put("email_verified", dbUser.path("email_verified").asBoolean(false))
                 .put("onboarding_complete", onboardingComplete)
+                .put("passkey_enrolled", passkeyEnrolled)
+                .put("passkey_offered", passkeyOffered)
                 .put("client_type", portalType.name());
             result.set("authenticators", authenticatorsList);
 

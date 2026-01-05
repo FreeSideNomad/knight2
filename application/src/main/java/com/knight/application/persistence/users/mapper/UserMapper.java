@@ -36,6 +36,9 @@ public class UserMapper {
         entity.setLockedBy(user.lockedBy());
         entity.setLockedAt(user.lockedAt());
         entity.setDeactivationReason(user.deactivationReason());
+        entity.setPasskeyOffered(user.passkeyOffered());
+        entity.setPasskeyEnrolled(user.passkeyEnrolled());
+        entity.setPasskeyHasUv(user.passkeyHasUv());
         entity.setCreatedAt(user.createdAt());
         entity.setCreatedBy(user.createdBy());
         entity.setUpdatedAt(user.updatedAt());
@@ -83,6 +86,9 @@ public class UserMapper {
             entity.getLockedBy(),
             entity.getLockedAt(),
             entity.getDeactivationReason(),
+            entity.isPasskeyOffered(),
+            entity.isPasskeyEnrolled(),
+            entity.isPasskeyHasUv(),
             entity.getCreatedAt(),
             entity.getCreatedBy(),
             entity.getUpdatedAt()
