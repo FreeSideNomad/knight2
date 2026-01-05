@@ -11,6 +11,7 @@
     let state = {
         email: '',
         userId: '',
+        loginId: '',           // Login ID for FTR flow
         mfaToken: '',
         mfaSecret: '',
         oobCode: '',
@@ -19,15 +20,19 @@
         enrolledAuthenticators: [],
         guardianPollingInterval: null,
         cibaPollingInterval: null,
+        otpCountdownInterval: null,  // OTP countdown timer interval
+        otpExpiresAt: null,          // OTP expiration timestamp
         submitting: false,
         isReturningUser: false,
         isOnboarding: false,  // True when user needs MFA enrollment (password already set)
+        isFtr: false,         // True when user is in First-Time Registration flow
         loginCsrfToken: ''    // HMAC-signed CSRF token for login flow
     };
 
     // DOM Elements
     const screens = {
         email: document.getElementById('screen-email'),
+        otp: document.getElementById('screen-otp'),
         password: document.getElementById('screen-password'),
         mfaSelect: document.getElementById('screen-mfa-select'),
         mfaTotp: document.getElementById('screen-mfa-totp'),
@@ -93,6 +98,31 @@
     function setupEventListeners() {
         // Email form
         document.getElementById('email-form').addEventListener('submit', handleEmailSubmit);
+
+        // OTP form (email verification)
+        const otpForm = document.getElementById('otp-form');
+        if (otpForm) {
+            otpForm.addEventListener('submit', handleOtpFormSubmit);
+        }
+
+        // OTP screen event listeners
+        const resendCode = document.getElementById('resend-code');
+        if (resendCode) {
+            resendCode.addEventListener('click', handleResendOtp);
+        }
+
+        const changeEmail = document.getElementById('change-email');
+        if (changeEmail) {
+            changeEmail.addEventListener('click', handleOtpChangeEmail);
+        }
+
+        // Setup OTP inputs for the email verification screen
+        const otpScreenInputs = document.querySelectorAll('#screen-otp .otp-input');
+        otpScreenInputs.forEach(input => {
+            input.addEventListener('input', handleOtpInput);
+            input.addEventListener('keydown', handleOtpKeydown);
+            input.addEventListener('paste', handleOtpPaste);
+        });
 
         // Password setup form (onboarding)
         document.getElementById('password-form').addEventListener('submit', handlePasswordSubmit);
@@ -465,6 +495,59 @@
     }
 
     // ============================================
+    // FTR (First-Time Registration) API Calls
+    // ============================================
+
+    async function ftrCheck(loginId) {
+        const response = await fetch('/api/ftr/check', {
+            method: 'POST',
+            headers: getApiHeaders(),
+            body: JSON.stringify({ login_id: loginId })
+        });
+        return response.json();
+    }
+
+    async function ftrSendOtp(loginId) {
+        const response = await fetch('/api/ftr/send-otp', {
+            method: 'POST',
+            headers: getApiHeaders(),
+            body: JSON.stringify({ login_id: loginId })
+        });
+        return response.json();
+    }
+
+    async function ftrVerifyOtp(loginId, code) {
+        const response = await fetch('/api/ftr/verify-otp', {
+            method: 'POST',
+            headers: getApiHeaders(),
+            body: JSON.stringify({ login_id: loginId, code: code })
+        });
+        return response.json();
+    }
+
+    async function ftrSetPassword(loginId, password) {
+        const response = await fetch('/api/ftr/set-password', {
+            method: 'POST',
+            headers: getApiHeaders(),
+            body: JSON.stringify({ login_id: loginId, password: password })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.error_description || 'Failed to set password');
+        }
+        return data;
+    }
+
+    async function ftrComplete(loginId, mfaEnrolled) {
+        const response = await fetch('/api/ftr/complete', {
+            method: 'POST',
+            headers: getApiHeaders(),
+            body: JSON.stringify({ login_id: loginId, mfa_enrolled: mfaEnrolled })
+        });
+        return response.json();
+    }
+
+    // ============================================
     // Session Management
     // ============================================
 
@@ -474,6 +557,182 @@
 
         const returnTo = getReturnUrl();
         window.location.href = returnTo;
+    }
+
+    // ============================================
+    // OTP Countdown Timer
+    // ============================================
+
+    function startOtpCountdown(expiresInSeconds) {
+        stopOtpCountdown();
+
+        state.otpExpiresAt = Date.now() + (expiresInSeconds * 1000);
+
+        updateOtpCountdown();
+        state.otpCountdownInterval = setInterval(updateOtpCountdown, 1000);
+    }
+
+    function updateOtpCountdown() {
+        const countdownEl = document.getElementById('otp-countdown');
+        if (!countdownEl) return;
+
+        const remaining = Math.max(0, state.otpExpiresAt - Date.now());
+        const seconds = Math.floor(remaining / 1000);
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+
+        countdownEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+        if (remaining <= 0) {
+            stopOtpCountdown();
+            countdownEl.textContent = 'Expired';
+            showError('otp-error', 'Code has expired. Please request a new one.');
+        }
+    }
+
+    function stopOtpCountdown() {
+        if (state.otpCountdownInterval) {
+            clearInterval(state.otpCountdownInterval);
+            state.otpCountdownInterval = null;
+        }
+    }
+
+    // ============================================
+    // OTP Screen Handlers
+    // ============================================
+
+    function showOtpScreen(email) {
+        document.getElementById('otp-email').textContent = email;
+        hideError('otp-error');
+        document.getElementById('otp-success')?.style && (document.getElementById('otp-success').style.display = 'none');
+        showScreen('otp');
+
+        // Clear and focus first OTP input
+        const otpContainer = document.querySelector('#screen-otp .otp-container');
+        if (otpContainer) {
+            otpContainer.querySelectorAll('.otp-input').forEach(input => {
+                input.value = '';
+            });
+            const firstInput = otpContainer.querySelector('.otp-input');
+            if (firstInput) firstInput.focus();
+        }
+    }
+
+    async function handleOtpFormSubmit(e) {
+        e.preventDefault();
+        if (state.submitting) return;
+
+        hideError('otp-error');
+
+        const code = getOtpValue('#screen-otp .otp-container');
+        if (code.length !== 6) {
+            showError('otp-error', 'Please enter the 6-digit code');
+            return;
+        }
+
+        state.submitting = true;
+        setLoading('otp-submit', true);
+
+        try {
+            const result = await ftrVerifyOtp(state.loginId, code);
+            console.log('OTP verify result:', result);
+
+            if (result.success) {
+                stopOtpCountdown();
+
+                // Show success briefly then move to password screen
+                showSuccess('otp-success', 'Email verified!');
+
+                setTimeout(() => {
+                    if (result.requires_password_setup) {
+                        showScreen('password');
+                        document.getElementById('password').focus();
+                    } else if (result.requires_mfa_enrollment) {
+                        // Password already set, go to MFA
+                        showScreen('mfaSelect');
+                    } else {
+                        // All done - complete FTR
+                        completeFtrFlow();
+                    }
+                }, 1000);
+            } else {
+                let errorMsg = result.error_description || 'Invalid code';
+                if (result.remaining_attempts !== undefined) {
+                    errorMsg += ` (${result.remaining_attempts} attempts remaining)`;
+                }
+                showError('otp-error', errorMsg);
+                clearOtpInputs('#screen-otp .otp-container');
+            }
+        } catch (error) {
+            showError('otp-error', error.message);
+            clearOtpInputs('#screen-otp .otp-container');
+        } finally {
+            state.submitting = false;
+            setLoading('otp-submit', false);
+        }
+    }
+
+    async function handleResendOtp(e) {
+        e.preventDefault();
+        if (state.submitting) return;
+
+        hideError('otp-error');
+        state.submitting = true;
+
+        try {
+            const result = await ftrSendOtp(state.loginId);
+            console.log('Resend OTP result:', result);
+
+            if (result.success) {
+                showSuccess('otp-success', 'A new code has been sent to your email.');
+                startOtpCountdown(result.expires_in_seconds || 300);
+                clearOtpInputs('#screen-otp .otp-container');
+
+                // Hide success after 3 seconds
+                setTimeout(() => {
+                    const successEl = document.getElementById('otp-success');
+                    if (successEl) successEl.style.display = 'none';
+                }, 3000);
+            } else {
+                let errorMsg = result.error_description || 'Failed to resend code';
+                if (result.retry_after_seconds) {
+                    errorMsg += ` Please wait ${result.retry_after_seconds} seconds.`;
+                }
+                showError('otp-error', errorMsg);
+            }
+        } catch (error) {
+            showError('otp-error', error.message);
+        } finally {
+            state.submitting = false;
+        }
+    }
+
+    function handleOtpChangeEmail(e) {
+        e.preventDefault();
+        stopOtpCountdown();
+        state.loginId = '';
+        state.email = '';
+        state.isFtr = false;
+        document.getElementById('email').value = '';
+        showScreen('email');
+    }
+
+    async function completeFtrFlow() {
+        try {
+            await ftrComplete(state.loginId, true);
+            showScreen('success');
+            document.getElementById('success-message').textContent = 'Setup complete! Redirecting...';
+            setTimeout(() => {
+                window.location.href = getReturnUrl();
+            }, 1500);
+        } catch (error) {
+            console.error('Failed to complete FTR:', error);
+            showScreen('success');
+            document.getElementById('success-message').textContent = 'Setup complete! Redirecting...';
+            setTimeout(() => {
+                window.location.href = getReturnUrl();
+            }, 1500);
+        }
     }
 
     // ============================================
@@ -496,6 +755,7 @@
         setLoading('email-submit', true);
 
         try {
+            // First, check user status with the standard endpoint
             const userStatus = await checkUser(email);
             console.log('User status:', userStatus);
 
@@ -512,6 +772,7 @@
                 // Returning user (or user who completed MFA but flag wasn't set)
                 state.isReturningUser = true;
                 state.isOnboarding = false;
+                state.isFtr = false;
                 state.enrolledAuthenticators = userStatus.authenticators || [];
 
                 // If has_mfa but not onboarding_complete, mark it complete now
@@ -528,17 +789,68 @@
                 // Authenticate them and then show MFA enrollment
                 state.isOnboarding = true;
                 state.isReturningUser = false;
+                state.isFtr = false;
                 state.enrolledAuthenticators = userStatus.authenticators || [];
                 console.log('Onboarding user with existing password - showing login screen');
                 showLoginScreen();
             } else {
-                // Provisioned user who hasn't set password yet
-                // Go directly to password setup (no OTP needed - admin provisioned)
+                // New user (provisioned but hasn't set password) - start FTR flow
+                // Check FTR status to determine if email verification is needed
+                console.log('New user, checking FTR status...');
                 state.isOnboarding = true;
                 state.isReturningUser = false;
-                console.log('Provisioned user, needs onboarding - showing password setup');
-                showScreen('password');
-                document.getElementById('password').focus();
+                state.isFtr = true;
+
+                // Use email as login ID (the FTR API expects login_id which is typically email)
+                state.loginId = email;
+
+                // Check FTR requirements
+                const ftrStatus = await ftrCheck(email);
+                console.log('FTR status:', ftrStatus);
+
+                if (ftrStatus.error) {
+                    showError('email-error', ftrStatus.error_description || 'Failed to check account status');
+                    return;
+                }
+
+                // Update state with FTR info
+                if (ftrStatus.user_id) {
+                    state.userId = ftrStatus.user_id;
+                }
+                if (ftrStatus.login_id) {
+                    state.loginId = ftrStatus.login_id;
+                }
+
+                if (ftrStatus.requires_email_verification) {
+                    // Email not verified - send OTP and show OTP screen
+                    console.log('Email verification required, sending OTP...');
+                    const otpResult = await ftrSendOtp(state.loginId);
+                    console.log('Send OTP result:', otpResult);
+
+                    if (otpResult.success) {
+                        showOtpScreen(ftrStatus.email || email);
+                        startOtpCountdown(otpResult.expires_in_seconds || 300);
+                    } else {
+                        let errorMsg = otpResult.error_description || 'Failed to send verification code';
+                        if (otpResult.retry_after_seconds) {
+                            errorMsg += ` Please wait ${otpResult.retry_after_seconds} seconds.`;
+                        }
+                        showError('email-error', errorMsg);
+                    }
+                } else if (ftrStatus.requires_password_setup) {
+                    // Email verified but needs password
+                    console.log('Password setup required');
+                    showScreen('password');
+                    document.getElementById('password').focus();
+                } else if (ftrStatus.requires_mfa_enrollment) {
+                    // Has password but needs MFA
+                    console.log('MFA enrollment required');
+                    showScreen('mfaSelect');
+                } else {
+                    // All done - shouldn't happen but handle it
+                    console.log('FTR already complete, redirecting...');
+                    window.location.href = getReturnUrl();
+                }
             }
         } catch (error) {
             showError('email-error', error.message);
@@ -925,49 +1237,94 @@
         setLoading('password-submit', true);
 
         try {
-            const result = await completeOnboarding(state.userId, state.email, password);
-            console.log('Onboarding result:', result);
+            let result;
 
-            if (result.mfa_required) {
-                state.mfaToken = result.mfa_token;
-                showScreen('mfaSelect');
-            } else if (result.requires_login) {
-                // Password set but auth failed - redirect to login
-                console.log('Password set, redirecting to login');
-                showScreen('login');
-                document.getElementById('login-password').focus();
-            } else if (result.access_token || (result.authenticated && result.session_id)) {
-                // No MFA required - mark onboarding complete
-                try {
-                    await markOnboardingComplete(state.userId);
-                    console.log('Onboarding marked complete');
-                } catch (e) {
-                    console.error('Failed to mark onboarding complete:', e);
-                }
+            if (state.isFtr && state.loginId) {
+                // Use FTR set-password API for new users
+                console.log('Using FTR set-password API');
+                result = await ftrSetPassword(state.loginId, password);
+                console.log('FTR set-password result:', result);
 
-                if (result.session_id) {
-                    showScreen('success');
-                    document.getElementById('success-message').textContent = 'Setup complete! Redirecting...';
-                    setTimeout(() => {
-                        setSessionAndRedirect(result.session_id);
-                    }, 1000);
+                if (result.success) {
+                    if (result.mfa_required && result.mfa_token) {
+                        state.mfaToken = result.mfa_token;
+                        showScreen('mfaSelect');
+                    } else if (result.requires_mfa_enrollment) {
+                        // Need to authenticate first to get mfa_token
+                        console.log('MFA required, authenticating to get mfa_token...');
+                        const loginResult = await loginUser(state.email, password);
+                        if (loginResult.mfa_required && loginResult.mfa_token) {
+                            state.mfaToken = loginResult.mfa_token;
+                            showScreen('mfaSelect');
+                        } else if (loginResult.authenticated && loginResult.session_id) {
+                            // Somehow authenticated without MFA
+                            await ftrComplete(state.loginId, false);
+                            showScreen('success');
+                            document.getElementById('success-message').textContent = 'Setup complete! Redirecting...';
+                            setTimeout(() => {
+                                setSessionAndRedirect(loginResult.session_id);
+                            }, 1000);
+                        } else {
+                            throw new Error('Failed to authenticate after setting password');
+                        }
+                    } else {
+                        // Password set and no MFA required
+                        await ftrComplete(state.loginId, false);
+                        showScreen('success');
+                        document.getElementById('success-message').textContent = 'Setup complete! Redirecting...';
+                        setTimeout(() => {
+                            window.location.href = getReturnUrl();
+                        }, 1500);
+                    }
                 } else {
-                    // Got tokens but no session - need to login again
-                    console.log('Password set successfully, please login');
+                    throw new Error(result.error_description || 'Failed to set password');
+                }
+            } else {
+                // Use legacy onboarding API
+                result = await completeOnboarding(state.userId, state.email, password);
+                console.log('Onboarding result:', result);
+
+                if (result.mfa_required) {
+                    state.mfaToken = result.mfa_token;
+                    showScreen('mfaSelect');
+                } else if (result.requires_login) {
+                    // Password set but auth failed - redirect to login
+                    console.log('Password set, redirecting to login');
                     showScreen('login');
                     document.getElementById('login-password').focus();
+                } else if (result.access_token || (result.authenticated && result.session_id)) {
+                    // No MFA required - mark onboarding complete
+                    try {
+                        await markOnboardingComplete(state.userId);
+                        console.log('Onboarding marked complete');
+                    } catch (e) {
+                        console.error('Failed to mark onboarding complete:', e);
+                    }
+
+                    if (result.session_id) {
+                        showScreen('success');
+                        document.getElementById('success-message').textContent = 'Setup complete! Redirecting...';
+                        setTimeout(() => {
+                            setSessionAndRedirect(result.session_id);
+                        }, 1000);
+                    } else {
+                        // Got tokens but no session - need to login again
+                        console.log('Password set successfully, please login');
+                        showScreen('login');
+                        document.getElementById('login-password').focus();
+                    }
+                } else if (result.error) {
+                    // Handle specific error messages
+                    let errorMsg = result.error_description || result.error;
+                    // Clean up Auth0 error messages
+                    if (errorMsg.includes('PasswordHistoryError:')) {
+                        errorMsg = errorMsg.replace('PasswordHistoryError:', '').trim();
+                    }
+                    throw new Error(errorMsg);
+                } else {
+                    console.error('Unexpected response:', result);
+                    throw new Error('Unexpected response from server');
                 }
-            } else if (result.error) {
-                // Handle specific error messages
-                let errorMsg = result.error_description || result.error;
-                // Clean up Auth0 error messages
-                if (errorMsg.includes('PasswordHistoryError:')) {
-                    errorMsg = errorMsg.replace('PasswordHistoryError:', '').trim();
-                }
-                throw new Error(errorMsg);
-            } else {
-                console.error('Unexpected response:', result);
-                throw new Error('Unexpected response from server');
             }
         } catch (error) {
             showError('password-error', error.message);
