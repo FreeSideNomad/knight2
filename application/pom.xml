@@ -245,6 +245,11 @@
                                 <exclude>**/*Handler.*</exclude>
                                 <!-- Exclude entity IDs -->
                                 <exclude>**/*Id.*</exclude>
+                                <!-- Exclude passkey service (tested via E2E, requires WebAuthn) -->
+                                <exclude>**/service/passkey/**/*</exclude>
+                                <!-- Exclude *Result and *Record classes -->
+                                <exclude>**/*Result.*</exclude>
+                                <exclude>**/*Record.*</exclude>
                             </excludes>
                         </configuration>
                     </execution>
