@@ -39,6 +39,7 @@ public class UserMapper {
         entity.setPasskeyOffered(user.passkeyOffered());
         entity.setPasskeyEnrolled(user.passkeyEnrolled());
         entity.setPasskeyHasUv(user.passkeyHasUv());
+        entity.setMfaPreference(user.mfaPreference() != null ? user.mfaPreference().name() : null);
         entity.setCreatedAt(user.createdAt());
         entity.setCreatedBy(user.createdBy());
         entity.setUpdatedAt(user.updatedAt());
@@ -65,6 +66,11 @@ public class UserMapper {
             .map(r -> User.Role.valueOf(r.getRole()))
             .collect(Collectors.toSet());
 
+        User.MfaPreference mfaPreference = null;
+        if (entity.getMfaPreference() != null) {
+            mfaPreference = User.MfaPreference.valueOf(entity.getMfaPreference());
+        }
+
         return User.reconstitute(
             userId,
             entity.getLoginId(),
@@ -89,6 +95,7 @@ public class UserMapper {
             entity.isPasskeyOffered(),
             entity.isPasskeyEnrolled(),
             entity.isPasskeyHasUv(),
+            mfaPreference,
             entity.getCreatedAt(),
             entity.getCreatedBy(),
             entity.getUpdatedAt()

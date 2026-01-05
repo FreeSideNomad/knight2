@@ -44,7 +44,8 @@ function _M.proxy_request(path, body)
 end
 
 -- Create session from tokens and return session_id and csrf_token
-function _M.create_session_from_tokens(access_token, id_token, email, mfa_token, mfa_token_expires_at, client_type)
+-- mfa_method: optional string indicating how MFA was satisfied (e.g., "guardian", "totp", "passkey_uv")
+function _M.create_session_from_tokens(access_token, id_token, email, mfa_token, mfa_token_expires_at, client_type, mfa_method)
     -- Decode ID token to get user info
     local id_token_payload, err = utils.decode_jwt_payload(id_token)
     if not id_token_payload then
@@ -57,12 +58,16 @@ function _M.create_session_from_tokens(access_token, id_token, email, mfa_token,
     local user_id = id_token_payload.sub
     local login_id = id_token_payload["https://auth-gateway.local/loginId"] or user_email
 
-    utils.log_info("Creating session for user: " .. user_email .. " (type: " .. (client_type or "CLIENT") .. ")")
+    utils.log_info("Creating session for user: " .. user_email .. " (type: " .. (client_type or "CLIENT") .. ", mfa: " .. (mfa_method or "none") .. ")")
 
     -- Create session with CSRF token
     local session_id = utils.generate_random_string(48)
     local csrf_token = utils.generate_random_string(32)
     local session_ttl = config.get("session_ttl") or 1200
+
+    -- Determine if MFA was satisfied
+    -- MFA is satisfied if mfa_method is set (guardian, totp, passkey_uv, etc.)
+    local mfa_satisfied = mfa_method ~= nil
 
     local session_data = {
         user_id = user_id,
@@ -74,6 +79,9 @@ function _M.create_session_from_tokens(access_token, id_token, email, mfa_token,
         access_token = access_token,
         mfa_token = mfa_token,
         mfa_token_expires_at = mfa_token_expires_at,
+        mfa_satisfied = mfa_satisfied,
+        mfa_method = mfa_method,
+        auth_method = "password",
         csrf_token = csrf_token,
         client_type = client_type or "CLIENT",  -- Store portal type in session
         created_at = utils.now(),
@@ -86,7 +94,7 @@ function _M.create_session_from_tokens(access_token, id_token, email, mfa_token,
         return nil, nil, "Failed to create session"
     end
 
-    utils.log_info("Session created for " .. user_email .. ", session_id=" .. session_id:sub(1, 8) .. "..., mfa_token=" .. (mfa_token and "present" or "nil"))
+    utils.log_info("Session created for " .. user_email .. ", session_id=" .. session_id:sub(1, 8) .. "..., mfa_token=" .. (mfa_token and "present" or "nil") .. ", mfa_method=" .. (mfa_method or "nil"))
     return session_id, csrf_token
 end
 
@@ -138,6 +146,7 @@ function _M.handle_mfa_challenge()
     end
 
     -- If success with tokens, create session
+    -- MFA challenge success = Guardian enrollment verified
     if data.success and data.access_token and data.id_token then
         local session_id, csrf_token, err = _M.create_session_from_tokens(
             data.access_token,
@@ -145,7 +154,8 @@ function _M.handle_mfa_challenge()
             req_data.email,
             data.mfa_token,
             data.mfa_token_expires_at,
-            data.client_type  -- Portal type from platform response
+            data.client_type,  -- Portal type from platform response
+            "guardian"  -- MFA satisfied via Guardian
         )
 
         if session_id then
@@ -195,6 +205,7 @@ function _M.handle_mfa_verify()
     end
 
     -- If success with tokens, create session
+    -- MFA verify success = TOTP enrollment verified
     if data.success and data.access_token and data.id_token then
         local session_id, csrf_token, err = _M.create_session_from_tokens(
             data.access_token,
@@ -202,7 +213,8 @@ function _M.handle_mfa_verify()
             req_data.email,
             data.mfa_token,
             data.mfa_token_expires_at,
-            data.client_type  -- Portal type from platform response
+            data.client_type,  -- Portal type from platform response
+            "totp"  -- MFA satisfied via TOTP
         )
 
         if session_id then
@@ -251,14 +263,19 @@ function _M.handle_mfa_verify_challenge()
     end
 
     -- If success with tokens, create session
+    -- Determine MFA method from request - verify-challenge is for existing MFA during login
+    -- The MFA method depends on which authenticator was used (Guardian or TOTP)
     if data.success and data.access_token and data.id_token then
+        -- MFA method comes from platform response or request type
+        local mfa_method = data.mfa_method or req_data.mfa_method or "guardian"
         local session_id, csrf_token, err = _M.create_session_from_tokens(
             data.access_token,
             data.id_token,
             req_data.email,
             data.mfa_token,
             data.mfa_token_expires_at,
-            data.client_type  -- Portal type from platform response
+            data.client_type,  -- Portal type from platform response
+            mfa_method  -- MFA method used for verification
         )
 
         if session_id then
@@ -307,6 +324,7 @@ function _M.handle_ciba_verify()
     end
 
     -- If success with tokens, create session
+    -- CIBA authentication uses Guardian push notification, which satisfies MFA
     if data.access_token and data.id_token and not data.pending then
         local session_id, csrf_token, err = _M.create_session_from_tokens(
             data.access_token,
@@ -314,7 +332,8 @@ function _M.handle_ciba_verify()
             req_data.email,
             nil,  -- mfa_token
             nil,  -- mfa_token_expires_at
-            data.client_type  -- Portal type from platform response
+            data.client_type,  -- Portal type from platform response
+            "guardian"  -- CIBA uses Guardian push, satisfies MFA
         )
 
         if session_id then
@@ -625,6 +644,8 @@ function _M.handle_login()
     end
 
     -- If success with tokens (no MFA required), create session
+    -- Note: No MFA method since MFA was not performed (password-only login)
+    -- mfa_satisfied will be false, requiring step-up auth for sensitive operations
     if data.access_token and data.id_token and not data.mfa_required then
         local session_id, csrf_token, err = _M.create_session_from_tokens(
             data.access_token,
@@ -632,7 +653,8 @@ function _M.handle_login()
             req_data.email or req_data.username,
             nil,  -- mfa_token
             nil,  -- mfa_token_expires_at
-            data.client_type  -- Portal type from platform response
+            data.client_type,  -- Portal type from platform response
+            nil   -- No MFA method - password-only login
         )
 
         if session_id then
@@ -698,6 +720,9 @@ function _M.handle_passkey_authenticate()
         end
 
         -- Store session in Redis
+        -- Passkey with user verification (UV) satisfies MFA requirement
+        -- UV means user verified identity via biometric/PIN on the authenticator
+        local mfa_satisfied = data.userVerification == true
         local session_data = {
             user_id = data.userId,
             login_id = data.loginId,
@@ -705,6 +730,8 @@ function _M.handle_passkey_authenticate()
             profile_id = data.profileId,
             user_verification = data.userVerification,
             auth_method = "passkey",
+            mfa_satisfied = mfa_satisfied,
+            mfa_method = mfa_satisfied and "passkey_uv" or nil,
             client_type = client_type,
             csrf_token = csrf_token,
             created_at = utils.now(),

@@ -42,7 +42,10 @@
         isPasskeyFallback: false,    // True when user is in passkey fallback flow
         fallbackOtpExpiresAt: null,  // Fallback OTP expiration timestamp
         fallbackOtpCountdownInterval: null, // Fallback OTP countdown interval
-        fallbackToken: ''            // Token from OTP verification for fallback
+        fallbackToken: '',           // Token from OTP verification for fallback
+        // Guardian reset state
+        guardianResetOtpExpiresAt: null,
+        guardianResetOtpCountdownInterval: null
     };
 
     // DOM Elements
@@ -67,6 +70,9 @@
         passkeySuccess: document.getElementById('screen-passkey-success'),
         passkeyAuth: document.getElementById('screen-passkey-auth'),
         passkeyFallbackOtp: document.getElementById('screen-passkey-fallback-otp'),
+        guardianReset: document.getElementById('screen-guardian-reset'),
+        guardianResetOtp: document.getElementById('screen-guardian-reset-otp'),
+        guardianResetSuccess: document.getElementById('screen-guardian-reset-success'),
         success: document.getElementById('screen-success')
     };
 
@@ -317,6 +323,62 @@
         const fallbackOtpCancel = document.getElementById('fallback-otp-cancel');
         if (fallbackOtpCancel) {
             fallbackOtpCancel.addEventListener('click', handleFallbackOtpCancel);
+        }
+
+        // Guardian reset event listeners
+        setupGuardianResetEventListeners();
+    }
+
+    // Setup Guardian Reset event listeners
+    function setupGuardianResetEventListeners() {
+        // Link to guardian reset from MFA challenge screen
+        const guardianChallengeReset = document.getElementById('guardian-challenge-reset');
+        if (guardianChallengeReset) {
+            guardianChallengeReset.addEventListener('click', handleGuardianResetClick);
+        }
+
+        // Guardian reset - send OTP
+        const guardianResetSendOtp = document.getElementById('guardian-reset-send-otp');
+        if (guardianResetSendOtp) {
+            guardianResetSendOtp.addEventListener('click', handleGuardianResetSendOtp);
+        }
+
+        // Guardian reset - back to sign in
+        const guardianResetBack = document.getElementById('guardian-reset-back');
+        if (guardianResetBack) {
+            guardianResetBack.addEventListener('click', handleGuardianResetBack);
+        }
+
+        // Guardian reset OTP form
+        const guardianResetOtpForm = document.getElementById('guardian-reset-otp-form');
+        if (guardianResetOtpForm) {
+            guardianResetOtpForm.addEventListener('submit', handleGuardianResetOtpSubmit);
+        }
+
+        // Guardian reset OTP inputs
+        const guardianResetOtpInputs = document.querySelectorAll('.guardian-reset-otp-input');
+        guardianResetOtpInputs.forEach(input => {
+            input.addEventListener('input', handleOtpInput);
+            input.addEventListener('keydown', handleOtpKeydown);
+            input.addEventListener('paste', handleOtpPaste);
+        });
+
+        // Guardian reset resend code
+        const guardianResetResendCode = document.getElementById('guardian-reset-resend-code');
+        if (guardianResetResendCode) {
+            guardianResetResendCode.addEventListener('click', handleGuardianResetResendCode);
+        }
+
+        // Guardian reset OTP back
+        const guardianResetOtpBack = document.getElementById('guardian-reset-otp-back');
+        if (guardianResetOtpBack) {
+            guardianResetOtpBack.addEventListener('click', handleGuardianResetBack);
+        }
+
+        // Guardian reset success continue
+        const guardianResetSuccessContinue = document.getElementById('guardian-reset-success-continue');
+        if (guardianResetSuccessContinue) {
+            guardianResetSuccessContinue.addEventListener('click', handleGuardianResetSuccessContinue);
         }
     }
 
@@ -2638,6 +2700,199 @@
 
         // Convert to URL-safe base64
         return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    }
+
+    // =====================================
+    // Guardian Reset Handlers
+    // =====================================
+
+    function handleGuardianResetClick(e) {
+        e.preventDefault();
+        // Stop any Guardian polling
+        if (state.guardianPollingInterval) {
+            clearInterval(state.guardianPollingInterval);
+            state.guardianPollingInterval = null;
+        }
+
+        // Show Guardian reset screen with user info
+        document.getElementById('guardian-reset-user-email').textContent = state.email;
+        document.getElementById('guardian-reset-user-initial').textContent = state.email.charAt(0).toUpperCase();
+        hideError('guardian-reset-error');
+        showScreen('guardianReset');
+    }
+
+    async function handleGuardianResetSendOtp(e) {
+        if (e) e.preventDefault();
+
+        const btn = document.getElementById('guardian-reset-send-otp');
+        const btnText = btn.querySelector('.btn-text');
+        const spinner = btn.querySelector('.spinner');
+
+        btnText.style.display = 'none';
+        spinner.style.display = 'inline-block';
+        btn.disabled = true;
+        hideError('guardian-reset-error');
+
+        try {
+            const response = await fetch('/api/mfa/reset-guardian/send-otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Login-CSRF-Token': state.loginCsrfToken
+                },
+                body: JSON.stringify({ email: state.email })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Show OTP verification screen
+                document.getElementById('guardian-reset-otp-email').textContent = data.masked_email || maskEmail(state.email);
+
+                // Start countdown
+                const expiresIn = data.expires_in_seconds || 300;
+                state.guardianResetOtpExpiresAt = Date.now() + (expiresIn * 1000);
+                startGuardianResetOtpCountdown();
+
+                // Clear any existing OTP inputs
+                document.querySelectorAll('.guardian-reset-otp-input').forEach(input => {
+                    input.value = '';
+                });
+
+                showScreen('guardianResetOtp');
+            } else {
+                showError('guardian-reset-error', data.error_description || 'Failed to send verification code');
+            }
+        } catch (error) {
+            console.error('Guardian reset send OTP error:', error);
+            showError('guardian-reset-error', 'An error occurred. Please try again.');
+        } finally {
+            btnText.style.display = 'inline';
+            spinner.style.display = 'none';
+            btn.disabled = false;
+        }
+    }
+
+    function handleGuardianResetBack(e) {
+        e.preventDefault();
+        // Clear countdown
+        if (state.guardianResetOtpCountdownInterval) {
+            clearInterval(state.guardianResetOtpCountdownInterval);
+            state.guardianResetOtpCountdownInterval = null;
+        }
+        // Go back to email screen
+        showScreen('email');
+    }
+
+    async function handleGuardianResetOtpSubmit(e) {
+        e.preventDefault();
+
+        const inputs = document.querySelectorAll('.guardian-reset-otp-input');
+        const code = Array.from(inputs).map(i => i.value).join('');
+
+        if (code.length !== 6) {
+            showError('guardian-reset-otp-error', 'Please enter a 6-digit code');
+            return;
+        }
+
+        const btn = document.getElementById('guardian-reset-otp-submit');
+        const btnText = btn.querySelector('.btn-text');
+        const spinner = btn.querySelector('.spinner');
+
+        btnText.style.display = 'none';
+        spinner.style.display = 'inline-block';
+        btn.disabled = true;
+        hideError('guardian-reset-otp-error');
+
+        try {
+            const response = await fetch('/api/mfa/reset-guardian/verify-otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Login-CSRF-Token': state.loginCsrfToken
+                },
+                body: JSON.stringify({
+                    email: state.email,
+                    code: code
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Clear countdown
+                if (state.guardianResetOtpCountdownInterval) {
+                    clearInterval(state.guardianResetOtpCountdownInterval);
+                    state.guardianResetOtpCountdownInterval = null;
+                }
+                showScreen('guardianResetSuccess');
+            } else {
+                const msg = data.error_description || 'Invalid code. Please try again.';
+                if (data.attempts_remaining !== undefined && data.attempts_remaining >= 0) {
+                    showError('guardian-reset-otp-error', `${msg} (${data.attempts_remaining} attempts remaining)`);
+                } else {
+                    showError('guardian-reset-otp-error', msg);
+                }
+                // Clear inputs on error
+                inputs.forEach(input => input.value = '');
+                inputs[0].focus();
+            }
+        } catch (error) {
+            console.error('Guardian reset verify OTP error:', error);
+            showError('guardian-reset-otp-error', 'An error occurred. Please try again.');
+        } finally {
+            btnText.style.display = 'inline';
+            spinner.style.display = 'none';
+            btn.disabled = false;
+        }
+    }
+
+    function handleGuardianResetResendCode(e) {
+        e.preventDefault();
+        handleGuardianResetSendOtp();
+    }
+
+    function handleGuardianResetSuccessContinue(e) {
+        e.preventDefault();
+        // Clear state and go back to email screen to start fresh login
+        state.mfaToken = '';
+        state.enrolledAuthenticators = [];
+        showScreen('email');
+    }
+
+    function startGuardianResetOtpCountdown() {
+        if (state.guardianResetOtpCountdownInterval) {
+            clearInterval(state.guardianResetOtpCountdownInterval);
+        }
+
+        const countdownEl = document.getElementById('guardian-reset-otp-countdown');
+
+        function updateCountdown() {
+            const remaining = Math.max(0, state.guardianResetOtpExpiresAt - Date.now());
+            const minutes = Math.floor(remaining / 60000);
+            const seconds = Math.floor((remaining % 60000) / 1000);
+            countdownEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+            if (remaining <= 0) {
+                clearInterval(state.guardianResetOtpCountdownInterval);
+                state.guardianResetOtpCountdownInterval = null;
+                countdownEl.textContent = 'Expired';
+            }
+        }
+
+        updateCountdown();
+        state.guardianResetOtpCountdownInterval = setInterval(updateCountdown, 1000);
+    }
+
+    function maskEmail(email) {
+        const atIndex = email.indexOf('@');
+        if (atIndex <= 2) return email;
+        const localPart = email.substring(0, atIndex);
+        const domain = email.substring(atIndex);
+        if (localPart.length <= 2) {
+            return localPart.charAt(0) + '*' + domain;
+        }
+        return localPart.charAt(0) + '*'.repeat(localPart.length - 2) + localPart.charAt(localPart.length - 1) + domain;
     }
 
 })();

@@ -384,6 +384,101 @@
                     <div class="help-link" id="mfa-challenge-guardian-back" style="display: none;">
                         <a href="#" id="guardian-challenge-back-to-select">Use a different method</a>
                     </div>
+                    <div class="help-link" style="margin-top: var(--spacing-md);">
+                        <a href="#" id="guardian-challenge-reset">Lost access to Guardian?</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 11: Guardian Reset - Send OTP -->
+            <div id="screen-guardian-reset" class="screen">
+                <div class="login-card-header">
+                    <h1>Reset Guardian</h1>
+                    <p>Lost access to your Guardian app? We'll send a verification code to your email.</p>
+                </div>
+                <div class="login-card-body">
+                    <div id="guardian-reset-error" class="message message-error" style="display: none;"></div>
+                    <div id="guardian-reset-success" class="message message-success" style="display: none;"></div>
+
+                    <div class="user-info" style="background: var(--gray-50); padding: var(--spacing-md); border-radius: var(--radius-md); margin-bottom: var(--spacing-lg); display: flex; align-items: center; gap: var(--spacing-md);">
+                        <div style="width: 40px; height: 40px; background: var(--rbc-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">
+                            <span id="guardian-reset-user-initial">U</span>
+                        </div>
+                        <div>
+                            <div id="guardian-reset-user-email" style="font-weight: 500; color: var(--gray-900);"></div>
+                        </div>
+                    </div>
+
+                    <p style="color: var(--gray-600); margin-bottom: var(--spacing-lg); text-align: center;">
+                        After verification, your current Guardian enrollment will be removed. You'll set up a new one during your next login.
+                    </p>
+
+                    <button type="button" id="guardian-reset-send-otp" class="btn btn-primary">
+                        <span class="btn-text">Send Verification Code</span>
+                        <span class="spinner" style="display: none;"></span>
+                    </button>
+
+                    <div class="help-link" style="margin-top: var(--spacing-md);">
+                        <a href="#" id="guardian-reset-back">Back to sign in</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 11b: Guardian Reset - Verify OTP -->
+            <div id="screen-guardian-reset-otp" class="screen">
+                <div class="login-card-header">
+                    <h1>Check your email</h1>
+                    <p>We sent a verification code to <strong id="guardian-reset-otp-email"></strong></p>
+                </div>
+                <div class="login-card-body">
+                    <div id="guardian-reset-otp-error" class="message message-error" style="display: none;"></div>
+
+                    <form id="guardian-reset-otp-form">
+                        <div class="form-group">
+                            <label class="form-label">Enter 6-digit code</label>
+                            <div class="otp-container">
+                                <input type="text" class="otp-input guardian-reset-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="0">
+                                <input type="text" class="otp-input guardian-reset-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="1">
+                                <input type="text" class="otp-input guardian-reset-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="2">
+                                <input type="text" class="otp-input guardian-reset-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="3">
+                                <input type="text" class="otp-input guardian-reset-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="4">
+                                <input type="text" class="otp-input guardian-reset-otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" data-index="5">
+                            </div>
+                        </div>
+                        <button type="submit" id="guardian-reset-otp-submit" class="btn btn-primary">
+                            <span class="btn-text">Verify &amp; Reset Guardian</span>
+                            <span class="spinner" style="display: none;"></span>
+                        </button>
+                    </form>
+
+                    <div class="countdown">
+                        Code expires in <strong id="guardian-reset-otp-countdown">5:00</strong>
+                    </div>
+
+                    <div class="help-link">
+                        <a href="#" id="guardian-reset-resend-code">Didn't receive the code? Resend</a>
+                    </div>
+                    <div class="help-link">
+                        <a href="#" id="guardian-reset-otp-back">Cancel</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 11c: Guardian Reset - Success -->
+            <div id="screen-guardian-reset-success" class="screen">
+                <div class="login-card-header">
+                    <h1>Guardian Reset Complete</h1>
+                    <p>Your Guardian enrollment has been removed</p>
+                </div>
+                <div class="login-card-body" style="text-align: center;">
+                    <div style="font-size: 4rem; margin-bottom: var(--spacing-lg);">&#10003;</div>
+                    <p style="color: var(--gray-600); margin-bottom: var(--spacing-lg);">
+                        Sign in with your password to set up Guardian on your new device.
+                    </p>
+
+                    <button type="button" id="guardian-reset-success-continue" class="btn btn-primary">
+                        Continue to Sign In
+                    </button>
                 </div>
             </div>
 
