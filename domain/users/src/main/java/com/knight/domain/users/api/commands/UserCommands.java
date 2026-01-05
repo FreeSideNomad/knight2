@@ -98,4 +98,15 @@ public interface UserCommands {
     void updateUserName(UpdateUserNameCmd cmd);
 
     record UpdateUserNameCmd(UserId userId, String firstName, String lastName) {}
+
+    /**
+     * Updates user's email address.
+     * This will set emailVerified to false, requiring re-verification on next login.
+     * Returns the update result containing the previous email for audit purposes.
+     */
+    UpdateEmailResult updateUserEmail(UpdateUserEmailCmd cmd);
+
+    record UpdateUserEmailCmd(UserId userId, String newEmail, String updatedBy) {}
+
+    record UpdateEmailResult(String previousEmail, String newEmail) {}
 }
