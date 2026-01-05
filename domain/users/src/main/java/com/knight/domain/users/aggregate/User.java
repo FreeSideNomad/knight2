@@ -62,6 +62,12 @@ public class User {
         }
     }
 
+    public enum MfaPreference {
+        GUARDIAN,  // Prefer Guardian push notification
+        TOTP,      // Prefer TOTP authenticator app
+        PASSKEY    // Prefer passkey (if enrolled with UV)
+    }
+
     // Core fields
     private final UserId id;
     private final String loginId;
@@ -86,6 +92,9 @@ public class User {
     private boolean passkeyOffered;   // User was offered passkey enrollment
     private boolean passkeyEnrolled;  // User has at least one passkey enrolled
     private boolean passkeyHasUv;     // User's passkey has user verification capability
+
+    // MFA preference
+    private MfaPreference mfaPreference;  // User's preferred MFA method
 
     // Status tracking
     private Status status;
@@ -156,6 +165,27 @@ public class User {
             String deactivationReason,
             boolean passkeyOffered, boolean passkeyEnrolled, boolean passkeyHasUv,
             Instant createdAt, String createdBy, Instant updatedAt) {
+        return reconstitute(id, loginId, email, firstName, lastName, userType, identityProvider,
+                profileId, roles, identityProviderUserId, emailVerified, passwordSet, mfaEnrolled,
+                lastSyncedAt, lastLoggedInAt, status, lockType, lockedBy, lockedAt, deactivationReason,
+                passkeyOffered, passkeyEnrolled, passkeyHasUv, null, // mfaPreference defaults to null
+                createdAt, createdBy, updatedAt);
+    }
+
+    /**
+     * Factory method for reconstitution from persistence with all fields.
+     */
+    public static User reconstitute(
+            UserId id, String loginId, String email, String firstName, String lastName,
+            UserType userType, IdentityProvider identityProvider,
+            ProfileId profileId, Set<Role> roles, String identityProviderUserId,
+            boolean emailVerified, boolean passwordSet, boolean mfaEnrolled, Instant lastSyncedAt,
+            Instant lastLoggedInAt,
+            Status status, LockType lockType, String lockedBy, Instant lockedAt,
+            String deactivationReason,
+            boolean passkeyOffered, boolean passkeyEnrolled, boolean passkeyHasUv,
+            MfaPreference mfaPreference,
+            Instant createdAt, String createdBy, Instant updatedAt) {
         User user = new User(id, loginId, email, firstName, lastName, userType, identityProvider,
                 profileId, roles, createdBy);
         user.identityProviderUserId = identityProviderUserId;
@@ -172,6 +202,7 @@ public class User {
         user.passkeyOffered = passkeyOffered;
         user.passkeyEnrolled = passkeyEnrolled;
         user.passkeyHasUv = passkeyHasUv;
+        user.mfaPreference = mfaPreference;
         // Override createdAt and updatedAt from persistence
         try {
             var createdAtField = User.class.getDeclaredField("createdAt");
@@ -428,6 +459,18 @@ public class User {
     public boolean passkeyOffered() { return passkeyOffered; }
     public boolean passkeyEnrolled() { return passkeyEnrolled; }
     public boolean passkeyHasUv() { return passkeyHasUv; }
+    public MfaPreference mfaPreference() { return mfaPreference; }
+
+    // MFA Preference methods
+
+    /**
+     * Set user's preferred MFA method.
+     * @param preference The preferred MFA method (GUARDIAN, TOTP, or PASSKEY)
+     */
+    public void setMfaPreference(MfaPreference preference) {
+        this.mfaPreference = preference;
+        this.updatedAt = Instant.now();
+    }
 
     // Passkey methods
 

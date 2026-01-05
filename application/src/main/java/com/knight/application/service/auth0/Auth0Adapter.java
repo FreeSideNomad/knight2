@@ -1134,6 +1134,94 @@ public class Auth0Adapter {
     }
 
     // ========================================
+    // MFA Enrollment Management
+    // ========================================
+
+    /**
+     * Delete an MFA authenticator enrollment for a user.
+     * Used for Guardian re-binding flow - must delete existing before enrolling new.
+     *
+     * @param auth0UserId The Auth0 user ID (e.g., "auth0|abc123")
+     * @param authenticatorId The authenticator ID to delete (e.g., "push|dev_xxx")
+     * @return ObjectNode with success status or error
+     */
+    public ObjectNode deleteMfaEnrollment(String auth0UserId, String authenticatorId) {
+        ObjectNode result = objectMapper.createObjectNode();
+
+        try {
+            String token = getManagementToken();
+            if (token == null) {
+                return result.put("success", false)
+                    .put("error", "server_error")
+                    .put("error_description", "Failed to get management token");
+            }
+
+            restClient.delete()
+                .uri(uriBuilder -> uriBuilder
+                    .path("/api/v2/users/{userId}/authenticators/{authenticatorId}")
+                    .build(auth0UserId, authenticatorId))
+                .header("Authorization", "Bearer " + token)
+                .retrieve()
+                .toBodilessEntity();
+
+            log.info("Deleted MFA enrollment {} for user {}", authenticatorId, auth0UserId);
+            return result.put("success", true);
+
+        } catch (HttpClientErrorException.NotFound e) {
+            // Authenticator not found - treat as success (idempotent)
+            log.info("MFA enrollment {} not found for user {} (already deleted)", authenticatorId, auth0UserId);
+            return result.put("success", true);
+        } catch (HttpClientErrorException e) {
+            log.error("Failed to delete MFA enrollment: {}", e.getResponseBodyAsString());
+            return result.put("success", false)
+                .put("error", "delete_failed")
+                .put("error_description", extractErrorDescription(e));
+        } catch (Exception e) {
+            log.error("Failed to delete MFA enrollment", e);
+            return result.put("success", false)
+                .put("error", "server_error")
+                .put("error_description", e.getMessage());
+        }
+    }
+
+    /**
+     * Get all MFA authenticators for a user via Management API.
+     * Different from getMfaEnrollments which uses the mfa_token.
+     *
+     * @param auth0UserId The Auth0 user ID
+     * @return ObjectNode with authenticators array or error
+     */
+    public ObjectNode getUserAuthenticators(String auth0UserId) {
+        ObjectNode result = objectMapper.createObjectNode();
+
+        try {
+            String token = getManagementToken();
+            if (token == null) {
+                return result.put("error", "server_error")
+                    .put("error_description", "Failed to get management token");
+            }
+
+            String response = restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                    .path("/api/v2/users/{userId}/authenticators")
+                    .build(auth0UserId))
+                .header("Authorization", "Bearer " + token)
+                .retrieve()
+                .body(String.class);
+
+            JsonNode authenticators = objectMapper.readTree(response);
+            result.put("success", true);
+            result.set("authenticators", authenticators);
+            return result;
+
+        } catch (Exception e) {
+            log.error("Failed to get user authenticators for {}: {}", auth0UserId, e.getMessage());
+            return result.put("error", "server_error")
+                .put("error_description", e.getMessage());
+        }
+    }
+
+    // ========================================
     // Helper
     // ========================================
 

@@ -84,6 +84,9 @@ public class UserEntity {
     @Column(name = "passkey_has_uv", nullable = false)
     private boolean passkeyHasUv;
 
+    @Column(name = "mfa_preference", length = 20)
+    private String mfaPreference;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
