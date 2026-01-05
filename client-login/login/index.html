@@ -645,6 +645,49 @@
                 </div>
             </div>
 
+            <!-- Screen 20: Passkey Fallback OTP Verification -->
+            <div id="screen-passkey-fallback-otp" class="screen">
+                <div class="login-card-header">
+                    <h1>Verify your identity</h1>
+                    <p>We sent a verification code to <strong id="fallback-otp-email"></strong></p>
+                </div>
+                <div class="login-card-body">
+                    <div id="fallback-otp-error" class="message message-error" style="display: none;"></div>
+                    <div id="fallback-otp-success" class="message message-success" style="display: none;"></div>
+
+                    <p style="text-align: center; color: var(--gray-600); margin-bottom: var(--spacing-lg);">
+                        Since you're signing in without your passkey, please verify your email to continue.
+                    </p>
+
+                    <form id="fallback-otp-form">
+                        <div class="form-group">
+                            <label>Enter the 6-digit code</label>
+                            <div class="otp-container" id="fallback-otp-container">
+                                <input type="text" maxlength="1" class="otp-input" inputmode="numeric" pattern="[0-9]*">
+                                <input type="text" maxlength="1" class="otp-input" inputmode="numeric" pattern="[0-9]*">
+                                <input type="text" maxlength="1" class="otp-input" inputmode="numeric" pattern="[0-9]*">
+                                <input type="text" maxlength="1" class="otp-input" inputmode="numeric" pattern="[0-9]*">
+                                <input type="text" maxlength="1" class="otp-input" inputmode="numeric" pattern="[0-9]*">
+                                <input type="text" maxlength="1" class="otp-input" inputmode="numeric" pattern="[0-9]*">
+                            </div>
+                        </div>
+                        <button type="submit" id="fallback-otp-submit" class="btn btn-primary">
+                            Verify
+                        </button>
+                    </form>
+
+                    <div class="help-link" style="margin-top: var(--spacing-md);">
+                        <span id="fallback-otp-countdown" style="color: var(--gray-600);">Code expires in 5:00</span>
+                    </div>
+                    <div class="help-link">
+                        <a href="#" id="fallback-otp-resend">Resend code</a>
+                    </div>
+                    <div class="help-link">
+                        <a href="#" id="fallback-otp-cancel">Cancel</a>
+                    </div>
+                </div>
+            </div>
+
             <!-- Screen 14: Success -->
             <div id="screen-success" class="screen">
                 <div class="login-card-header">
