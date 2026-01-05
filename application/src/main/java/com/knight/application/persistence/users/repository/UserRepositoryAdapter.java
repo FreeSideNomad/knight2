@@ -38,6 +38,7 @@ public class UserRepositoryAdapter implements UserRepository {
             entity.setFirstName(user.firstName());
             entity.setLastName(user.lastName());
             entity.setIdentityProviderUserId(user.identityProviderUserId());
+            entity.setEmailVerified(user.emailVerified());
             entity.setPasswordSet(user.passwordSet());
             entity.setMfaEnrolled(user.mfaEnrolled());
             entity.setLastSyncedAt(user.lastSyncedAt());
@@ -79,6 +80,13 @@ public class UserRepositoryAdapter implements UserRepository {
     @Transactional(readOnly = true)
     public Optional<User> findByEmail(String email) {
         return jpaRepository.findByEmail(email)
+            .map(mapper::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<User> findByLoginId(String loginId) {
+        return jpaRepository.findByLoginId(loginId)
             .map(mapper::toDomain);
     }
 
