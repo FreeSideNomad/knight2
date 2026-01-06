@@ -50,7 +50,7 @@ class UserControllerTest {
             checkResponse.put("email_verified", true);
             checkResponse.put("onboarding_complete", true);
             checkResponse.put("client_type", "CLIENT");
-            when(auth0Adapter.checkUser("user@example.com")).thenReturn(checkResponse);
+            when(auth0Adapter.checkUserByLoginId("user@example.com")).thenReturn(checkResponse);
 
             ResponseEntity<ObjectNode> response = controller.checkUser(request);
 
@@ -65,7 +65,7 @@ class UserControllerTest {
             UserCheckRequest request = new UserCheckRequest("unknown@example.com");
             ObjectNode checkResponse = JsonNodeFactory.instance.objectNode();
             checkResponse.put("exists", false);
-            when(auth0Adapter.checkUser("unknown@example.com")).thenReturn(checkResponse);
+            when(auth0Adapter.checkUserByLoginId("unknown@example.com")).thenReturn(checkResponse);
 
             ResponseEntity<ObjectNode> response = controller.checkUser(request);
 
@@ -79,7 +79,7 @@ class UserControllerTest {
             UserCheckRequest request = new UserCheckRequest("invalid-email");
             ObjectNode errorResponse = JsonNodeFactory.instance.objectNode();
             errorResponse.put("error", "Invalid email format");
-            when(auth0Adapter.checkUser("invalid-email")).thenReturn(errorResponse);
+            when(auth0Adapter.checkUserByLoginId("invalid-email")).thenReturn(errorResponse);
 
             ResponseEntity<ObjectNode> response = controller.checkUser(request);
 
@@ -94,7 +94,7 @@ class UserControllerTest {
             checkResponse.put("exists", true);
             checkResponse.put("user_id", "auth0|456");
             checkResponse.put("client_type", "INDIRECT_CLIENT");
-            when(auth0Adapter.checkUser("indirect@example.com")).thenReturn(checkResponse);
+            when(auth0Adapter.checkUserByLoginId("indirect@example.com")).thenReturn(checkResponse);
 
             ResponseEntity<ObjectNode> response = controller.checkUser(request);
 
