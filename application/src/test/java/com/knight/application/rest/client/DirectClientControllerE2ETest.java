@@ -641,7 +641,7 @@ class DirectClientControllerE2ETest {
         void shouldAddUserSuccessfully() throws Exception {
             String requestBody = """
                 {
-                    "loginId": "newuser",
+                    "loginId": "newuser@king.com",
                     "email": "newuser@company.com",
                     "firstName": "New",
                     "lastName": "User",
@@ -665,7 +665,7 @@ class DirectClientControllerE2ETest {
         void shouldAddUserWithMultipleRoles() throws Exception {
             String requestBody = """
                 {
-                    "loginId": "multirole",
+                    "loginId": "multirole@king.com",
                     "email": "multirole@company.com",
                     "firstName": "Multi",
                     "lastName": "Role",

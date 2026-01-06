@@ -593,7 +593,7 @@ class BankAdminControllerE2ETest {
 
             String request = """
                 {
-                    "loginId": "bankuser1",
+                    "loginId": "bankuser1@king.com",
                     "email": "",
                     "firstName": "Bank",
                     "lastName": "User",
@@ -2179,7 +2179,7 @@ class BankAdminControllerE2ETest {
             // Listing users should include LOCKED users with canDeactivate=true
             mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/users", profile.profileId().urn()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.loginId=='lockedlistu')].canDeactivate").value(true));
+                .andExpect(jsonPath("$[?(@.loginId=='lockedlistu@king.com')].canDeactivate").value(true));
         }
 
         @Test

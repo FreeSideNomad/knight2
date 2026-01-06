@@ -950,7 +950,7 @@ class IndirectClientBffControllerE2ETest {
         void shouldCreateUserSuccessfully() throws Exception {
             String request = """
                 {
-                    "loginId": "newuser123",
+                    "loginId": "newuser123@king.com",
                     "email": "newuser@indirect.com",
                     "firstName": "New",
                     "lastName": "User",

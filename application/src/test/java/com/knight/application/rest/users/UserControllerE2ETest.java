@@ -52,7 +52,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
     "spring.jpa.show-sql=true",
     "spring.flyway.enabled=false",
     "spring.kafka.listener.auto-startup=false",
-    "spring.kafka.consumer.auto-startup=false"
+    "spring.kafka.consumer.auto-startup=false",
+    "jwt.enabled=false"
 })
 class UserControllerE2ETest {
 
@@ -163,7 +164,7 @@ class UserControllerE2ETest {
         void shouldCreateUserLinkedToProfile() throws Exception {
             String requestBody = """
                 {
-                    "loginId": "johndoe",
+                    "loginId": "johndoe@king.com",
                     "email": "john.doe@example.com",
                     "firstName": "John",
                     "lastName": "Doe",
@@ -195,7 +196,7 @@ class UserControllerE2ETest {
         void shouldCreateUserWithSingleRole() throws Exception {
             String requestBody = """
                 {
-                    "loginId": "janesmith",
+                    "loginId": "janesmith@king.com",
                     "email": "jane.smith@example.com",
                     "firstName": "Jane",
                     "lastName": "Smith",
@@ -216,7 +217,7 @@ class UserControllerE2ETest {
         void shouldCreateUserWithAllRoles() throws Exception {
             String requestBody = """
                 {
-                    "loginId": "superadmin",
+                    "loginId": "superadmin@king.com",
                     "email": "admin@example.com",
                     "firstName": "Super",
                     "lastName": "Admin",
@@ -247,7 +248,7 @@ class UserControllerE2ETest {
             // Create first user
             String firstRequest = """
                 {
-                    "loginId": "firstuser",
+                    "loginId": "firstuser@king.com",
                     "email": "duplicate@example.com",
                     "firstName": "First",
                     "lastName": "User",
@@ -263,7 +264,7 @@ class UserControllerE2ETest {
             // Try to create second user with same email
             String secondRequest = """
                 {
-                    "loginId": "seconduser",
+                    "loginId": "seconduser@king.com",
                     "email": "duplicate@example.com",
                     "firstName": "Second",
                     "lastName": "User",
@@ -282,7 +283,7 @@ class UserControllerE2ETest {
         void shouldRejectInvalidEmail() throws Exception {
             String requestBody = """
                 {
-                    "loginId": "invalidemail",
+                    "loginId": "invalidemail@king.com",
                     "email": "invalid-email",
                     "firstName": "Invalid",
                     "lastName": "Email",
@@ -301,7 +302,7 @@ class UserControllerE2ETest {
         void shouldRejectUserWithNoRoles() throws Exception {
             String requestBody = """
                 {
-                    "loginId": "noroles",
+                    "loginId": "noroles@king.com",
                     "email": "noroles@example.com",
                     "firstName": "No",
                     "lastName": "Roles",
@@ -327,7 +328,7 @@ class UserControllerE2ETest {
         void shouldProvisionUserToAuth0() throws Exception {
             String requestBody = """
                 {
-                    "loginId": "provisioneduser",
+                    "loginId": "provisioneduser@king.com",
                     "email": "provisioned@example.com",
                     "firstName": "Provisioned",
                     "lastName": "User",
@@ -412,7 +413,7 @@ class UserControllerE2ETest {
 
         private void createUser(String email, String firstName, String lastName, String[] roles) throws Exception {
             String rolesJson = String.join("\", \"", roles);
-            String loginId = email.split("@")[0].replace(".", "");
+            String loginId = email.split("@")[0].replace(".", "") + "@king.com";
             String requestBody = String.format("""
                 {
                     "loginId": "%s",
@@ -471,7 +472,7 @@ class UserControllerE2ETest {
 
         private String createAndGetUserId(String email, String firstName, String lastName, String[] roles) throws Exception {
             String rolesJson = String.join("\", \"", roles);
-            String loginId = email.split("@")[0].replace(".", "");
+            String loginId = email.split("@")[0].replace(".", "") + "@king.com";
             String requestBody = String.format("""
                 {
                     "loginId": "%s",
@@ -569,7 +570,7 @@ class UserControllerE2ETest {
 
         private String createAndGetUserId(String email, String firstName, String lastName, String[] roles) throws Exception {
             String rolesJson = String.join("\", \"", roles);
-            String loginId = email.split("@")[0].replace(".", "");
+            String loginId = email.split("@")[0].replace(".", "") + "@king.com";
             String requestBody = String.format("""
                 {
                     "loginId": "%s",
@@ -725,7 +726,7 @@ class UserControllerE2ETest {
 
         private String createAndGetUserId(String email, String firstName, String lastName, String[] roles) throws Exception {
             String rolesJson = String.join("\", \"", roles);
-            String loginId = email.split("@")[0].replace(".", "");
+            String loginId = email.split("@")[0].replace(".", "") + "@king.com";
             String requestBody = String.format("""
                 {
                     "loginId": "%s",
@@ -828,7 +829,7 @@ class UserControllerE2ETest {
 
         private String createAndGetUserId(String email, String firstName, String lastName, String[] roles) throws Exception {
             String rolesJson = String.join("\", \"", roles);
-            String loginId = email.split("@")[0].replace(".", "");
+            String loginId = email.split("@")[0].replace(".", "") + "@king.com";
             String requestBody = String.format("""
                 {
                     "loginId": "%s",
