@@ -259,7 +259,7 @@ class Auth0AdapterTest {
 
             User mockUser = mock(User.class);
             when(mockUser.profileId()).thenReturn(ProfileId.of(BankClientId.of("srf:123456789")));
-            when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(mockUser));
+            when(userRepository.findByLoginId(TEST_EMAIL)).thenReturn(Optional.of(mockUser));
 
             ObjectNode result = adapter.checkUser(TEST_EMAIL);
 
@@ -312,7 +312,7 @@ class Auth0AdapterTest {
                 TEST_ACCESS_TOKEN, TEST_ID_TOKEN);
             doReturn(response).when(responseSpec).body(String.class);
 
-            when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
+            when(userRepository.findByLoginId(TEST_EMAIL)).thenReturn(Optional.empty());
 
             ObjectNode result = adapter.login(TEST_EMAIL, TEST_PASSWORD);
 
@@ -366,7 +366,7 @@ class Auth0AdapterTest {
 
             User mockUser = mock(User.class);
             when(mockUser.profileId()).thenReturn(ProfileId.of("indirect", IndirectClientId.generate()));
-            when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(mockUser));
+            when(userRepository.findByLoginId(TEST_EMAIL)).thenReturn(Optional.of(mockUser));
 
             ObjectNode result = adapter.login(TEST_EMAIL, TEST_PASSWORD);
 
@@ -434,7 +434,7 @@ class Auth0AdapterTest {
             String response = String.format("{\"access_token\":\"%s\",\"id_token\":\"%s\"}", TEST_ACCESS_TOKEN, TEST_ID_TOKEN);
             doReturn(response).when(responseSpec).body(String.class);
 
-            when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
+            when(userRepository.findByLoginId(TEST_EMAIL)).thenReturn(Optional.empty());
 
             ObjectNode result = adapter.verifyMfa(TEST_MFA_TOKEN, "123456", "otp", TEST_EMAIL);
 
@@ -449,7 +449,7 @@ class Auth0AdapterTest {
             String response = String.format("{\"access_token\":\"%s\",\"id_token\":\"%s\"}", TEST_ACCESS_TOKEN, TEST_ID_TOKEN);
             doReturn(response).when(responseSpec).body(String.class);
 
-            when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
+            when(userRepository.findByLoginId(TEST_EMAIL)).thenReturn(Optional.empty());
 
             ObjectNode result = adapter.verifyMfa(TEST_MFA_TOKEN, "123456", "oob", TEST_EMAIL);
 
@@ -487,7 +487,7 @@ class Auth0AdapterTest {
             String response = String.format("{\"access_token\":\"%s\",\"id_token\":\"%s\"}", TEST_ACCESS_TOKEN, TEST_ID_TOKEN);
             doReturn(response).when(responseSpec).body(String.class);
 
-            when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
+            when(userRepository.findByLoginId(TEST_EMAIL)).thenReturn(Optional.empty());
 
             ObjectNode result = adapter.challengeMfa(TEST_MFA_TOKEN, "oob-code", TEST_EMAIL);
 
@@ -501,7 +501,7 @@ class Auth0AdapterTest {
             String response = String.format("{\"access_token\":\"%s\",\"id_token\":\"%s\"}", TEST_ACCESS_TOKEN, TEST_ID_TOKEN);
             doReturn(response).when(responseSpec).body(String.class);
 
-            when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
+            when(userRepository.findByLoginId(TEST_EMAIL)).thenReturn(Optional.empty());
 
             ObjectNode result = adapter.verifyMfaChallenge(TEST_MFA_TOKEN, "123456", null, "otp", TEST_EMAIL);
 
@@ -515,7 +515,7 @@ class Auth0AdapterTest {
             String response = String.format("{\"access_token\":\"%s\",\"id_token\":\"%s\"}", TEST_ACCESS_TOKEN, TEST_ID_TOKEN);
             doReturn(response).when(responseSpec).body(String.class);
 
-            when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
+            when(userRepository.findByLoginId(TEST_EMAIL)).thenReturn(Optional.empty());
 
             ObjectNode result = adapter.verifyMfaChallenge(TEST_MFA_TOKEN, null, "oob-code", "oob", TEST_EMAIL);
 
@@ -660,7 +660,7 @@ class Auth0AdapterTest {
             String response = String.format("{\"access_token\":\"%s\",\"id_token\":\"%s\"}", TEST_ACCESS_TOKEN, TEST_ID_TOKEN);
             doReturn(response).when(responseSpec).body(String.class);
 
-            when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
+            when(userRepository.findByLoginId(TEST_EMAIL)).thenReturn(Optional.empty());
 
             ObjectNode result = adapter.cibaVerify("ciba-req-123", TEST_EMAIL);
 
@@ -813,7 +813,7 @@ class Auth0AdapterTest {
             when(mockUser.emailVerified()).thenReturn(false);
             when(mockUser.passwordSet()).thenReturn(false);
             when(mockUser.mfaEnrolled()).thenReturn(false);
-            when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(mockUser));
+            when(userRepository.findByLoginId(TEST_EMAIL)).thenReturn(Optional.of(mockUser));
 
             adapter.syncUserStatus(TEST_EMAIL, true, true, true);
 
@@ -824,7 +824,7 @@ class Auth0AdapterTest {
         @Test
         @DisplayName("syncUserStatus should handle repository exception")
         void syncUserStatusShouldHandleRepositoryException() {
-            when(userRepository.findByEmail(TEST_EMAIL)).thenThrow(new RuntimeException("DB error"));
+            when(userRepository.findByLoginId(TEST_EMAIL)).thenThrow(new RuntimeException("DB error"));
 
             // Should not throw
             adapter.syncUserStatus(TEST_EMAIL, true, true, true);
@@ -905,7 +905,7 @@ class Auth0AdapterTest {
 
             User mockUser = mock(User.class);
             when(mockUser.profileId()).thenReturn(ProfileId.of(BankClientId.of("srf:123456789")));
-            when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(mockUser));
+            when(userRepository.findByLoginId(TEST_EMAIL)).thenReturn(Optional.of(mockUser));
 
             ObjectNode result = adapter.checkUser(TEST_EMAIL);
 
@@ -926,7 +926,7 @@ class Auth0AdapterTest {
 
             doReturn(usersResponse).doReturn(authenticatorsResponse).when(responseSpec).body(String.class);
 
-            when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
+            when(userRepository.findByLoginId(TEST_EMAIL)).thenReturn(Optional.empty());
 
             ObjectNode result = adapter.checkUser(TEST_EMAIL);
 
@@ -948,7 +948,7 @@ class Auth0AdapterTest {
 
             doReturn(usersResponse).doReturn(authenticatorsResponse).when(responseSpec).body(String.class);
 
-            when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
+            when(userRepository.findByLoginId(TEST_EMAIL)).thenReturn(Optional.empty());
 
             ObjectNode result = adapter.checkUser(TEST_EMAIL);
 
@@ -970,7 +970,7 @@ class Auth0AdapterTest {
 
             User mockUser = mock(User.class);
             when(mockUser.profileId()).thenReturn(ProfileId.of(BankClientId.of("srf:123456789")));
-            when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(mockUser));
+            when(userRepository.findByLoginId(TEST_EMAIL)).thenReturn(Optional.of(mockUser));
 
             ObjectNode result = adapter.checkUser(TEST_EMAIL);
 
@@ -991,7 +991,7 @@ class Auth0AdapterTest {
 
             doReturn(usersResponse).doReturn(authenticatorsResponse).when(responseSpec).body(String.class);
 
-            when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
+            when(userRepository.findByLoginId(TEST_EMAIL)).thenReturn(Optional.empty());
 
             ObjectNode result = adapter.checkUser(TEST_EMAIL);
 
@@ -1372,7 +1372,7 @@ class Auth0AdapterTest {
                 TEST_ACCESS_TOKEN, TEST_ID_TOKEN);
             doReturn(response).when(responseSpec).body(String.class);
 
-            when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
+            when(userRepository.findByLoginId(TEST_EMAIL)).thenReturn(Optional.empty());
 
             ObjectNode result = adapter.login(TEST_EMAIL, TEST_PASSWORD);
 
@@ -1436,7 +1436,7 @@ class Auth0AdapterTest {
                 TEST_ACCESS_TOKEN, TEST_ID_TOKEN);
             doReturn(response).when(responseSpec).body(String.class);
 
-            when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
+            when(userRepository.findByLoginId(TEST_EMAIL)).thenReturn(Optional.empty());
 
             ObjectNode result = adapter.login(TEST_EMAIL, TEST_PASSWORD);
 
@@ -1452,7 +1452,7 @@ class Auth0AdapterTest {
                 TEST_ACCESS_TOKEN, TEST_ID_TOKEN);
             doReturn(response).when(responseSpec).body(String.class);
 
-            when(userRepository.findByEmail(TEST_EMAIL)).thenThrow(new RuntimeException("DB error"));
+            when(userRepository.findByLoginId(TEST_EMAIL)).thenThrow(new RuntimeException("DB error"));
 
             ObjectNode result = adapter.login(TEST_EMAIL, TEST_PASSWORD);
 
@@ -1502,7 +1502,7 @@ class Auth0AdapterTest {
             when(mockUser.emailVerified()).thenReturn(true);
             when(mockUser.passwordSet()).thenReturn(true);
             when(mockUser.mfaEnrolled()).thenReturn(true);
-            when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(mockUser));
+            when(userRepository.findByLoginId(TEST_EMAIL)).thenReturn(Optional.of(mockUser));
 
             adapter.syncUserStatus(TEST_EMAIL, true, true, true);
 
@@ -1514,7 +1514,7 @@ class Auth0AdapterTest {
         @Test
         @DisplayName("should not throw when user not found")
         void shouldNotThrowWhenUserNotFound() {
-            when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.empty());
+            when(userRepository.findByLoginId(TEST_EMAIL)).thenReturn(Optional.empty());
 
             // Should not throw
             adapter.syncUserStatus(TEST_EMAIL, true, true, true);
