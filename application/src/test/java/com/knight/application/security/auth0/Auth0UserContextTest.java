@@ -73,7 +73,7 @@ class Auth0UserContextTest {
         void shouldInitializeWithUser() {
             ProfileId profileId = ProfileId.of("servicing", new SrfClientId("123456789"));
             User user = User.create(
-                "testuser",
+                "testuser@king.com",
                 "test@example.com",
                 "Test",
                 "User",
@@ -127,7 +127,7 @@ class Auth0UserContextTest {
         void shouldReturnUserWhenSet() {
             ProfileId profileId = ProfileId.of("servicing", new SrfClientId("123456789"));
             User user = User.create(
-                "testuser",
+                "testuser@king.com",
                 "test@example.com",
                 "Test",
                 "User",
@@ -161,7 +161,7 @@ class Auth0UserContextTest {
         void shouldReturnUserEmailWhenUserSet() {
             ProfileId profileId = ProfileId.of("servicing", new SrfClientId("123456789"));
             User user = User.create(
-                "testuser",
+                "testuser@king.com",
                 "test@example.com",
                 "Test",
                 "User",
@@ -195,7 +195,7 @@ class Auth0UserContextTest {
         void shouldReturnProfileIdWhenUserSet() {
             ProfileId profileId = ProfileId.of("servicing", new SrfClientId("123456789"));
             User user = User.create(
-                "testuser",
+                "testuser@king.com",
                 "test@example.com",
                 "Test",
                 "User",
@@ -229,7 +229,7 @@ class Auth0UserContextTest {
         void shouldReturnProfileIdUrnWhenUserSet() {
             ProfileId profileId = ProfileId.of("servicing", new SrfClientId("123456789"));
             User user = User.create(
-                "testuser",
+                "testuser@king.com",
                 "test@example.com",
                 "Test",
                 "User",

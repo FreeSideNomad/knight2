@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.*;
 @DisplayName("User Aggregate Tests")
 class UserTest {
 
-    private static final String LOGIN_ID = "johndoe";
+    private static final String LOGIN_ID = "johndoe@king.com";  // Login ID must be valid email format
     private static final String VALID_EMAIL = "test@example.com";
     private static final String FIRST_NAME = "John";
     private static final String LAST_NAME = "Doe";
@@ -1105,7 +1105,7 @@ class UserTest {
                 CREATED_BY
             ))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("Login ID must be 3-50 characters");
+            .hasMessageContaining("Login ID must be a valid email format");
         }
 
         @Test
@@ -1124,7 +1124,7 @@ class UserTest {
                 CREATED_BY
             ))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("Login ID must be 3-50 characters");
+            .hasMessageContaining("Login ID must be a valid email format");
         }
 
         @Test
@@ -1142,14 +1142,14 @@ class UserTest {
                 CREATED_BY
             ))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("Login ID must be 3-50 characters");
+            .hasMessageContaining("Login ID must be a valid email format");
         }
 
         @Test
-        @DisplayName("should accept valid login ID with underscores")
+        @DisplayName("should accept valid login ID with underscores in email format")
         void shouldAcceptValidLoginIdWithUnderscores() {
             User user = User.create(
-                "john_doe_123",
+                "john_doe_123@king.com",
                 VALID_EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -1160,14 +1160,14 @@ class UserTest {
                 CREATED_BY
             );
 
-            assertThat(user.loginId()).isEqualTo("john_doe_123");
+            assertThat(user.loginId()).isEqualTo("john_doe_123@king.com");
         }
 
         @Test
-        @DisplayName("should accept 3 character login ID")
+        @DisplayName("should accept short email login ID")
         void shouldAcceptMinLengthLoginId() {
             User user = User.create(
-                "abc",
+                "a@b.co",  // Minimum valid email format
                 VALID_EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -1178,13 +1178,13 @@ class UserTest {
                 CREATED_BY
             );
 
-            assertThat(user.loginId()).isEqualTo("abc");
+            assertThat(user.loginId()).isEqualTo("a@b.co");
         }
 
         @Test
-        @DisplayName("should accept 50 character login ID")
+        @DisplayName("should accept long email login ID")
         void shouldAcceptMaxLengthLoginId() {
-            String maxLoginId = "a".repeat(50);
+            String maxLoginId = "a".repeat(40) + "@king.com";
             User user = User.create(
                 maxLoginId,
                 VALID_EMAIL,

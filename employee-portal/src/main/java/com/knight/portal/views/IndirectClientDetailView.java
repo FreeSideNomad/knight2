@@ -590,7 +590,7 @@ public class IndirectClientDetailView extends VerticalLayout implements HasUrlPa
             Notification notification = Notification.show("Error loading indirect client: " + e.getMessage());
             notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
             notification.setPosition(Notification.Position.TOP_CENTER);
-            notification.setDuration(5000);
+            notification.setDuration(10000);
         }
     }
 

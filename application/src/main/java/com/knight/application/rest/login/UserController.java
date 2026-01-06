@@ -40,7 +40,7 @@ public class UserController {
      */
     @PostMapping("/check")
     public ResponseEntity<ObjectNode> checkUser(@Valid @RequestBody UserCheckRequest request) {
-        ObjectNode response = auth0Adapter.checkUser(request.email());
+        ObjectNode response = auth0Adapter.checkUserByLoginId(request.loginId());
         if (response.has("error")) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }

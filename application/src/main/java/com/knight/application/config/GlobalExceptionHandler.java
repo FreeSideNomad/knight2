@@ -1,6 +1,7 @@
 package com.knight.application.config;
 
 import com.knight.application.security.ForbiddenException;
+import com.knight.domain.auth0identity.api.UserAlreadyExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -103,6 +104,22 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
+    /**
+     * Handle user already exists in Auth0 exception
+     */
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleUserAlreadyExists(
+            UserAlreadyExistsException ex,
+            WebRequest request) {
+
+        ErrorResponse error = new ErrorResponse(
+            "CONFLICT",
+            ex.getMessage()
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
     /**

@@ -104,9 +104,12 @@ public class UserApplicationService implements UserCommands, UserQueries {
         }
 
         // Call Auth0 to provision the user
+        // loginId is used as Auth0 email field (login identifier)
+        // email is real email stored locally for OTP delivery
         Auth0IdentityService.ProvisionUserResult result = auth0IdentityService.provisionUser(
             new Auth0IdentityService.ProvisionUserRequest(
-                user.email(),
+                user.loginId(),   // Used as Auth0 email field
+                user.email(),     // Real email for OTP (local DB only)
                 user.firstName(),
                 user.lastName(),
                 user.id().id(),
@@ -262,10 +265,8 @@ public class UserApplicationService implements UserCommands, UserQueries {
         String previousEmail = user.updateEmail(cmd.newEmail());
         repository.save(user);
 
-        // Update email in Auth0 if user is provisioned
-        if (user.identityProviderUserId() != null) {
-            auth0IdentityService.updateUserEmail(user.identityProviderUserId(), cmd.newEmail());
-        }
+        // Note: Do NOT update email in Auth0 - Auth0 email field contains loginId (not real email)
+        // Real email is only stored locally and used for OTP delivery
 
         // Publish audit event
         eventPublisher.publishEvent(new UserEmailChanged(

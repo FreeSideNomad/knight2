@@ -51,7 +51,7 @@ class UserOnboardingEventConsumerTest {
 
     private User createTestUser() {
         User user = User.create(
-            "testuser",
+            "testuser@king.com",
             "test@example.com",
             "Test",
             "User",

@@ -141,7 +141,7 @@ class DirectClientControllerE2ETest {
 
         // Create test user for Auth0 context
         testUser = User.create(
-            "testdirect",
+            "testdirect@king.com",
             "test@directclient.com",
             "Test",
             "User",
@@ -1263,7 +1263,7 @@ class DirectClientControllerE2ETest {
         @BeforeEach
         void setUp() {
             savedUser = User.create(
-                "profileuser1",
+                "profileuser1@king.com",
                 "profileuser1@company.com",
                 "Profile",
                 "User",
@@ -1295,7 +1295,7 @@ class DirectClientControllerE2ETest {
             profileRepository.save(otherProfile);
 
             User otherUser = User.create(
-                "otheruser",
+                "otheruser@king.com",
                 "other@other.com",
                 "Other",
                 "User",
@@ -1322,7 +1322,7 @@ class DirectClientControllerE2ETest {
         @BeforeEach
         void setUp() {
             savedUser = User.create(
-                "updateuser",
+                "updateuser@king.com",
                 "updateuser@company.com",
                 "Original",
                 "Name",
@@ -1361,7 +1361,7 @@ class DirectClientControllerE2ETest {
             profileRepository.save(otherProfile);
 
             User otherUser = User.create(
-                "otherupdate",
+                "otherupdate@king.com",
                 "otherupdate@other.com",
                 "Other",
                 "User",
@@ -1396,7 +1396,7 @@ class DirectClientControllerE2ETest {
         @BeforeEach
         void setUp() {
             savedUser = User.create(
-                "inviteuser",
+                "inviteuser@king.com",
                 "inviteuser@company.com",
                 "Invite",
                 "User",
@@ -1428,7 +1428,7 @@ class DirectClientControllerE2ETest {
             profileRepository.save(otherProfile);
 
             User otherUser = User.create(
-                "otherinvite",
+                "otherinvite@king.com",
                 "otherinvite@other.com",
                 "Other",
                 "User",
@@ -1455,7 +1455,7 @@ class DirectClientControllerE2ETest {
         @BeforeEach
         void setUp() {
             savedUser = User.create(
-                "lockuser",
+                "lockuser@king.com",
                 "lockuser@company.com",
                 "Lock",
                 "User",
@@ -1492,7 +1492,7 @@ class DirectClientControllerE2ETest {
             profileRepository.save(otherProfile);
 
             User otherUser = User.create(
-                "otherlock",
+                "otherlock@king.com",
                 "otherlock@other.com",
                 "Other",
                 "User",
@@ -1526,7 +1526,7 @@ class DirectClientControllerE2ETest {
         @BeforeEach
         void setUp() {
             savedUser = User.create(
-                "unlockuser",
+                "unlockuser@king.com",
                 "unlockuser@company.com",
                 "Unlock",
                 "User",
@@ -1557,7 +1557,7 @@ class DirectClientControllerE2ETest {
             profileRepository.save(otherProfile);
 
             User otherUser = User.create(
-                "otherunlock",
+                "otherunlock@king.com",
                 "otherunlock@other.com",
                 "Other",
                 "User",
@@ -1584,7 +1584,7 @@ class DirectClientControllerE2ETest {
         @BeforeEach
         void setUp() {
             savedUser = User.create(
-                "deactivateuser",
+                "deactivateuser@king.com",
                 "deactivateuser@company.com",
                 "Deactivate",
                 "User",
@@ -1621,7 +1621,7 @@ class DirectClientControllerE2ETest {
             profileRepository.save(otherProfile);
 
             User otherUser = User.create(
-                "otherdeact",
+                "otherdeact@king.com",
                 "otherdeact@other.com",
                 "Other",
                 "User",
@@ -1655,7 +1655,7 @@ class DirectClientControllerE2ETest {
         @BeforeEach
         void setUp() {
             savedUser = User.create(
-                "activateuser",
+                "activateuser@king.com",
                 "activateuser@company.com",
                 "Activate",
                 "User",
@@ -1686,7 +1686,7 @@ class DirectClientControllerE2ETest {
             profileRepository.save(otherProfile);
 
             User otherUser = User.create(
-                "otheract",
+                "otheract@king.com",
                 "otheract@other.com",
                 "Other",
                 "User",
@@ -1713,7 +1713,7 @@ class DirectClientControllerE2ETest {
         @BeforeEach
         void setUp() {
             savedUser = User.create(
-                "roleuser",
+                "roleuser@king.com",
                 "roleuser@company.com",
                 "Role",
                 "User",
@@ -1749,7 +1749,7 @@ class DirectClientControllerE2ETest {
             profileRepository.save(otherProfile);
 
             User otherUser = User.create(
-                "otherrole",
+                "otherrole@king.com",
                 "otherrole@other.com",
                 "Other",
                 "User",
@@ -1783,7 +1783,7 @@ class DirectClientControllerE2ETest {
         @BeforeEach
         void setUp() {
             savedUser = User.create(
-                "removeroleuser",
+                "removeroleuser@king.com",
                 "removerole@company.com",
                 "RemoveRole",
                 "User",
@@ -1812,7 +1812,7 @@ class DirectClientControllerE2ETest {
             profileRepository.save(otherProfile);
 
             User otherUser = User.create(
-                "otherremove",
+                "otherremove@king.com",
                 "otherremove@other.com",
                 "Other",
                 "User",
@@ -2157,7 +2157,7 @@ class DirectClientControllerE2ETest {
         void shouldShowCorrectFlagsForPendingUser() throws Exception {
             // Create user in pending verification status
             User pendingUser = User.create(
-                "pendinguser",
+                "pendinguser@king.com",
                 "pendinguser@company.com",
                 "Pending",
                 "User",
@@ -2182,7 +2182,7 @@ class DirectClientControllerE2ETest {
         void shouldShowCorrectFlagsForActiveUser() throws Exception {
             // Create active user
             User activeUser = User.create(
-                "activeuser",
+                "activeuser@king.com",
                 "activeuser@company.com",
                 "Active",
                 "User",
@@ -2207,7 +2207,7 @@ class DirectClientControllerE2ETest {
         void shouldShowCorrectFlagsForLockedUser() throws Exception {
             // Create locked user
             User lockedUser = User.create(
-                "lockeduser2",
+                "lockeduser2@king.com",
                 "lockeduser2@company.com",
                 "Locked",
                 "User",

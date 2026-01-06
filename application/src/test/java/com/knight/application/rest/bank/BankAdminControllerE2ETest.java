@@ -618,7 +618,7 @@ class BankAdminControllerE2ETest {
             Profile profile = createTestProfile(testClient.clientId(), ProfileType.SERVICING);
 
             User user = User.create(
-                "bankprofileuser",
+                "bankprofileuser@king.com",
                 "bankprofileuser@bank.com",
                 "Bank",
                 "User",
@@ -662,7 +662,7 @@ class BankAdminControllerE2ETest {
             Profile profile = createTestProfile(testClient.clientId(), ProfileType.SERVICING);
 
             User user = User.create(
-                "updatebanku",
+                "updatebanku@king.com",
                 "updatebanku@bank.com",
                 "Update",
                 "User",
@@ -753,7 +753,7 @@ class BankAdminControllerE2ETest {
             Profile profile = createTestProfile(testClient.clientId(), ProfileType.SERVICING);
 
             User user = User.create(
-                "activatebankuser",
+                "activatebankuser@king.com",
                 "activatebankuser@bank.com",
                 "Activate",
                 "User",
@@ -784,7 +784,7 @@ class BankAdminControllerE2ETest {
             Profile profile = createTestProfile(testClient.clientId(), ProfileType.SERVICING);
 
             User user = User.create(
-                "roleadduser",
+                "roleadduser@king.com",
                 "roleadduser@bank.com",
                 "Role",
                 "User",
@@ -820,7 +820,7 @@ class BankAdminControllerE2ETest {
             Profile profile = createTestProfile(testClient.clientId(), ProfileType.SERVICING);
 
             User user = User.create(
-                "roleremoveuser",
+                "roleremoveuser@king.com",
                 "roleremoveuser@bank.com",
                 "Role",
                 "User",
@@ -1565,7 +1565,7 @@ class BankAdminControllerE2ETest {
             Profile profile2 = createTestProfile(secondClient.clientId(), ProfileType.SERVICING);
 
             User user = User.create(
-                "wrongprofileuser",
+                "wrongprofileuser@king.com",
                 "wrongprofileuser@bank.com",
                 "Wrong",
                 "Profile",
@@ -1635,7 +1635,7 @@ class BankAdminControllerE2ETest {
             Profile profile = createTestProfile(testClient.clientId(), ProfileType.SERVICING);
 
             User user = User.create(
-                "authzuser",
+                "authzuser@king.com",
                 "authzuser@test.com",
                 "Auth",
                 "User",
@@ -2065,7 +2065,7 @@ class BankAdminControllerE2ETest {
             Profile profile = createTestProfile(testClient.clientId(), ProfileType.SERVICING);
 
             User user = User.create(
-                "unlocktest",
+                "unlocktest@king.com",
                 "unlocktest@company.com",
                 "Unlock",
                 "Test",
@@ -2116,7 +2116,7 @@ class BankAdminControllerE2ETest {
         void shouldGetUserWithFullDetails() throws Exception {
             Profile profile = createTestProfile(testClient.clientId(), ProfileType.INDIRECT);
             User user = User.create(
-                "indirectprofuser",
+                "indirectprofuser@king.com",
                 "indirectprofuser@company.com",
                 "Indirect",
                 "User",
@@ -2139,7 +2139,7 @@ class BankAdminControllerE2ETest {
             Profile profile1 = createTestProfile(testClient.clientId(), ProfileType.SERVICING);
 
             User user = User.create(
-                "profile1user",
+                "profile1user@king.com",
                 "profile1user@company.com",
                 "Profile1",
                 "User",
@@ -2163,7 +2163,7 @@ class BankAdminControllerE2ETest {
             Profile profile = createTestProfile(testClient.clientId(), ProfileType.SERVICING);
 
             User user = User.create(
-                "lockedlistu",
+                "lockedlistu@king.com",
                 "lockedlistu@company.com",
                 "Locked",
                 "User",

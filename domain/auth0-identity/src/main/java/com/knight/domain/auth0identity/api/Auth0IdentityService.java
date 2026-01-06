@@ -24,7 +24,8 @@ public interface Auth0IdentityService {
     ProvisionUserResult provisionUser(ProvisionUserRequest request);
 
     record ProvisionUserRequest(
-        String email,
+        String loginId,      // Used as email field in Auth0 (must be valid email format)
+        String email,        // Real email for OTP delivery (stored in local DB only)
         String firstName,
         String lastName,
         String internalUserId,

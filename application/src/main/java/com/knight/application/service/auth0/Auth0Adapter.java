@@ -293,17 +293,14 @@ public class Auth0Adapter {
                 log.warn("Failed to get authenticators for user {}: {}", userId, e.getMessage());
             }
 
-            // Determine portal type and passkey status from profile ID in database
+            // Determine portal type from profile ID in database
+            // Note: Auth0 email field now contains loginId, so we look up by loginId
             PortalType portalType = PortalType.CLIENT;
-            boolean passkeyEnrolled = false;
-            boolean passkeyOffered = false;
             try {
-                var localUser = userRepository.findByEmail(email);
+                var localUser = userRepository.findByLoginId(email);  // email param is actually loginId in Auth0
                 if (localUser.isPresent()) {
                     var user = localUser.get();
                     portalType = PortalType.fromProfileId(user.profileId().urn());
-                    passkeyEnrolled = user.passkeyEnrolled();
-                    passkeyOffered = user.passkeyOffered();
                 }
             } catch (Exception e) {
                 log.warn("Failed to get local user data for {}: {}", email, e.getMessage());
@@ -317,8 +314,6 @@ public class Auth0Adapter {
                 .put("user_id", userId)
                 .put("email_verified", dbUser.path("email_verified").asBoolean(false))
                 .put("onboarding_complete", onboardingComplete)
-                .put("passkey_enrolled", passkeyEnrolled)
-                .put("passkey_offered", passkeyOffered)
                 .put("client_type", portalType.name());
             result.set("authenticators", authenticatorsList);
 
@@ -332,15 +327,40 @@ public class Auth0Adapter {
     }
 
     /**
-     * Determines portal type based on the user's profile ID from the database.
+     * Check if user exists by login ID and determine their client type.
+     * Since loginId is now stored as the email field in Auth0, we query Auth0 directly by loginId.
      */
-    private PortalType determinePortalType(String email) {
+    public ObjectNode checkUserByLoginId(String loginId) {
+        ObjectNode result = objectMapper.createObjectNode();
+
         try {
-            return userRepository.findByEmail(email)
+            // First, look up user in local database by loginId to verify they exist locally
+            var localUser = userRepository.findByLoginId(loginId);
+            if (localUser.isEmpty()) {
+                return result.put("exists", false);
+            }
+
+            // Query Auth0 using loginId (which is stored in Auth0's email field)
+            return checkUser(loginId);
+
+        } catch (Exception e) {
+            log.error("Error checking user by loginId", e);
+            return result.put("error", "server_error")
+                .put("error_description", e.getMessage());
+        }
+    }
+
+    /**
+     * Determines portal type based on the user's profile ID from the database.
+     * Note: The loginId parameter is what's stored in Auth0's email field.
+     */
+    private PortalType determinePortalType(String loginId) {
+        try {
+            return userRepository.findByLoginId(loginId)
                 .map(user -> PortalType.fromProfileId(user.profileId().urn()))
                 .orElse(PortalType.CLIENT);
         } catch (Exception e) {
-            log.warn("Failed to determine portal type for {}: {}", email, e.getMessage());
+            log.warn("Failed to determine portal type for {}: {}", loginId, e.getMessage());
             return PortalType.CLIENT;
         }
     }
@@ -1045,25 +1065,26 @@ public class Auth0Adapter {
     /**
      * Sync user onboarding status from Auth0 to local database.
      * Called after successful authentication to keep lastSyncedAt updated.
+     * Note: The loginId parameter is what's stored in Auth0's email field.
      */
-    public void syncUserStatus(String email, boolean emailVerified, boolean passwordSet, boolean mfaEnrolled) {
+    public void syncUserStatus(String loginId, boolean emailVerified, boolean passwordSet, boolean mfaEnrolled) {
         try {
-            userRepository.findByEmail(email).ifPresent(user -> {
+            userRepository.findByLoginId(loginId).ifPresent(user -> {
                 // Only update if status has changed
                 if (user.emailVerified() != emailVerified || user.passwordSet() != passwordSet || user.mfaEnrolled() != mfaEnrolled) {
                     user.updateOnboardingStatus(emailVerified, passwordSet, mfaEnrolled);
                     userRepository.save(user);
                     log.info("Synced user status for {}: emailVerified={}, passwordSet={}, mfaEnrolled={}",
-                        email, emailVerified, passwordSet, mfaEnrolled);
+                        loginId, emailVerified, passwordSet, mfaEnrolled);
                 } else {
                     // Still update lastSyncedAt even if status hasn't changed
                     user.updateOnboardingStatus(emailVerified, passwordSet, mfaEnrolled);
                     userRepository.save(user);
-                    log.debug("Updated lastSyncedAt for user: {}", email);
+                    log.debug("Updated lastSyncedAt for user: {}", loginId);
                 }
             });
         } catch (Exception e) {
-            log.warn("Failed to sync user status for {}: {}", email, e.getMessage());
+            log.warn("Failed to sync user status for {}: {}", loginId, e.getMessage());
         }
     }
 

@@ -24,7 +24,7 @@ class UserMapperTest {
 
     private UserMapper mapper;
 
-    private static final String LOGIN_ID = "testuser";
+    private static final String LOGIN_ID = "testuser@king.com";
     private static final String EMAIL = "test.user@example.com";
     private static final String FIRST_NAME = "Test";
     private static final String LAST_NAME = "User";

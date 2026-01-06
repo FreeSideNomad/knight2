@@ -50,29 +50,31 @@ public class Auth0IdentityAdapter implements Auth0IdentityService {
 
     @Override
     public ProvisionUserResult provisionUser(ProvisionUserRequest request) {
-        log.info("Provisioning user: {}", request.email());
+        log.info("Provisioning user with loginId: {}", request.loginId());
 
-        // 1. Check if user already exists
-        Optional<Auth0UserInfo> existing = getUserByEmail(request.email());
+        // 1. Check if user already exists (using loginId as Auth0 email)
+        Optional<Auth0UserInfo> existing = getUserByEmail(request.loginId());
         if (existing.isPresent()) {
-            throw new UserAlreadyExistsException(request.email(), existing.get().auth0UserId());
+            throw new UserAlreadyExistsException(request.loginId(), existing.get().auth0UserId());
         }
 
         // 2. Generate temporary password
         String tempPassword = generateSecurePassword();
 
         // 3. Build user creation request
+        // Note: loginId is used as Auth0 email field (must be valid email format)
+        // Real email is stored only in local database for OTP delivery
         String fullName = buildFullName(request.firstName(), request.lastName());
 
         var createRequest = new Auth0CreateUserRequest(
-            request.email(),
+            request.loginId(),   // Use loginId as Auth0 email field
             config.connection(),
             tempPassword,
             fullName,
             request.firstName(),
             request.lastName(),
-            false,  // emailVerifiedStatus - not verified yet
-            true,   // triggerEmailVerificationOnCreate - sends verification email
+            true,   // emailVerifiedStatus - set to true (we verify via our own OTP)
+            false,  // triggerEmailVerificationOnCreate - don't send Auth0 verification email
             new Auth0CreateUserRequest.AppMetadata(
                 request.internalUserId(),
                 request.profileId(),
@@ -117,7 +119,7 @@ public class Auth0IdentityAdapter implements Auth0IdentityService {
         // 6. Publish domain event
         eventPublisher.publishEvent(new Auth0UserCreated(
             auth0UserId,
-            request.email(),
+            request.loginId(),  // Use loginId as Auth0 email
             fullName,
             Instant.now()
         ));

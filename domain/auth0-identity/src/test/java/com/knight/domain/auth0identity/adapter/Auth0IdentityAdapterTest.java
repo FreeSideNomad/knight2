@@ -52,7 +52,8 @@ class Auth0IdentityAdapterTest {
     private Auth0IdentityAdapter adapter;
 
     private static final String AUTH0_USER_ID = "auth0|123456";
-    private static final String EMAIL = "test@example.com";
+    private static final String LOGIN_ID = "testuser@king.com";  // Used as Auth0 email field
+    private static final String EMAIL = "test@example.com";       // Real email for OTP
     private static final String FIRST_NAME = "John";
     private static final String LAST_NAME = "Doe";
 
@@ -95,11 +96,12 @@ class Auth0IdentityAdapterTest {
         @Test
         @DisplayName("should provision user successfully")
         void shouldProvisionUserSuccessfully() {
-            when(httpClient.getWithQueryParam(eq("/users-by-email"), eq("email"), eq(EMAIL), eq(Auth0UserResponse[].class)))
+            // LOGIN_ID is used as Auth0 email field
+            when(httpClient.getWithQueryParam(eq("/users-by-email"), eq("email"), eq(LOGIN_ID), eq(Auth0UserResponse[].class)))
                 .thenReturn(new Auth0UserResponse[0]);
 
             Auth0UserResponse createResponse = createUserResponse(
-                AUTH0_USER_ID, EMAIL, "John Doe", true, false, null, null
+                AUTH0_USER_ID, LOGIN_ID, "John Doe", true, false, null, null
             );
             when(httpClient.post(eq("/users"), any(), eq(Auth0UserResponse.class)))
                 .thenReturn(createResponse);
@@ -111,7 +113,7 @@ class Auth0IdentityAdapterTest {
                 .thenReturn(ticketResponse);
 
             ProvisionUserRequest request = new ProvisionUserRequest(
-                EMAIL, FIRST_NAME, LAST_NAME, "internal-123", "profile-456"
+                LOGIN_ID, EMAIL, FIRST_NAME, LAST_NAME, "internal-123", "profile-456"
             );
             ProvisionUserResult result = adapter.provisionUser(request);
 
@@ -122,20 +124,20 @@ class Auth0IdentityAdapterTest {
             verify(eventPublisher).publishEvent(userCreatedCaptor.capture());
             Auth0UserCreated event = userCreatedCaptor.getValue();
             assertThat(event.auth0UserId()).isEqualTo(AUTH0_USER_ID);
-            assertThat(event.email()).isEqualTo(EMAIL);
+            assertThat(event.email()).isEqualTo(LOGIN_ID);  // Auth0 email is loginId
         }
 
         @Test
         @DisplayName("should throw exception when user already exists")
         void shouldThrowExceptionWhenUserAlreadyExists() {
             Auth0UserResponse existingUser = createUserResponse(
-                AUTH0_USER_ID, EMAIL, "John Doe", true, false, null, null
+                AUTH0_USER_ID, LOGIN_ID, "John Doe", true, false, null, null
             );
-            when(httpClient.getWithQueryParam(eq("/users-by-email"), eq("email"), eq(EMAIL), eq(Auth0UserResponse[].class)))
+            when(httpClient.getWithQueryParam(eq("/users-by-email"), eq("email"), eq(LOGIN_ID), eq(Auth0UserResponse[].class)))
                 .thenReturn(new Auth0UserResponse[]{existingUser});
 
             ProvisionUserRequest request = new ProvisionUserRequest(
-                EMAIL, FIRST_NAME, LAST_NAME, "internal-123", "profile-456"
+                LOGIN_ID, EMAIL, FIRST_NAME, LAST_NAME, "internal-123", "profile-456"
             );
 
             assertThatThrownBy(() -> adapter.provisionUser(request))
@@ -151,7 +153,7 @@ class Auth0IdentityAdapterTest {
                 .thenReturn(null);
 
             ProvisionUserRequest request = new ProvisionUserRequest(
-                EMAIL, FIRST_NAME, LAST_NAME, "internal-123", "profile-456"
+                LOGIN_ID, EMAIL, FIRST_NAME, LAST_NAME, "internal-123", "profile-456"
             );
 
             assertThatThrownBy(() -> adapter.provisionUser(request))

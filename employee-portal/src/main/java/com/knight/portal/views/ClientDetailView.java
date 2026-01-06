@@ -230,7 +230,7 @@ public class ClientDetailView extends VerticalLayout implements HasUrlParameter<
             Notification notification = Notification.show("Error loading client details: " + e.getMessage());
             notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
             notification.setPosition(Notification.Position.TOP_CENTER);
-            notification.setDuration(5000);
+            notification.setDuration(10000);
         }
     }
 
@@ -259,7 +259,7 @@ public class ClientDetailView extends VerticalLayout implements HasUrlParameter<
             Notification notification = Notification.show("Error loading accounts: " + e.getMessage());
             notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
             notification.setPosition(Notification.Position.TOP_CENTER);
-            notification.setDuration(5000);
+            notification.setDuration(10000);
         }
     }
 
@@ -273,7 +273,7 @@ public class ClientDetailView extends VerticalLayout implements HasUrlParameter<
             Notification notification = Notification.show("Error loading profiles: " + e.getMessage());
             notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
             notification.setPosition(Notification.Position.TOP_CENTER);
-            notification.setDuration(5000);
+            notification.setDuration(10000);
         }
     }
 

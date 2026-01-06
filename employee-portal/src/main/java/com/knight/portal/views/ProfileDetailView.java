@@ -334,6 +334,22 @@ public class ProfileDetailView extends VerticalLayout implements HasUrlParameter
         emailField.setRequired(true);
         emailField.setPlaceholder("user@example.com");
 
+        // Login ID field with checkbox to use email as login
+        Checkbox useEmailAsLoginCheckbox = new Checkbox("Use email as login ID", true);
+
+        TextField loginIdField = new TextField("Login ID");
+        loginIdField.setWidthFull();
+        loginIdField.setPlaceholder("Leave empty to use email");
+        loginIdField.setVisible(false);
+        loginIdField.setHelperText("Custom login ID (allows same email for multiple users)");
+
+        useEmailAsLoginCheckbox.addValueChangeListener(event -> {
+            loginIdField.setVisible(!event.getValue());
+            if (event.getValue()) {
+                loginIdField.clear();
+            }
+        });
+
         TextField firstNameField = new TextField("First Name");
         firstNameField.setWidthFull();
         firstNameField.setRequired(true);
@@ -342,15 +358,19 @@ public class ProfileDetailView extends VerticalLayout implements HasUrlParameter
         lastNameField.setWidthFull();
         lastNameField.setRequired(true);
 
-        // Role selection
+        // Role selection - all 5 roles
         Span rolesHeader = new Span("Initial Roles");
         rolesHeader.getStyle().set("font-weight", "600");
 
-        Checkbox viewerRole = new Checkbox("Viewer - Can view all resources");
+        Checkbox securityAdminRole = new Checkbox("Security Admin - Can manage users, groups, and permissions");
+        Checkbox serviceAdminRole = new Checkbox("Service Admin - Can manage service enrollments and configuration");
+        Checkbox viewerRole = new Checkbox("Reader - Can view all resources");
         Checkbox creatorRole = new Checkbox("Creator - Can create, update, and delete resources");
         Checkbox approverRole = new Checkbox("Approver - Can approve pending items");
 
-        dialogLayout.add(emailField, firstNameField, lastNameField, rolesHeader, viewerRole, creatorRole, approverRole);
+        dialogLayout.add(emailField, useEmailAsLoginCheckbox, loginIdField,
+                firstNameField, lastNameField, rolesHeader,
+                securityAdminRole, serviceAdminRole, viewerRole, creatorRole, approverRole);
 
         Button createButton = new Button("Add User");
         createButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -375,13 +395,28 @@ public class ProfileDetailView extends VerticalLayout implements HasUrlParameter
                 return;
             }
 
+            // Determine login ID
+            String loginId;
+            if (useEmailAsLoginCheckbox.getValue()) {
+                loginId = email;
+            } else {
+                loginId = loginIdField.getValue();
+                if (loginId == null || loginId.isBlank()) {
+                    Notification.show("Login ID is required when not using email").addThemeVariants(NotificationVariant.LUMO_ERROR);
+                    return;
+                }
+            }
+
             Set<String> roles = new HashSet<>();
+            if (securityAdminRole.getValue()) roles.add("SECURITY_ADMIN");
+            if (serviceAdminRole.getValue()) roles.add("SERVICE_ADMIN");
             if (viewerRole.getValue()) roles.add("READER");
             if (creatorRole.getValue()) roles.add("CREATOR");
             if (approverRole.getValue()) roles.add("APPROVER");
 
             try {
                 AddUserRequest request = new AddUserRequest();
+                request.setLoginId(loginId);
                 request.setEmail(email);
                 request.setFirstName(firstName);
                 request.setLastName(lastName);
@@ -399,6 +434,7 @@ public class ProfileDetailView extends VerticalLayout implements HasUrlParameter
                 Notification notification = Notification.show("Error adding user: " + ex.getMessage());
                 notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
                 notification.setPosition(Notification.Position.TOP_CENTER);
+                notification.setDuration(10000);
             }
         });
 
@@ -766,7 +802,7 @@ public class ProfileDetailView extends VerticalLayout implements HasUrlParameter
             Notification notification = Notification.show("Error loading profile details: " + e.getMessage());
             notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
             notification.setPosition(Notification.Position.TOP_CENTER);
-            notification.setDuration(5000);
+            notification.setDuration(10000);
         }
     }
 

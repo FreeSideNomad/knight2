@@ -75,15 +75,6 @@ public class UserEntity {
     @Column(name = "deactivation_reason", length = 500)
     private String deactivationReason;
 
-    @Column(name = "passkey_offered", nullable = false)
-    private boolean passkeyOffered;
-
-    @Column(name = "passkey_enrolled", nullable = false)
-    private boolean passkeyEnrolled;
-
-    @Column(name = "passkey_has_uv", nullable = false)
-    private boolean passkeyHasUv;
-
     @Column(name = "mfa_preference", length = 20)
     private String mfaPreference;
 

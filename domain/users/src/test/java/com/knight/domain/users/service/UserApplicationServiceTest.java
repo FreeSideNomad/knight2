@@ -31,8 +31,7 @@ import java.time.Instant;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -51,7 +50,8 @@ class UserApplicationServiceTest {
     @InjectMocks
     private UserApplicationService service;
 
-    private static final String VALID_EMAIL = "test@example.com";
+    private static final String LOGIN_ID = "testuser@king.com";  // Used as Auth0 email field
+    private static final String VALID_EMAIL = "test@example.com"; // Real email for OTP delivery
     private static final String FIRST_NAME = "John";
     private static final String LAST_NAME = "Doe";
     private static final ProfileId PROFILE_ID = ProfileId.of("servicing", ClientId.of("srf:123456789"));
@@ -67,7 +67,7 @@ class UserApplicationServiceTest {
         void shouldCreateUserSuccessfully() {
             // given
             CreateUserCmd cmd = new CreateUserCmd(
-                "jdoe",
+                LOGIN_ID,  // loginId must be valid email format
                 VALID_EMAIL,
                 FIRST_NAME,
                 LAST_NAME,
@@ -759,7 +759,7 @@ class UserApplicationServiceTest {
 
     private User createPendingUser(IdentityProvider identityProvider) {
         return User.create(
-            "testuser",
+            LOGIN_ID,
             VALID_EMAIL,
             FIRST_NAME,
             LAST_NAME,
@@ -851,9 +851,11 @@ class UserApplicationServiceTest {
         }
 
         @Test
-        @DisplayName("should update email in Auth0 when user is provisioned")
-        void shouldUpdateEmailInAuth0WhenProvisioned() {
+        @DisplayName("should NOT update email in Auth0 when user email changes - Auth0 uses loginId as email field")
+        void shouldNotUpdateEmailInAuth0WhenProvisioned() {
             // given
+            // Auth0 uses loginId as its email field, not the real email
+            // The real email is only stored in our local database for OTP delivery
             User user = createActiveUser();
             UserId userId = user.id();
             String newEmail = "newemail@example.com";
@@ -865,8 +867,8 @@ class UserApplicationServiceTest {
             // when
             service.updateUserEmail(new UpdateUserEmailCmd(userId, newEmail, updatedBy));
 
-            // then
-            verify(auth0IdentityService).updateUserEmail(user.identityProviderUserId(), newEmail);
+            // then - Auth0 should NOT be called since we only update local email
+            verify(auth0IdentityService, never()).updateUserEmail(anyString(), anyString());
         }
 
         @Test

@@ -218,9 +218,10 @@ public class FtrController {
         }
 
         // Complete onboarding in Auth0 (sets password)
+        // Note: Auth0 uses loginId as the email field for authentication
         ObjectNode auth0Response = auth0Adapter.completeOnboarding(
             user.identityProviderUserId(),
-            user.email(),
+            user.loginId(),  // Use loginId for Auth0 authentication
             request.password()
         );
 

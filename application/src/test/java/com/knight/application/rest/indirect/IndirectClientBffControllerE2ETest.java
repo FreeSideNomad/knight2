@@ -187,7 +187,7 @@ class IndirectClientBffControllerE2ETest {
 
         // Create a user in the indirect client's profile
         testUser = User.create(
-            "indirectuser",
+            "indirectuser@king.com",
             "indirect@test.com",
             "Indirect",
             "User",
@@ -975,7 +975,7 @@ class IndirectClientBffControllerE2ETest {
         @BeforeEach
         void setUp() {
             savedUser = User.create(
-                "indirectprofileuser",
+                "indirectprofileuser@king.com",
                 "profileuser@indirect.com",
                 "Profile",
                 "UserTest",
@@ -1002,7 +1002,7 @@ class IndirectClientBffControllerE2ETest {
         void shouldReturn404ForUserInDifferentProfile() throws Exception {
             // Create a user in the bank profile (different profile)
             User otherUser = User.create(
-                "bankuser",
+                "bankuser@king.com",
                 "bankuser@bank.com",
                 "Bank",
                 "User",
@@ -1029,7 +1029,7 @@ class IndirectClientBffControllerE2ETest {
         @DisplayName("should return 404 for user in different profile")
         void shouldReturn404ForUserInDifferentProfile() throws Exception {
             User otherUser = User.create(
-                "otherpassword",
+                "otherpassword@king.com",
                 "otherpassword@other.com",
                 "Other",
                 "User",
@@ -1057,7 +1057,7 @@ class IndirectClientBffControllerE2ETest {
         @BeforeEach
         void setUp() {
             savedUser = User.create(
-                "rolesupdateuser",
+                "rolesupdateuser@king.com",
                 "rolesupdate@indirect.com",
                 "Roles",
                 "Update",
@@ -1089,7 +1089,7 @@ class IndirectClientBffControllerE2ETest {
         @DisplayName("should return 404 for user in different profile")
         void shouldReturn404ForUserInDifferentProfile() throws Exception {
             User otherUser = User.create(
-                "otherroles",
+                "otherroles@king.com",
                 "otherroles@other.com",
                 "Other",
                 "User",
@@ -1124,7 +1124,7 @@ class IndirectClientBffControllerE2ETest {
         @BeforeEach
         void setUp() {
             savedUser = User.create(
-                "invitationuser",
+                "invitationuser@king.com",
                 "invitation@indirect.com",
                 "Invitation",
                 "User",
@@ -1150,7 +1150,7 @@ class IndirectClientBffControllerE2ETest {
         @DisplayName("should return 404 for user in different profile")
         void shouldReturn404ForUserInDifferentProfile() throws Exception {
             User otherUser = User.create(
-                "otherinvite",
+                "otherinvite@king.com",
                 "otherinvite@other.com",
                 "Other",
                 "User",
@@ -1178,7 +1178,7 @@ class IndirectClientBffControllerE2ETest {
         @BeforeEach
         void setUp() {
             savedUser = User.create(
-                "lockuserind",
+                "lockuserind@king.com",
                 "lockuserind@indirect.com",
                 "Lock",
                 "User",
@@ -1211,7 +1211,7 @@ class IndirectClientBffControllerE2ETest {
         @DisplayName("should return 404 for user in different profile")
         void shouldReturn404ForUserInDifferentProfile() throws Exception {
             User otherUser = User.create(
-                "otherlockind",
+                "otherlockind@king.com",
                 "otherlockind@other.com",
                 "Other",
                 "User",
@@ -1239,7 +1239,7 @@ class IndirectClientBffControllerE2ETest {
         @BeforeEach
         void setUp() {
             savedUser = User.create(
-                "unlockuserind",
+                "unlockuserind@king.com",
                 "unlockuserind@indirect.com",
                 "Unlock",
                 "User",
@@ -1266,7 +1266,7 @@ class IndirectClientBffControllerE2ETest {
         @DisplayName("should return 404 for user in different profile")
         void shouldReturn404ForUserInDifferentProfile() throws Exception {
             User otherUser = User.create(
-                "otherunlockind",
+                "otherunlockind@king.com",
                 "otherunlockind@other.com",
                 "Other",
                 "User",
@@ -1294,7 +1294,7 @@ class IndirectClientBffControllerE2ETest {
         @BeforeEach
         void setUp() {
             savedUser = User.create(
-                "deactivateuserind",
+                "deactivateuserind@king.com",
                 "deactivateuserind@indirect.com",
                 "Deactivate",
                 "User",
@@ -1327,7 +1327,7 @@ class IndirectClientBffControllerE2ETest {
         @DisplayName("should return 404 for user in different profile")
         void shouldReturn404ForUserInDifferentProfile() throws Exception {
             User otherUser = User.create(
-                "otherdeactivateind",
+                "otherdeactivateind@king.com",
                 "otherdeactivateind@other.com",
                 "Other",
                 "User",
@@ -1560,7 +1560,7 @@ class IndirectClientBffControllerE2ETest {
         @BeforeEach
         void setUpLockableUser() {
             lockableUser = User.create(
-                "lockableuser",
+                "lockableuser@king.com",
                 "lockableuser@test.com",
                 "Lockable",
                 "User",
@@ -1615,7 +1615,7 @@ class IndirectClientBffControllerE2ETest {
         @DisplayName("should return 404 when locking user in different profile")
         void shouldReturn404WhenLockingUserInDifferentProfile() throws Exception {
             User otherUser = User.create(
-                "otherlocklind",
+                "otherlocklind@king.com",
                 "otherlockind@other.com",
                 "Other",
                 "User",
@@ -1637,7 +1637,7 @@ class IndirectClientBffControllerE2ETest {
         @DisplayName("should return 404 when unlocking user in different profile")
         void shouldReturn404WhenUnlockingUserInDifferentProfile() throws Exception {
             User otherUser = User.create(
-                "otherunlockind",
+                "otherunlockind@king.com",
                 "otherunlockind@other.com",
                 "Other",
                 "User",
@@ -1685,7 +1685,7 @@ class IndirectClientBffControllerE2ETest {
         @DisplayName("should return 400 when adding user from different profile to group")
         void shouldReturn400WhenAddingUserFromDifferentProfile() throws Exception {
             User otherUser = User.create(
-                "othergroupind",
+                "othergroupind@king.com",
                 "othergroupind@other.com",
                 "Other",
                 "User",
@@ -1909,7 +1909,7 @@ class IndirectClientBffControllerE2ETest {
         void shouldRemoveGroupMemberSuccessfully() throws Exception {
             // Create a user for our profile first
             User user = User.create(
-                "member_to_remove",
+                "member_to_remove@king.com",
                 "membertoremove@company.com",
                 "Remove",
                 "Member",

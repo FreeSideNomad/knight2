@@ -24,7 +24,7 @@ import static org.assertj.core.api.Assertions.*;
 @DisplayName("User Last Logged In Tests")
 class UserLastLoggedInTest {
 
-    private static final String LOGIN_ID = "jdoe";
+    private static final String LOGIN_ID = "jdoe@king.com";
     private static final String EMAIL = "test@example.com";
     private static final String FIRST_NAME = "John";
     private static final String LAST_NAME = "Doe";

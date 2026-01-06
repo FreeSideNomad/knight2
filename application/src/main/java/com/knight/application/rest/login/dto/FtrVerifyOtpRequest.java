@@ -1,5 +1,6 @@
 package com.knight.application.rest.login.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -8,6 +9,7 @@ import jakarta.validation.constraints.Size;
  */
 public record FtrVerifyOtpRequest(
     @NotBlank(message = "Login ID is required")
+    @JsonProperty("login_id")
     String loginId,
 
     @NotBlank(message = "Verification code is required")
