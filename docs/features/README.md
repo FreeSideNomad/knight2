@@ -9,11 +9,12 @@ This directory contains detailed feature specifications broken down into user st
 | 01 | [User Management](./01-user-management.md) | User lifecycle, login tracking, lock types, soft delete |
 | 02 | [Permissions & Authorization](./02-permissions-authorization.md) | URN-based actions, roles, permission evaluation |
 | 03 | [Account Groups](./03-account-groups.md) | Client-managed account groupings for permissions |
-| 04 | [Authentication & MFA](./04-authentication-mfa.md) | Auth0 integration, registration, MFA options |
+| 04 | [Authentication & MFA](./04-authentication-mfa.md) | Auth0 integration, registration, MFA options (legacy) |
 | 05 | [Services Architecture](./05-services-architecture.md) | Abstract service base class, account eligibility |
 | 06 | [User Groups](./06-user-groups.md) | User groupings for permission management |
 | 07 | [Indirect Client Portal](./07-indirect-client-portal.md) | Portal-specific user management features |
 | 08 | [Sample Data](./08-sample-data.md) | Test data generation improvements |
+| 10 | [Auth0 Authentication](./10-auth0-authentication.md) | **Current**: FTR, MFA, Password Reset, Step-Up Auth |
 
 ## Key Concepts
 

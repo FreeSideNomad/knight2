@@ -20,26 +20,26 @@
     <!-- Main Content -->
     <main class="main">
         <div class="login-card">
-            <!-- Screen 1: Email Entry -->
+            <!-- Screen 1: Login ID Entry -->
             <div id="screen-email" class="screen active">
                 <div class="login-card-header">
                     <h1>Sign in</h1>
-                    <p>Enter your email to continue</p>
+                    <p>Enter your login ID to continue</p>
                 </div>
                 <div class="login-card-body">
                     <div id="email-error" class="message message-error" style="display: none;"></div>
 
                     <form id="email-form">
                         <div class="form-group">
-                            <label for="email" class="form-label">Email address</label>
+                            <label for="email" class="form-label">Login ID</label>
                             <input
-                                type="email"
+                                type="text"
                                 id="email"
                                 name="email"
                                 class="form-input"
-                                placeholder="name@company.com"
+                                placeholder="Enter your login ID"
                                 required
-                                autocomplete="email"
+                                autocomplete="username"
                                 autofocus
                             >
                         </div>

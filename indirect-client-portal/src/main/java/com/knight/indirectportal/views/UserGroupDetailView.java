@@ -34,7 +34,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Route(value = "groups/:groupId", layout = MainLayout.class)
-@PageTitle("Group Details")
 @PermitAll
 public class UserGroupDetailView extends VerticalLayout implements BeforeEnterObserver, HasDynamicTitle {
 

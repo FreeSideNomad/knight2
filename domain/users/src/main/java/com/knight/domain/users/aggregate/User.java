@@ -13,7 +13,10 @@ import java.util.regex.Pattern;
  */
 public class User {
 
-    private static final Pattern LOGIN_ID_PATTERN = Pattern.compile("^[a-zA-Z0-9_]{3,50}$");
+    // Login ID must be a valid email format (used as email field in Auth0)
+    private static final Pattern LOGIN_ID_PATTERN = Pattern.compile(
+        "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+    );
 
     public enum Status {
         PENDING_CREATION,      // User created locally, not yet provisioned to IdP
@@ -64,8 +67,7 @@ public class User {
 
     public enum MfaPreference {
         GUARDIAN,  // Prefer Guardian push notification
-        TOTP,      // Prefer TOTP authenticator app
-        PASSKEY    // Prefer passkey (if enrolled with UV)
+        TOTP       // Prefer TOTP authenticator app
     }
 
     // Core fields
@@ -87,11 +89,6 @@ public class User {
     private boolean mfaEnrolled;
     private Instant lastSyncedAt;
     private Instant lastLoggedInAt;
-
-    // Passkey fields
-    private boolean passkeyOffered;   // User was offered passkey enrollment
-    private boolean passkeyEnrolled;  // User has at least one passkey enrolled
-    private boolean passkeyHasUv;     // User's passkey has user verification capability
 
     // MFA preference
     private MfaPreference mfaPreference;  // User's preferred MFA method
@@ -126,9 +123,6 @@ public class User {
         this.emailVerified = false;
         this.passwordSet = false;
         this.mfaEnrolled = false;
-        this.passkeyOffered = false;
-        this.passkeyEnrolled = false;
-        this.passkeyHasUv = false;
         this.createdAt = Instant.now();
         this.updatedAt = this.createdAt;
     }
@@ -148,12 +142,11 @@ public class User {
         return reconstitute(id, loginId, email, firstName, lastName, userType, identityProvider,
                 profileId, roles, identityProviderUserId, emailVerified, passwordSet, mfaEnrolled,
                 lastSyncedAt, lastLoggedInAt, status, lockType, lockedBy, lockedAt, deactivationReason,
-                false, false, false, // passkey defaults
-                createdAt, createdBy, updatedAt);
+                null, createdAt, createdBy, updatedAt);
     }
 
     /**
-     * Factory method for reconstitution from persistence with passkey fields.
+     * Factory method for reconstitution from persistence with MFA preference.
      */
     public static User reconstitute(
             UserId id, String loginId, String email, String firstName, String lastName,
@@ -163,27 +156,6 @@ public class User {
             Instant lastLoggedInAt,
             Status status, LockType lockType, String lockedBy, Instant lockedAt,
             String deactivationReason,
-            boolean passkeyOffered, boolean passkeyEnrolled, boolean passkeyHasUv,
-            Instant createdAt, String createdBy, Instant updatedAt) {
-        return reconstitute(id, loginId, email, firstName, lastName, userType, identityProvider,
-                profileId, roles, identityProviderUserId, emailVerified, passwordSet, mfaEnrolled,
-                lastSyncedAt, lastLoggedInAt, status, lockType, lockedBy, lockedAt, deactivationReason,
-                passkeyOffered, passkeyEnrolled, passkeyHasUv, null, // mfaPreference defaults to null
-                createdAt, createdBy, updatedAt);
-    }
-
-    /**
-     * Factory method for reconstitution from persistence with all fields.
-     */
-    public static User reconstitute(
-            UserId id, String loginId, String email, String firstName, String lastName,
-            UserType userType, IdentityProvider identityProvider,
-            ProfileId profileId, Set<Role> roles, String identityProviderUserId,
-            boolean emailVerified, boolean passwordSet, boolean mfaEnrolled, Instant lastSyncedAt,
-            Instant lastLoggedInAt,
-            Status status, LockType lockType, String lockedBy, Instant lockedAt,
-            String deactivationReason,
-            boolean passkeyOffered, boolean passkeyEnrolled, boolean passkeyHasUv,
             MfaPreference mfaPreference,
             Instant createdAt, String createdBy, Instant updatedAt) {
         User user = new User(id, loginId, email, firstName, lastName, userType, identityProvider,
@@ -199,9 +171,6 @@ public class User {
         user.lockedBy = lockedBy;
         user.lockedAt = lockedAt;
         user.deactivationReason = deactivationReason;
-        user.passkeyOffered = passkeyOffered;
-        user.passkeyEnrolled = passkeyEnrolled;
-        user.passkeyHasUv = passkeyHasUv;
         user.mfaPreference = mfaPreference;
         // Override createdAt and updatedAt from persistence
         try {
@@ -236,7 +205,7 @@ public class User {
         }
         if (!LOGIN_ID_PATTERN.matcher(loginId).matches()) {
             throw new IllegalArgumentException(
-                "Login ID must be 3-50 characters and contain only alphanumeric characters and underscores");
+                "Login ID must be a valid email format (e.g., user@domain.com)");
         }
     }
 
@@ -456,58 +425,16 @@ public class User {
     public Instant createdAt() { return createdAt; }
     public String createdBy() { return createdBy; }
     public Instant updatedAt() { return updatedAt; }
-    public boolean passkeyOffered() { return passkeyOffered; }
-    public boolean passkeyEnrolled() { return passkeyEnrolled; }
-    public boolean passkeyHasUv() { return passkeyHasUv; }
     public MfaPreference mfaPreference() { return mfaPreference; }
 
     // MFA Preference methods
 
     /**
      * Set user's preferred MFA method.
-     * @param preference The preferred MFA method (GUARDIAN, TOTP, or PASSKEY)
+     * @param preference The preferred MFA method (GUARDIAN or TOTP)
      */
     public void setMfaPreference(MfaPreference preference) {
         this.mfaPreference = preference;
-        this.updatedAt = Instant.now();
-    }
-
-    // Passkey methods
-
-    /**
-     * Mark that passkey enrollment was offered to this user.
-     * Called after successful login when user is eligible for passkey.
-     */
-    public void markPasskeyOffered() {
-        this.passkeyOffered = true;
-        this.updatedAt = Instant.now();
-    }
-
-    /**
-     * Record successful passkey enrollment.
-     * @param hasUserVerification Whether the passkey has user verification (biometric/PIN)
-     */
-    public void enrollPasskey(boolean hasUserVerification) {
-        this.passkeyEnrolled = true;
-        this.passkeyHasUv = hasUserVerification;
-        this.updatedAt = Instant.now();
-    }
-
-    /**
-     * Record passkey unenrollment (all passkeys removed).
-     */
-    public void unenrollPasskey() {
-        this.passkeyEnrolled = false;
-        this.passkeyHasUv = false;
-        this.updatedAt = Instant.now();
-    }
-
-    /**
-     * Update passkey user verification status.
-     * Called when a new passkey with different UV capability is added.
-     */
-    public void updatePasskeyUv(boolean hasUserVerification) {
-        this.passkeyHasUv = hasUserVerification;
         this.updatedAt = Instant.now();
     }
 }

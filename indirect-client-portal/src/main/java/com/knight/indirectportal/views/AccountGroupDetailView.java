@@ -33,7 +33,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Route(value = "account-groups/:groupId", layout = MainLayout.class)
-@PageTitle("Account Group Details")
 @PermitAll
 public class AccountGroupDetailView extends VerticalLayout implements BeforeEnterObserver, HasDynamicTitle {
 

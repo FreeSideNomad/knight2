@@ -73,7 +73,7 @@ class Auth0UserContextFilterTest {
 
     private User createTestUser() {
         return User.create(
-            "testuser",
+            "testuser@king.com",
             "test@example.com",
             "Test",
             "User",

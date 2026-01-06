@@ -128,7 +128,7 @@ class IndirectClientBffControllerTest {
 
     private User createTestUser() {
         return User.create(
-            "testuser",
+            "testuser@king.com",
             TEST_EMAIL,
             "Test",
             "User",

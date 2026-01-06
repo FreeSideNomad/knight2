@@ -79,6 +79,7 @@ public class UserService {
      * Add a new user to a profile.
      */
     public AddUserResponse addUser(String profileId, AddUserRequest request) {
+        System.out.println("DEBUG: Adding user - loginId=" + request.getLoginId() + ", email=" + request.getEmail());
         Map<String, Object> response = restClient.post()
                 .uri("/api/v1/bank/profiles/{profileId}/users", profileId)
                 .contentType(MediaType.APPLICATION_JSON)

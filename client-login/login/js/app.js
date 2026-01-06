@@ -512,11 +512,11 @@
         };
     }
 
-    async function checkUser(email) {
+    async function checkUser(loginId) {
         const response = await fetch('/api/user/check', {
             method: 'POST',
             headers: getApiHeaders(),
-            body: JSON.stringify({ email })
+            body: JSON.stringify({ loginId })
         });
         return response.json();
     }
@@ -975,7 +975,7 @@
 
         const email = document.getElementById('email').value.trim();
         if (!email) {
-            showError('email-error', 'Please enter your email address');
+            showError('email-error', 'Please enter your login ID');
             return;
         }
 

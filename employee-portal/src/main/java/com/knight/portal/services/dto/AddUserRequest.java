@@ -6,10 +6,14 @@ import java.util.Set;
  * Request to add a new user to a profile.
  */
 public class AddUserRequest {
+    private String loginId;
     private String email;
     private String firstName;
     private String lastName;
     private Set<String> roles;
+
+    public String getLoginId() { return loginId; }
+    public void setLoginId(String loginId) { this.loginId = loginId; }
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }

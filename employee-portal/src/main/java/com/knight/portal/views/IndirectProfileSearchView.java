@@ -204,7 +204,7 @@ public class IndirectProfileSearchView extends VerticalLayout implements AfterNa
             Notification notification = Notification.show("Error searching indirect profiles: " + e.getMessage());
             notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
             notification.setPosition(Notification.Position.TOP_CENTER);
-            notification.setDuration(5000);
+            notification.setDuration(10000);
         }
     }
 

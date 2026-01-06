@@ -24,7 +24,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Route(value = "users/:userId", layout = MainLayout.class)
-@PageTitle("User Details")
 @PermitAll
 public class UserDetailView extends VerticalLayout implements BeforeEnterObserver, HasDynamicTitle {
 
