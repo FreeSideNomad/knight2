@@ -45,7 +45,9 @@
         fallbackToken: '',           // Token from OTP verification for fallback
         // Guardian reset state
         guardianResetOtpExpiresAt: null,
-        guardianResetOtpCountdownInterval: null
+        guardianResetOtpCountdownInterval: null,
+        // MFA re-enrollment state
+        allowMfaReenrollment: false  // True when admin has reset MFA for user
     };
 
     // DOM Elements
@@ -995,6 +997,12 @@
 
             state.email = email;
             state.userId = userStatus.user_id;
+            state.allowMfaReenrollment = userStatus.allow_mfa_reenrollment || false;
+
+            // Check if admin has reset MFA for this user (they need to re-enroll)
+            if (state.allowMfaReenrollment) {
+                console.log('User has MFA re-enrollment required, will redirect to MFA setup after login');
+            }
 
             if (userStatus.onboarding_complete || userStatus.has_mfa) {
                 // Returning user (or user who completed MFA but flag wasn't set)
@@ -1011,7 +1019,8 @@
                 }
 
                 // If user has passkey and browser supports it, try passkey auth first
-                if (state.passkeyEnrolled && state.passkeySupported) {
+                // Note: Skip passkey if MFA re-enrollment is required
+                if (state.passkeyEnrolled && state.passkeySupported && !state.allowMfaReenrollment) {
                     console.log('User has passkey enrolled, starting passkey authentication');
                     startPasskeyAuthentication();
                 } else {
@@ -1125,13 +1134,20 @@
             const result = await loginUser(state.email, password);
             console.log('Login result:', result);
 
+            // Check if login result also indicates MFA re-enrollment is needed
+            const needsMfaReenrollment = state.allowMfaReenrollment || result.allow_mfa_reenrollment;
+
             if (result.mfa_required && result.mfa_token) {
                 state.mfaToken = result.mfa_token;
                 state.enrolledAuthenticators = result.authenticators || [];
 
-                if (state.isOnboarding) {
-                    // Onboarding user - go to MFA enrollment
-                    console.log('Onboarding user authenticated, showing MFA enrollment');
+                if (state.isOnboarding || needsMfaReenrollment) {
+                    // Onboarding user or user needing MFA re-enrollment - go to MFA enrollment
+                    if (needsMfaReenrollment) {
+                        console.log('User needs MFA re-enrollment, showing MFA enrollment');
+                    } else {
+                        console.log('Onboarding user authenticated, showing MFA enrollment');
+                    }
                     showScreen('mfaSelect');
                 } else {
                     // Returning user - initiate Guardian challenge
@@ -1152,8 +1168,15 @@
                     }
                 }
             } else if (result.authenticated && result.session_id) {
-                // Check if we're in passkey fallback mode - offer passkey enrollment on this device
-                if (state.isPasskeyFallback && state.passkeySupported) {
+                // Check if MFA re-enrollment is required (admin reset MFA)
+                if (needsMfaReenrollment && result.mfa_token) {
+                    // User's MFA was reset by admin - redirect to MFA enrollment
+                    console.log('MFA re-enrollment required, redirecting to MFA setup');
+                    state.mfaToken = result.mfa_token;
+                    state.enrolledAuthenticators = [];
+                    showScreen('mfaSelect');
+                } else if (state.isPasskeyFallback && state.passkeySupported) {
+                    // Check if we're in passkey fallback mode - offer passkey enrollment on this device
                     state.sessionId = result.session_id;
                     state.isPasskeyFallback = false; // Reset fallback mode
                     console.log('Passkey fallback login successful, offering passkey enrollment');

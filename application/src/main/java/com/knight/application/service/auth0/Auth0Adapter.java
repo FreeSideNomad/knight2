@@ -293,14 +293,16 @@ public class Auth0Adapter {
                 log.warn("Failed to get authenticators for user {}: {}", userId, e.getMessage());
             }
 
-            // Determine portal type from profile ID in database
+            // Determine portal type and MFA re-enrollment status from profile ID in database
             // Note: Auth0 email field now contains loginId, so we look up by loginId
             PortalType portalType = PortalType.CLIENT;
+            boolean allowMfaReenrollment = false;
             try {
                 var localUser = userRepository.findByLoginId(email);  // email param is actually loginId in Auth0
                 if (localUser.isPresent()) {
                     var user = localUser.get();
                     portalType = PortalType.fromProfileId(user.profileId().urn());
+                    allowMfaReenrollment = user.allowMfaReenrollment();
                 }
             } catch (Exception e) {
                 log.warn("Failed to get local user data for {}: {}", email, e.getMessage());
@@ -314,7 +316,8 @@ public class Auth0Adapter {
                 .put("user_id", userId)
                 .put("email_verified", dbUser.path("email_verified").asBoolean(false))
                 .put("onboarding_complete", onboardingComplete)
-                .put("client_type", portalType.name());
+                .put("client_type", portalType.name())
+                .put("allow_mfa_reenrollment", allowMfaReenrollment);
             result.set("authenticators", authenticatorsList);
 
             return result;
@@ -365,6 +368,20 @@ public class Auth0Adapter {
         }
     }
 
+    /**
+     * Checks if user has MFA re-enrollment allowed.
+     */
+    private boolean isAllowMfaReenrollment(String loginId) {
+        try {
+            return userRepository.findByLoginId(loginId)
+                .map(user -> user.allowMfaReenrollment())
+                .orElse(false);
+        } catch (Exception e) {
+            log.warn("Failed to check MFA re-enrollment for {}: {}", loginId, e.getMessage());
+            return false;
+        }
+    }
+
     // ========================================
     // Passwordless Login Support (from original auth-service)
     // ========================================
@@ -385,10 +402,11 @@ public class Auth0Adapter {
             authResult.put("email", email);
         }
 
-        // Add client_type for portal routing (only if authentication succeeded)
+        // Add client_type and allow_mfa_reenrollment for portal routing (only if authentication succeeded)
         if (!authResult.has("error")) {
             PortalType portalType = determinePortalType(email);
             authResult.put("client_type", portalType.name());
+            authResult.put("allow_mfa_reenrollment", isAllowMfaReenrollment(email));
 
             // Sync user status if login succeeded (without MFA or with MFA not required)
             if (!authResult.has("mfa_required") || !authResult.get("mfa_required").asBoolean()) {
@@ -1081,6 +1099,13 @@ public class Auth0Adapter {
                     user.updateOnboardingStatus(emailVerified, passwordSet, mfaEnrolled);
                     userRepository.save(user);
                     log.debug("Updated lastSyncedAt for user: {}", loginId);
+                }
+
+                // Clear MFA re-enrollment flag when MFA is successfully enrolled
+                if (mfaEnrolled && user.allowMfaReenrollment()) {
+                    user.clearMfaReenrollmentRequirement();
+                    userRepository.save(user);
+                    log.info("Cleared MFA re-enrollment flag for user: {}", loginId);
                 }
             });
         } catch (Exception e) {
