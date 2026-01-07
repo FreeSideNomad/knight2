@@ -280,6 +280,45 @@ public class UserApplicationService implements UserCommands, UserQueries {
         return new UpdateEmailResult(previousEmail, cmd.newEmail());
     }
 
+    // ==================== MFA Re-enrollment ====================
+
+    @Override
+    @Transactional
+    public void resetUserMfa(ResetUserMfaCmd cmd) {
+        User user = repository.findById(cmd.userId())
+            .orElseThrow(() -> new IllegalArgumentException("User not found: " + cmd.userId().id()));
+
+        // Delete MFA enrollments from Auth0 if user is provisioned
+        if (user.identityProviderUserId() != null) {
+            auth0IdentityService.deleteAllMfaEnrollments(user.identityProviderUserId());
+        }
+
+        // Set the re-enrollment flag on the user
+        user.requireMfaReenrollment(cmd.actor());
+        repository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public void clearMfaReenrollment(ClearMfaReenrollmentCmd cmd) {
+        User user = repository.findById(cmd.userId())
+            .orElseThrow(() -> new IllegalArgumentException("User not found: " + cmd.userId().id()));
+
+        user.clearMfaReenrollmentRequirement();
+        repository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public void completeMfaReenrollment(CompleteMfaReenrollmentCmd cmd) {
+        User user = repository.findById(cmd.userId())
+            .orElseThrow(() -> new IllegalArgumentException("User not found: " + cmd.userId().id()));
+
+        User.MfaPreference mfaPreference = User.MfaPreference.valueOf(cmd.mfaPreference());
+        user.completeMfaReenrollment(mfaPreference);
+        repository.save(user);
+    }
+
     // ==================== Queries ====================
 
     @Override
@@ -388,6 +427,7 @@ public class UserApplicationService implements UserCommands, UserQueries {
             roles,
             user.passwordSet(),
             user.mfaEnrolled(),
+            user.allowMfaReenrollment(),
             user.createdAt(),
             user.createdBy(),
             user.lastSyncedAt(),

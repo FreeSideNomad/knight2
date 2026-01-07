@@ -1353,6 +1353,129 @@ class UserTest {
         }
     }
 
+    @Nested
+    @DisplayName("MFA Re-enrollment Tests")
+    class MfaReenrollmentTests {
+
+        @Test
+        @DisplayName("should require MFA re-enrollment")
+        void shouldRequireMfaReenrollment() {
+            // given
+            User user = createActiveUser();
+            assertThat(user.mfaEnrolled()).isTrue();
+            assertThat(user.allowMfaReenrollment()).isFalse();
+
+            // when
+            user.requireMfaReenrollment("admin@example.com");
+
+            // then
+            assertThat(user.allowMfaReenrollment()).isTrue();
+            assertThat(user.mfaEnrolled()).isFalse();
+            assertThat(user.mfaReenrollmentRequestedAt()).isNotNull();
+            assertThat(user.mfaReenrollmentRequestedBy()).isEqualTo("admin@example.com");
+        }
+
+        @Test
+        @DisplayName("should reject null requester for MFA re-enrollment")
+        void shouldRejectNullRequesterForMfaReenrollment() {
+            // given
+            User user = createActiveUser();
+
+            // when/then
+            assertThatThrownBy(() -> user.requireMfaReenrollment(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Requester is required");
+        }
+
+        @Test
+        @DisplayName("should reject blank requester for MFA re-enrollment")
+        void shouldRejectBlankRequesterForMfaReenrollment() {
+            // given
+            User user = createActiveUser();
+
+            // when/then
+            assertThatThrownBy(() -> user.requireMfaReenrollment("   "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Requester is required");
+        }
+
+        @Test
+        @DisplayName("should clear MFA re-enrollment requirement")
+        void shouldClearMfaReenrollmentRequirement() {
+            // given
+            User user = createActiveUser();
+            user.requireMfaReenrollment("admin@example.com");
+            assertThat(user.allowMfaReenrollment()).isTrue();
+
+            // when
+            user.clearMfaReenrollmentRequirement();
+
+            // then
+            assertThat(user.allowMfaReenrollment()).isFalse();
+            assertThat(user.mfaReenrollmentRequestedAt()).isNull();
+            assertThat(user.mfaReenrollmentRequestedBy()).isNull();
+        }
+
+        @Test
+        @DisplayName("should complete MFA re-enrollment with GUARDIAN preference")
+        void shouldCompleteMfaReenrollmentWithGuardian() {
+            // given
+            User user = createActiveUser();
+            user.requireMfaReenrollment("admin@example.com");
+
+            // when
+            user.completeMfaReenrollment(User.MfaPreference.GUARDIAN);
+
+            // then
+            assertThat(user.mfaEnrolled()).isTrue();
+            assertThat(user.mfaPreference()).isEqualTo(User.MfaPreference.GUARDIAN);
+            assertThat(user.allowMfaReenrollment()).isFalse();
+            assertThat(user.mfaReenrollmentRequestedAt()).isNull();
+            assertThat(user.mfaReenrollmentRequestedBy()).isNull();
+        }
+
+        @Test
+        @DisplayName("should complete MFA re-enrollment with TOTP preference")
+        void shouldCompleteMfaReenrollmentWithTotp() {
+            // given
+            User user = createActiveUser();
+            user.requireMfaReenrollment("admin@example.com");
+
+            // when
+            user.completeMfaReenrollment(User.MfaPreference.TOTP);
+
+            // then
+            assertThat(user.mfaEnrolled()).isTrue();
+            assertThat(user.mfaPreference()).isEqualTo(User.MfaPreference.TOTP);
+            assertThat(user.allowMfaReenrollment()).isFalse();
+        }
+
+        @Test
+        @DisplayName("should update status to ACTIVE after MFA re-enrollment if password was set")
+        void shouldUpdateStatusToActiveAfterMfaReenrollment() {
+            // given
+            User user = createProvisionedUser();
+            user.updateOnboardingStatus(true, true, false);  // Password set, no MFA
+            user.requireMfaReenrollment("admin@example.com");
+            assertThat(user.status()).isEqualTo(Status.PENDING_MFA);
+
+            // when
+            user.completeMfaReenrollment(User.MfaPreference.GUARDIAN);
+
+            // then
+            assertThat(user.status()).isEqualTo(Status.ACTIVE);
+        }
+
+        @Test
+        @DisplayName("should have false allowMfaReenrollment initially")
+        void shouldHaveFalseAllowMfaReenrollmentInitially() {
+            User user = createValidUser();
+            assertThat(user.allowMfaReenrollment()).isFalse();
+            assertThat(user.mfaReenrollmentRequestedAt()).isNull();
+            assertThat(user.mfaReenrollmentRequestedBy()).isNull();
+        }
+    }
+
     // ==================== Helper Methods ====================
 
     private static User createValidUser() {

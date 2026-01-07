@@ -438,6 +438,33 @@ public class IndirectClientBffController {
     }
 
     /**
+     * Reset MFA for user.
+     * Deletes all MFA enrollments in Auth0 and sets allowMfaReenrollment flag.
+     * User will be prompted to enroll MFA again on next login.
+     */
+    @PostMapping("/users/{userId}/reset-mfa")
+    public ResponseEntity<Void> resetUserMfa(@PathVariable String userId) {
+        ProfileId profileId = getProfileIdFromContext();
+        String actor = auth0UserContext.getUserEmail()
+            .orElseThrow(() -> new ForbiddenException("User email not found in context"));
+
+        // Verify user belongs to this profile
+        UserDetail detail = userQueries.getUserDetail(UserId.of(userId));
+        if (!profileId.urn().equals(detail.profileId())) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Reset MFA via domain command
+        userCommands.resetUserMfa(new ResetUserMfaCmd(
+            UserId.of(userId),
+            "Admin MFA reset request",
+            actor
+        ));
+
+        return ResponseEntity.ok().build();
+    }
+
+    /**
      * Update user roles.
      */
     @PutMapping("/users/{userId}/roles")

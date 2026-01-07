@@ -336,6 +336,37 @@ public class Auth0IdentityAdapter implements Auth0IdentityService {
         ));
     }
 
+    // ==================== MFA Management ====================
+
+    @Override
+    public void deleteAllMfaEnrollments(String auth0UserId) {
+        log.info("Deleting all MFA enrollments for user: {}", auth0UserId);
+
+        // Get all MFA enrollments via Management API
+        Auth0MfaEnrollment[] enrollments = httpClient.get(
+            "/users/" + auth0UserId + "/enrollments",
+            Auth0MfaEnrollment[].class
+        );
+
+        if (enrollments == null || enrollments.length == 0) {
+            log.info("No MFA enrollments found for user: {}", auth0UserId);
+            return;
+        }
+
+        // Delete each enrollment
+        for (Auth0MfaEnrollment enrollment : enrollments) {
+            try {
+                log.info("Deleting MFA enrollment: {} for user: {}", enrollment.id(), auth0UserId);
+                httpClient.delete("/users/" + auth0UserId + "/authenticators/" + enrollment.id());
+            } catch (Exception e) {
+                // Log but continue - enrollment may already be deleted
+                log.warn("Failed to delete MFA enrollment {}: {}", enrollment.id(), e.getMessage());
+            }
+        }
+
+        log.info("Deleted {} MFA enrollments for user: {}", enrollments.length, auth0UserId);
+    }
+
     // ==================== Helper Methods ====================
 
     private OnboardingState determineOnboardingState(boolean passwordSet, boolean mfaEnrolled) {

@@ -145,6 +145,16 @@ public interface Auth0IdentityService {
      */
     void sendPasswordResetEmail(String email);
 
+    // ==================== MFA Management ====================
+
+    /**
+     * Deletes all MFA enrollments for a user.
+     * Called when admin resets MFA for a user.
+     *
+     * @param auth0UserId the Auth0 user ID
+     */
+    void deleteAllMfaEnrollments(String auth0UserId);
+
     /**
      * Links the Auth0 user to an internal user ID.
      *
