@@ -93,6 +93,11 @@ public class User {
     // MFA preference
     private MfaPreference mfaPreference;  // User's preferred MFA method
 
+    // MFA re-enrollment
+    private boolean allowMfaReenrollment;        // Flag to allow MFA re-enrollment after admin reset
+    private Instant mfaReenrollmentRequestedAt;  // When MFA reset was requested
+    private String mfaReenrollmentRequestedBy;   // Who requested the MFA reset (audit trail)
+
     // Status tracking
     private Status status;
     private LockType lockType;
@@ -123,6 +128,7 @@ public class User {
         this.emailVerified = false;
         this.passwordSet = false;
         this.mfaEnrolled = false;
+        this.allowMfaReenrollment = false;
         this.createdAt = Instant.now();
         this.updatedAt = this.createdAt;
     }
@@ -158,6 +164,26 @@ public class User {
             String deactivationReason,
             MfaPreference mfaPreference,
             Instant createdAt, String createdBy, Instant updatedAt) {
+        return reconstitute(id, loginId, email, firstName, lastName, userType, identityProvider,
+                profileId, roles, identityProviderUserId, emailVerified, passwordSet, mfaEnrolled,
+                lastSyncedAt, lastLoggedInAt, status, lockType, lockedBy, lockedAt, deactivationReason,
+                mfaPreference, false, null, null, createdAt, createdBy, updatedAt);
+    }
+
+    /**
+     * Factory method for reconstitution from persistence with MFA re-enrollment fields.
+     */
+    public static User reconstitute(
+            UserId id, String loginId, String email, String firstName, String lastName,
+            UserType userType, IdentityProvider identityProvider,
+            ProfileId profileId, Set<Role> roles, String identityProviderUserId,
+            boolean emailVerified, boolean passwordSet, boolean mfaEnrolled, Instant lastSyncedAt,
+            Instant lastLoggedInAt,
+            Status status, LockType lockType, String lockedBy, Instant lockedAt,
+            String deactivationReason,
+            MfaPreference mfaPreference,
+            boolean allowMfaReenrollment, Instant mfaReenrollmentRequestedAt, String mfaReenrollmentRequestedBy,
+            Instant createdAt, String createdBy, Instant updatedAt) {
         User user = new User(id, loginId, email, firstName, lastName, userType, identityProvider,
                 profileId, roles, createdBy);
         user.identityProviderUserId = identityProviderUserId;
@@ -172,6 +198,9 @@ public class User {
         user.lockedAt = lockedAt;
         user.deactivationReason = deactivationReason;
         user.mfaPreference = mfaPreference;
+        user.allowMfaReenrollment = allowMfaReenrollment;
+        user.mfaReenrollmentRequestedAt = mfaReenrollmentRequestedAt;
+        user.mfaReenrollmentRequestedBy = mfaReenrollmentRequestedBy;
         // Override createdAt and updatedAt from persistence
         try {
             var createdAtField = User.class.getDeclaredField("createdAt");
@@ -437,4 +466,58 @@ public class User {
         this.mfaPreference = preference;
         this.updatedAt = Instant.now();
     }
+
+    // MFA Re-enrollment methods
+
+    /**
+     * Require MFA re-enrollment for the user.
+     * Called by client admin when user needs to reset their MFA.
+     * Sets mfaEnrolled to false and allowMfaReenrollment to true.
+     * @param requestedBy The email/identifier of the admin requesting the reset
+     */
+    public void requireMfaReenrollment(String requestedBy) {
+        if (requestedBy == null || requestedBy.isBlank()) {
+            throw new IllegalArgumentException("Requester is required for MFA reset operation");
+        }
+        this.allowMfaReenrollment = true;
+        this.mfaEnrolled = false;
+        this.mfaReenrollmentRequestedAt = Instant.now();
+        this.mfaReenrollmentRequestedBy = requestedBy;
+        this.updatedAt = Instant.now();
+    }
+
+    /**
+     * Clear the MFA re-enrollment requirement.
+     * Called after user successfully completes MFA enrollment.
+     */
+    public void clearMfaReenrollmentRequirement() {
+        this.allowMfaReenrollment = false;
+        this.mfaReenrollmentRequestedAt = null;
+        this.mfaReenrollmentRequestedBy = null;
+        this.updatedAt = Instant.now();
+    }
+
+    /**
+     * Mark MFA enrollment complete during re-enrollment flow.
+     * Sets mfaEnrolled to true and clears the re-enrollment flag.
+     * @param mfaPreference The MFA preference chosen during enrollment
+     */
+    public void completeMfaReenrollment(MfaPreference mfaPreference) {
+        this.mfaEnrolled = true;
+        this.mfaPreference = mfaPreference;
+        this.allowMfaReenrollment = false;
+        this.mfaReenrollmentRequestedAt = null;
+        this.mfaReenrollmentRequestedBy = null;
+        this.lastSyncedAt = Instant.now();
+        this.updatedAt = Instant.now();
+
+        // Update status if needed
+        if (this.passwordSet && this.status != Status.ACTIVE && this.status != Status.LOCKED && this.status != Status.DEACTIVATED) {
+            this.status = Status.ACTIVE;
+        }
+    }
+
+    public boolean allowMfaReenrollment() { return allowMfaReenrollment; }
+    public Instant mfaReenrollmentRequestedAt() { return mfaReenrollmentRequestedAt; }
+    public String mfaReenrollmentRequestedBy() { return mfaReenrollmentRequestedBy; }
 }

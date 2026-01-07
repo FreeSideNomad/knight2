@@ -109,4 +109,29 @@ public interface UserCommands {
     record UpdateUserEmailCmd(UserId userId, String newEmail, String updatedBy) {}
 
     record UpdateEmailResult(String previousEmail, String newEmail) {}
+
+    // ==================== MFA Re-enrollment ====================
+
+    /**
+     * Reset MFA for a user (admin operation).
+     * Sets allowMfaReenrollment flag and mfaEnrolled to false.
+     * Should also delete MFA enrollments from Auth0.
+     */
+    void resetUserMfa(ResetUserMfaCmd cmd);
+
+    record ResetUserMfaCmd(UserId userId, String reason, String actor) {}
+
+    /**
+     * Clear MFA re-enrollment requirement after successful enrollment.
+     */
+    void clearMfaReenrollment(ClearMfaReenrollmentCmd cmd);
+
+    record ClearMfaReenrollmentCmd(UserId userId) {}
+
+    /**
+     * Complete MFA re-enrollment with the chosen MFA method.
+     */
+    void completeMfaReenrollment(CompleteMfaReenrollmentCmd cmd);
+
+    record CompleteMfaReenrollmentCmd(UserId userId, String mfaPreference) {}
 }

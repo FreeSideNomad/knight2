@@ -37,6 +37,9 @@ public class UserMapper {
         entity.setLockedAt(user.lockedAt());
         entity.setDeactivationReason(user.deactivationReason());
         entity.setMfaPreference(user.mfaPreference() != null ? user.mfaPreference().name() : null);
+        entity.setAllowMfaReenrollment(user.allowMfaReenrollment());
+        entity.setMfaReenrollmentRequestedAt(user.mfaReenrollmentRequestedAt());
+        entity.setMfaReenrollmentRequestedBy(user.mfaReenrollmentRequestedBy());
         entity.setCreatedAt(user.createdAt());
         entity.setCreatedBy(user.createdBy());
         entity.setUpdatedAt(user.updatedAt());
@@ -90,6 +93,9 @@ public class UserMapper {
             entity.getLockedAt(),
             entity.getDeactivationReason(),
             mfaPreference,
+            entity.isAllowMfaReenrollment(),
+            entity.getMfaReenrollmentRequestedAt(),
+            entity.getMfaReenrollmentRequestedBy(),
             entity.getCreatedAt(),
             entity.getCreatedBy(),
             entity.getUpdatedAt()

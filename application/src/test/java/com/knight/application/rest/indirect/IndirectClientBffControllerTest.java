@@ -476,7 +476,7 @@ class IndirectClientBffControllerTest {
             UserDetail detail = new UserDetail(
                 user.id().id(), "testuser", TEST_EMAIL, "Test", "User",
                 "ACTIVE", "INDIRECT_USER", "AUTH0", TEST_PROFILE_ID.urn(),
-                null, Set.of("READER"), true, true,
+                null, Set.of("READER"), true, true, false,
                 Instant.now(), "system", null, null, null, null, null, null
             );
             when(userQueries.getUserDetail(user.id())).thenReturn(detail);
@@ -512,7 +512,7 @@ class IndirectClientBffControllerTest {
             UserDetail detail = new UserDetail(
                 user.id().id(), "testuser", TEST_EMAIL, "Updated", "Name",
                 "ACTIVE", "INDIRECT_USER", "AUTH0", TEST_PROFILE_ID.urn(),
-                null, Set.of("READER"), true, true,
+                null, Set.of("READER"), true, true, false,
                 Instant.now(), "system", null, null, null, null, null, null
             );
             when(userQueries.getUserDetail(user.id())).thenReturn(detail);
@@ -591,7 +591,7 @@ class IndirectClientBffControllerTest {
             UserDetail detail = new UserDetail(
                 "user-1", "testuser", TEST_EMAIL, "Test", "User",
                 "ACTIVE", "INDIRECT_USER", "AUTH0", TEST_PROFILE_ID.urn(),
-                "auth0|123", Set.of("READER"), true, true,
+                "auth0|123", Set.of("READER"), true, true, false,
                 Instant.now(), "system", null, null, null, null, null, null
             );
             when(userQueries.getUserDetail(UserId.of("user-1"))).thenReturn(detail);
@@ -616,7 +616,7 @@ class IndirectClientBffControllerTest {
             UserDetail detail = new UserDetail(
                 "user-1", "testuser", TEST_EMAIL, "Test", "User",
                 "ACTIVE", "INDIRECT_USER", "AUTH0", "different-profile-id",
-                null, Set.of("READER"), true, true,
+                null, Set.of("READER"), true, true, false,
                 Instant.now(), "system", null, null, null, null, null, null
             );
             when(userQueries.getUserDetail(UserId.of("user-1"))).thenReturn(detail);
@@ -639,7 +639,7 @@ class IndirectClientBffControllerTest {
             UserDetail detail = new UserDetail(
                 "user-1", "testuser", TEST_EMAIL, "Test", "User",
                 "ACTIVE", "INDIRECT_USER", "AUTH0", TEST_PROFILE_ID.urn(),
-                null, Set.of("READER"), true, true,
+                null, Set.of("READER"), true, true, false,
                 Instant.now(), "system", null, null, null, null, null, null
             );
             when(userQueries.getUserDetail(UserId.of("user-1"))).thenReturn(detail);
@@ -661,7 +661,7 @@ class IndirectClientBffControllerTest {
             UserDetail detail = new UserDetail(
                 "user-1", "testuser", TEST_EMAIL, "Test", "User",
                 "ACTIVE", "INDIRECT_USER", "AUTH0", TEST_PROFILE_ID.urn(),
-                null, Set.of("READER"), true, true,
+                null, Set.of("READER"), true, true, false,
                 Instant.now(), "system", null, null, null, null, null, null
             );
             when(userQueries.getUserDetail(UserId.of("user-1"))).thenReturn(detail);
@@ -688,7 +688,7 @@ class IndirectClientBffControllerTest {
             UserDetail detail = new UserDetail(
                 "user-1", "testuser", TEST_EMAIL, "Test", "User",
                 "ACTIVE", "INDIRECT_USER", "AUTH0", TEST_PROFILE_ID.urn(),
-                null, Set.of("READER"), true, true,
+                null, Set.of("READER"), true, true, false,
                 Instant.now(), "system", null, null, null, null, null, null
             );
             when(userQueries.getUserDetail(UserId.of("user-1"))).thenReturn(detail);
@@ -722,7 +722,7 @@ class IndirectClientBffControllerTest {
             UserDetail detail = new UserDetail(
                 "user-1", "testuser", TEST_EMAIL, "Test", "User",
                 "ACTIVE", "INDIRECT_USER", "AUTH0", TEST_PROFILE_ID.urn(),
-                null, Set.of("READER"), true, true,
+                null, Set.of("READER"), true, true, false,
                 Instant.now(), "system", null, null, null, null, null, null
             );
             when(userQueries.getUserDetail(UserId.of("user-1"))).thenReturn(detail);
@@ -742,7 +742,7 @@ class IndirectClientBffControllerTest {
             UserDetail detail = new UserDetail(
                 "user-1", "testuser", TEST_EMAIL, "Test", "User",
                 "ACTIVE", "INDIRECT_USER", "AUTH0", TEST_PROFILE_ID.urn(),
-                null, Set.of("READER"), true, true,
+                null, Set.of("READER"), true, true, false,
                 Instant.now(), "system", null, null, null, null, null, null
             );
             when(userQueries.getUserDetail(UserId.of("user-1"))).thenReturn(detail);
@@ -767,7 +767,7 @@ class IndirectClientBffControllerTest {
             UserDetail detail = new UserDetail(
                 "user-1", "testuser", TEST_EMAIL, "Test", "User",
                 "ACTIVE", "INDIRECT_USER", "AUTH0", TEST_PROFILE_ID.urn(),
-                null, Set.of("READER"), true, true,
+                null, Set.of("READER"), true, true, false,
                 Instant.now(), "system", null, null, null, null, null, null
             );
             when(userQueries.getUserDetail(UserId.of("user-1"))).thenReturn(detail);
@@ -778,6 +778,51 @@ class IndirectClientBffControllerTest {
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             verify(userCommands).deactivateUser(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /users/{userId}/reset-mfa")
+    class ResetUserMfaTests {
+
+        @Test
+        @DisplayName("should reset MFA for user in profile")
+        void shouldResetMfaForUserInProfile() {
+            when(auth0UserContext.getProfileId()).thenReturn(Optional.of(TEST_PROFILE_ID));
+            when(auth0UserContext.getUserEmail()).thenReturn(Optional.of(TEST_EMAIL));
+
+            UserDetail detail = new UserDetail(
+                "user-1", "testuser", TEST_EMAIL, "Test", "User",
+                "ACTIVE", "INDIRECT_USER", "AUTH0", TEST_PROFILE_ID.urn(),
+                "auth0|123", Set.of("READER"), true, true, false,
+                Instant.now(), "system", null, null, null, null, null, null
+            );
+            when(userQueries.getUserDetail(UserId.of("user-1"))).thenReturn(detail);
+
+            ResponseEntity<Void> response = controller.resetUserMfa("user-1");
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            verify(userCommands).resetUserMfa(any());
+        }
+
+        @Test
+        @DisplayName("should return 404 when user not in profile")
+        void shouldReturn404WhenUserNotInProfile() {
+            when(auth0UserContext.getProfileId()).thenReturn(Optional.of(TEST_PROFILE_ID));
+            when(auth0UserContext.getUserEmail()).thenReturn(Optional.of(TEST_EMAIL));
+
+            UserDetail detail = new UserDetail(
+                "user-1", "testuser", TEST_EMAIL, "Test", "User",
+                "ACTIVE", "INDIRECT_USER", "AUTH0", "different-profile-id",
+                "auth0|123", Set.of("READER"), true, true, false,
+                Instant.now(), "system", null, null, null, null, null, null
+            );
+            when(userQueries.getUserDetail(UserId.of("user-1"))).thenReturn(detail);
+
+            ResponseEntity<Void> response = controller.resetUserMfa("user-1");
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+            verify(userCommands, never()).resetUserMfa(any());
         }
     }
 

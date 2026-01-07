@@ -78,6 +78,15 @@ public class UserEntity {
     @Column(name = "mfa_preference", length = 20)
     private String mfaPreference;
 
+    @Column(name = "allow_mfa_reenrollment", nullable = false)
+    private boolean allowMfaReenrollment;
+
+    @Column(name = "mfa_reenrollment_requested_at")
+    private Instant mfaReenrollmentRequestedAt;
+
+    @Column(name = "mfa_reenrollment_requested_by", length = 255)
+    private String mfaReenrollmentRequestedBy;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

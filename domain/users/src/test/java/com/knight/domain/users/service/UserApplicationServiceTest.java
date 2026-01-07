@@ -945,4 +945,186 @@ class UserApplicationServiceTest {
             assertThat(result.newEmail()).isEqualTo("new@example.com");
         }
     }
+
+    @Nested
+    @DisplayName("MFA Re-enrollment Tests")
+    class MfaReenrollmentTests {
+
+        @Test
+        @DisplayName("should reset MFA successfully for provisioned user")
+        void shouldResetMfaSuccessfullyForProvisionedUser() {
+            // given
+            User user = createActiveUser();
+            UserId userId = user.id();
+            String actor = "admin@example.com";
+            String reason = "User lost access to authenticator";
+
+            ResetUserMfaCmd cmd = new ResetUserMfaCmd(userId, reason, actor);
+
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+            // when
+            service.resetUserMfa(cmd);
+
+            // then
+            verify(auth0IdentityService).deleteAllMfaEnrollments(user.identityProviderUserId());
+            verify(userRepository).save(user);
+            assertThat(user.allowMfaReenrollment()).isTrue();
+            assertThat(user.mfaEnrolled()).isFalse();
+            assertThat(user.mfaReenrollmentRequestedBy()).isEqualTo(actor);
+            assertThat(user.mfaReenrollmentRequestedAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("should reset MFA without Auth0 call for non-provisioned user")
+        void shouldResetMfaWithoutAuth0CallForNonProvisionedUser() {
+            // given
+            User user = createPendingUser(IdentityProvider.AUTH0);
+            UserId userId = user.id();
+            String actor = "admin@example.com";
+
+            ResetUserMfaCmd cmd = new ResetUserMfaCmd(userId, "reason", actor);
+
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+            // when
+            service.resetUserMfa(cmd);
+
+            // then
+            verify(auth0IdentityService, never()).deleteAllMfaEnrollments(anyString());
+            verify(userRepository).save(user);
+            assertThat(user.allowMfaReenrollment()).isTrue();
+        }
+
+        @Test
+        @DisplayName("should throw exception when resetting MFA for non-existent user")
+        void shouldThrowExceptionWhenResettingMfaForNonExistentUser() {
+            // given
+            UserId userId = UserId.of(UUID.randomUUID().toString());
+            ResetUserMfaCmd cmd = new ResetUserMfaCmd(userId, "reason", "admin");
+
+            when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+            // when/then
+            assertThatThrownBy(() -> service.resetUserMfa(cmd))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("User not found");
+
+            verify(auth0IdentityService, never()).deleteAllMfaEnrollments(anyString());
+        }
+
+        @Test
+        @DisplayName("should clear MFA re-enrollment successfully")
+        void shouldClearMfaReenrollmentSuccessfully() {
+            // given
+            User user = createActiveUser();
+            user.requireMfaReenrollment("admin");
+            UserId userId = user.id();
+
+            ClearMfaReenrollmentCmd cmd = new ClearMfaReenrollmentCmd(userId);
+
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+            // when
+            service.clearMfaReenrollment(cmd);
+
+            // then
+            verify(userRepository).save(user);
+            assertThat(user.allowMfaReenrollment()).isFalse();
+            assertThat(user.mfaReenrollmentRequestedAt()).isNull();
+            assertThat(user.mfaReenrollmentRequestedBy()).isNull();
+        }
+
+        @Test
+        @DisplayName("should throw exception when clearing MFA re-enrollment for non-existent user")
+        void shouldThrowExceptionWhenClearingMfaReenrollmentForNonExistentUser() {
+            // given
+            UserId userId = UserId.of(UUID.randomUUID().toString());
+            ClearMfaReenrollmentCmd cmd = new ClearMfaReenrollmentCmd(userId);
+
+            when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+            // when/then
+            assertThatThrownBy(() -> service.clearMfaReenrollment(cmd))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("User not found");
+        }
+
+        @Test
+        @DisplayName("should complete MFA re-enrollment with GUARDIAN preference")
+        void shouldCompleteMfaReenrollmentWithGuardianPreference() {
+            // given
+            User user = createActiveUser();
+            user.requireMfaReenrollment("admin");
+            UserId userId = user.id();
+
+            CompleteMfaReenrollmentCmd cmd = new CompleteMfaReenrollmentCmd(userId, "GUARDIAN");
+
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+            // when
+            service.completeMfaReenrollment(cmd);
+
+            // then
+            verify(userRepository).save(user);
+            assertThat(user.mfaEnrolled()).isTrue();
+            assertThat(user.mfaPreference()).isEqualTo(User.MfaPreference.GUARDIAN);
+            assertThat(user.allowMfaReenrollment()).isFalse();
+            assertThat(user.mfaReenrollmentRequestedAt()).isNull();
+            assertThat(user.mfaReenrollmentRequestedBy()).isNull();
+        }
+
+        @Test
+        @DisplayName("should complete MFA re-enrollment with TOTP preference")
+        void shouldCompleteMfaReenrollmentWithTotpPreference() {
+            // given
+            User user = createActiveUser();
+            user.requireMfaReenrollment("admin");
+            UserId userId = user.id();
+
+            CompleteMfaReenrollmentCmd cmd = new CompleteMfaReenrollmentCmd(userId, "TOTP");
+
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+            // when
+            service.completeMfaReenrollment(cmd);
+
+            // then
+            verify(userRepository).save(user);
+            assertThat(user.mfaEnrolled()).isTrue();
+            assertThat(user.mfaPreference()).isEqualTo(User.MfaPreference.TOTP);
+        }
+
+        @Test
+        @DisplayName("should throw exception when completing MFA re-enrollment for non-existent user")
+        void shouldThrowExceptionWhenCompletingMfaReenrollmentForNonExistentUser() {
+            // given
+            UserId userId = UserId.of(UUID.randomUUID().toString());
+            CompleteMfaReenrollmentCmd cmd = new CompleteMfaReenrollmentCmd(userId, "GUARDIAN");
+
+            when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+            // when/then
+            assertThatThrownBy(() -> service.completeMfaReenrollment(cmd))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("User not found");
+        }
+
+        @Test
+        @DisplayName("should throw exception for invalid MFA preference")
+        void shouldThrowExceptionForInvalidMfaPreference() {
+            // given
+            User user = createActiveUser();
+            user.requireMfaReenrollment("admin");
+            UserId userId = user.id();
+
+            CompleteMfaReenrollmentCmd cmd = new CompleteMfaReenrollmentCmd(userId, "INVALID");
+
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+            // when/then
+            assertThatThrownBy(() -> service.completeMfaReenrollment(cmd))
+                .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
 }

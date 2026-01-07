@@ -572,6 +572,30 @@ public class DirectClientController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Reset MFA for user.
+     * Deletes all MFA enrollments in Auth0 and sets allowMfaReenrollment flag.
+     * User will be prompted to enroll MFA again on next login.
+     */
+    @PostMapping("/users/{userId}/reset-mfa")
+    public ResponseEntity<Void> resetUserMfa(@PathVariable String userId) {
+        ProfileId profileId = getProfileIdFromContext();
+        String actor = getUserEmail();
+
+        UserDetail user = userQueries.getUserDetail(UserId.of(userId));
+        if (!user.profileId().equals(profileId.urn())) {
+            return ResponseEntity.notFound().build();
+        }
+
+        userCommands.resetUserMfa(new ResetUserMfaCmd(
+            UserId.of(userId),
+            "Admin MFA reset request",
+            actor
+        ));
+
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/users/{userId}/roles")
     public ResponseEntity<Void> addRole(
             @PathVariable String userId,

@@ -60,6 +60,7 @@ public interface UserQueries {
         Set<String> roles,
         boolean passwordSet,
         boolean mfaEnrolled,
+        boolean allowMfaReenrollment,
         Instant createdAt,
         String createdBy,
         Instant lastSyncedAt,
