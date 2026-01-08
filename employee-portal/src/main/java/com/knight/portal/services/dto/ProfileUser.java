@@ -8,11 +8,13 @@ import java.util.Set;
  */
 public class ProfileUser {
     private String userId;
+    private String loginId;
     private String email;
     private String firstName;
     private String lastName;
     private String status;
     private String statusDisplayName;
+    private String lockType;
     private Set<String> roles;
     private boolean canResendInvitation;
     private boolean canLock;
@@ -23,6 +25,9 @@ public class ProfileUser {
     // Getters and setters
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
+
+    public String getLoginId() { return loginId; }
+    public void setLoginId(String loginId) { this.loginId = loginId; }
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
@@ -45,6 +50,9 @@ public class ProfileUser {
 
     public String getStatusDisplayName() { return statusDisplayName; }
     public void setStatusDisplayName(String statusDisplayName) { this.statusDisplayName = statusDisplayName; }
+
+    public String getLockType() { return lockType; }
+    public void setLockType(String lockType) { this.lockType = lockType; }
 
     public Set<String> getRoles() { return roles; }
     public void setRoles(Set<String> roles) { this.roles = roles; }
