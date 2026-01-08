@@ -1,11 +1,13 @@
 package com.knight.portal.services.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.Instant;
 import java.util.Set;
 
 /**
  * User summary for profile users list.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ProfileUser {
     private String userId;
     private String loginId;

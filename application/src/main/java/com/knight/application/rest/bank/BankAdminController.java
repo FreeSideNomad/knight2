@@ -667,6 +667,14 @@ public class BankAdminController {
         return ResponseEntity.ok(toUserDetailDto(user));
     }
 
+    @GetMapping("/users/{userId}")
+    public ResponseEntity<UserDetailDto> getGlobalUserDetail(
+            @PathVariable String userId) {
+        log.info("Getting global user detail for {}", userId);
+        UserDetail user = userQueries.getUserDetail(UserId.of(userId));
+        return ResponseEntity.ok(toUserDetailDto(user));
+    }
+
     @GetMapping("/profiles/{profileId}/users/counts")
     public ResponseEntity<Map<String, Integer>> getUserCounts(
             @PathVariable String profileId) {
