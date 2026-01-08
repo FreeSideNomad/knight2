@@ -18,7 +18,7 @@ public class ProfileUser {
     private boolean canLock;
     private boolean canDeactivate;
     private Instant createdAt;
-    private Instant lastLogin;
+    private Instant lastLoggedInAt;
 
     // Getters and setters
     public String getUserId() { return userId; }
@@ -61,6 +61,6 @@ public class ProfileUser {
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 
-    public Instant getLastLogin() { return lastLogin; }
-    public void setLastLogin(Instant lastLogin) { this.lastLogin = lastLogin; }
+    public Instant getLastLoggedInAt() { return lastLoggedInAt; }
+    public void setLastLoggedInAt(Instant lastLoggedInAt) { this.lastLoggedInAt = lastLoggedInAt; }
 }

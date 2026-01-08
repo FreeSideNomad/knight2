@@ -255,7 +255,7 @@ public class ProfileDetailView extends VerticalLayout implements HasUrlParameter
         usersGrid.addColumn(ProfileUser::getStatusDisplayName).setHeader("Status").setAutoWidth(true);
         usersGrid.addColumn(user -> user.getRoles() != null ? String.join(", ", user.getRoles()) : "")
                 .setHeader("Roles").setAutoWidth(true);
-        usersGrid.addColumn(user -> formatInstant(user.getLastLogin())).setHeader("Last Login").setAutoWidth(true);
+        usersGrid.addColumn(user -> formatInstant(user.getLastLoggedInAt())).setHeader("Last Login").setAutoWidth(true);
 
         // Actions column
         usersGrid.addComponentColumn(user -> {

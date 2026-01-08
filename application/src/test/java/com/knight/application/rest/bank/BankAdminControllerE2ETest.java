@@ -2310,4 +2310,60 @@ class BankAdminControllerE2ETest {
                 .andExpect(status().isNoContent());
         }
     }
+
+    @Nested
+    @DisplayName("Reproduction Tests")
+    class ReproductionTests {
+
+        @Test
+        @DisplayName("should add user to online profile and list them")
+        void shouldAddUserToOnlineProfileAndListThem() throws Exception {
+            // 1. Create ONLINE profile
+            String profileRequest = """
+                {
+                    "profileType": "ONLINE",
+                    "name": "Online Profile Repro",
+                    "clients": [
+                        {
+                            "clientId": "%s",
+                            "isPrimary": true,
+                            "accountEnrollmentType": "AUTOMATIC",
+                            "accountIds": []
+                        }
+                    ]
+                }
+                """.formatted(testClient.clientId().urn());
+
+            var profileResult = mockMvc.perform(post("/api/v1/bank/profiles")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(profileRequest))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+            String profileId = objectMapper.readTree(profileResult.getResponse().getContentAsString())
+                .get("profileId").asText();
+
+            // 2. Add User to Profile
+            String addUserRequest = """
+                {
+                    "loginId": "repro_user@king.com",
+                    "email": "repro_user@example.com",
+                    "firstName": "Repro",
+                    "lastName": "User",
+                    "roles": ["READER"]
+                }
+                """;
+
+            mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/users", profileId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(addUserRequest))
+                .andExpect(status().isCreated());
+
+            // 3. List Users
+            mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/users", profileId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$[0].email").value("repro_user@example.com"));
+        }
+    }
 }
