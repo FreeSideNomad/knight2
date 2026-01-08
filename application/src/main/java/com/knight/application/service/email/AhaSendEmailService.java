@@ -102,7 +102,7 @@ public class AhaSendEmailService implements EmailService {
 
     record AhaSendRequest(
         Sender from,
-        List<Recipient> to,
+        @JsonProperty("recipients") List<Recipient> to,
         String subject,
         @JsonProperty("html_content") String htmlContent,
         @JsonProperty("text_content") String textContent
