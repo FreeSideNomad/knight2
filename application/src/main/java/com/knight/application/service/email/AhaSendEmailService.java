@@ -1,5 +1,6 @@
 package com.knight.application.service.email;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,7 +114,7 @@ public class AhaSendEmailService implements EmailService {
     record Recipient(String email, String name) {}
 
     record AhaSendResponse(
-        String id,
+        @JsonProperty("message_id") String id,
         String status,
         @JsonProperty("created_at") String createdAt
     ) {}
