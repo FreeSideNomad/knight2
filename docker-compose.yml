@@ -92,8 +92,8 @@ services:
       - JWT_PORTAL_JWKS_URI=http://portal:8081/.well-known/jwks.json
       # Email Configuration (AhaSend)
       - EMAIL_PROVIDER=ahasend
-      - EMAIL_AHASEND_ACCOUNT_ID=e2c8f3de-ec84-4957-9d67-dd29871d8050
-      - EMAIL_AHASEND_API_KEY=aha-sk-J9E6A5-WftxiV0BOOhK4jojxHgBiD00Za6xx44-eFAHjvOMHSOseo2nAWIjFMsGuYour
+      - EMAIL_AHASEND_ACCOUNT_ID=${EMAIL_AHASEND_ACCOUNT_ID}
+      - EMAIL_AHASEND_API_KEY=${EMAIL_AHASEND_API_KEY}
     depends_on:
       sqlserver:
         condition: service_healthy
