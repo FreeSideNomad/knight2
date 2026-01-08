@@ -135,10 +135,17 @@ public class UserDetailView extends VerticalLayout implements HasUrlParameter<St
     }
 
     private void loadUserDetails() {
-        if (userId == null || profileId == null) return;
+        if (userId == null) return;
 
         try {
-            userDetail = userService.getUserDetail(profileId, userId);
+            if (profileId != null) {
+                userDetail = userService.getUserDetail(profileId, userId);
+            } else {
+                userDetail = userService.getGlobalUserDetail(userId);
+                if (userDetail != null) {
+                    profileId = userDetail.getProfileId();
+                }
+            }
 
             if (userDetail != null) {
                 // Initialize permission state from user roles
@@ -150,11 +157,13 @@ public class UserDetailView extends VerticalLayout implements HasUrlParameter<St
             }
 
             // Load profile details to get available accounts
-            profileDetail = profileService.getProfileDetail(profileId);
-            if (profileDetail != null && profileDetail.getAccountEnrollments() != null) {
-                availableAccounts = profileDetail.getAccountEnrollments().stream()
-                        .filter(ae -> "ACTIVE".equals(ae.getStatus()))
-                        .toList();
+            if (profileId != null) {
+                profileDetail = profileService.getProfileDetail(profileId);
+                if (profileDetail != null && profileDetail.getAccountEnrollments() != null) {
+                    availableAccounts = profileDetail.getAccountEnrollments().stream()
+                            .filter(ae -> "ACTIVE".equals(ae.getStatus()))
+                            .toList();
+                }
             }
         } catch (Exception e) {
             Notification notification = Notification.show("Error loading user: " + e.getMessage());

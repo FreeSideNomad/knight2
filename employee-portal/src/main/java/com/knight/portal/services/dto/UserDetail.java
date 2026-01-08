@@ -1,13 +1,16 @@
 package com.knight.portal.services.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.Instant;
 import java.util.Set;
 
 /**
  * Detailed user information.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class UserDetail {
     private String userId;
+    private String loginId;
     private String email;
     private String firstName;
     private String lastName;
@@ -19,15 +22,22 @@ public class UserDetail {
     private Set<String> roles;
     private boolean passwordSet;
     private boolean mfaEnrolled;
+    private boolean allowMfaReenrollment;
     private Instant createdAt;
     private String createdBy;
     private Instant lastSyncedAt;
-    private String lockReason;
+    private Instant lastLoggedInAt;
+    private String lockType;
+    private String lockedBy;
+    private Instant lockedAt;
     private String deactivationReason;
 
     // Getters and setters
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
+
+    public String getLoginId() { return loginId; }
+    public void setLoginId(String loginId) { this.loginId = loginId; }
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
@@ -69,6 +79,9 @@ public class UserDetail {
     public boolean isMfaEnrolled() { return mfaEnrolled; }
     public void setMfaEnrolled(boolean mfaEnrolled) { this.mfaEnrolled = mfaEnrolled; }
 
+    public boolean isAllowMfaReenrollment() { return allowMfaReenrollment; }
+    public void setAllowMfaReenrollment(boolean allowMfaReenrollment) { this.allowMfaReenrollment = allowMfaReenrollment; }
+
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 
@@ -78,8 +91,17 @@ public class UserDetail {
     public Instant getLastSyncedAt() { return lastSyncedAt; }
     public void setLastSyncedAt(Instant lastSyncedAt) { this.lastSyncedAt = lastSyncedAt; }
 
-    public String getLockReason() { return lockReason; }
-    public void setLockReason(String lockReason) { this.lockReason = lockReason; }
+    public Instant getLastLoggedInAt() { return lastLoggedInAt; }
+    public void setLastLoggedInAt(Instant lastLoggedInAt) { this.lastLoggedInAt = lastLoggedInAt; }
+
+    public String getLockType() { return lockType; }
+    public void setLockType(String lockType) { this.lockType = lockType; }
+
+    public String getLockedBy() { return lockedBy; }
+    public void setLockedBy(String lockedBy) { this.lockedBy = lockedBy; }
+
+    public Instant getLockedAt() { return lockedAt; }
+    public void setLockedAt(Instant lockedAt) { this.lockedAt = lockedAt; }
 
     public String getDeactivationReason() { return deactivationReason; }
     public void setDeactivationReason(String deactivationReason) { this.deactivationReason = deactivationReason; }

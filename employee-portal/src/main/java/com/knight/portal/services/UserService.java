@@ -55,6 +55,27 @@ public class UserService {
     }
 
     /**
+     * Get user details globally (without profile ID).
+     */
+    public UserDetail getGlobalUserDetail(String userId) {
+        try {
+            Map<String, Object> response = restClient.get()
+                    .uri("/api/v1/bank/users/{userId}", userId)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<Map<String, Object>>() {});
+
+            if (response == null) {
+                return null;
+            }
+
+            return objectMapper.convertValue(response, UserDetail.class);
+        } catch (Exception e) {
+            System.err.println("Error fetching global user detail: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Get user details.
      */
     public UserDetail getUserDetail(String profileId, String userId) {
