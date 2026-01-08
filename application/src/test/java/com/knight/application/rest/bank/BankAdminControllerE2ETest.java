@@ -2344,15 +2344,19 @@ class BankAdminControllerE2ETest {
                 .get("profileId").asText();
 
             // 2. Add User to Profile
+            String randomId = UUID.randomUUID().toString().substring(0, 8);
+            String loginId = "repro_user_" + randomId + "@king.com";
+            String email = "repro_user_" + randomId + "@example.com";
+            
             String addUserRequest = """
                 {
-                    "loginId": "repro_user@king.com",
-                    "email": "repro_user@example.com",
+                    "loginId": "%s",
+                    "email": "%s",
                     "firstName": "Repro",
                     "lastName": "User",
                     "roles": ["READER"]
                 }
-                """;
+                """.formatted(loginId, email);
 
             mockMvc.perform(post("/api/v1/bank/profiles/{profileId}/users", profileId)
                     .contentType(MediaType.APPLICATION_JSON)
@@ -2363,7 +2367,7 @@ class BankAdminControllerE2ETest {
             mockMvc.perform(get("/api/v1/bank/profiles/{profileId}/users", profileId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].email").value("repro_user@example.com"));
+                .andExpect(jsonPath("$[0].email").value(email));
         }
     }
 }
