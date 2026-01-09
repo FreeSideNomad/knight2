@@ -85,15 +85,19 @@ public class AhaSendEmailService implements EmailService {
             // Configure mapper to be lenient
             mapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
             
-            AhaSendResponse response = mapper.readValue(rawResponse, AhaSendResponse.class);
+            AhaSendListResponse listResponse = mapper.readValue(rawResponse, AhaSendListResponse.class);
 
-            if (response != null && response.id() != null) {
-                log.info("Email sent successfully to {}, messageId: {}", request.to(), response.id());
-                return EmailResult.success(response.id());
-            } else {
-                log.error("AhaSend response mapped to null ID. Raw: {}, Mapped: {}", rawResponse, response);
-                return EmailResult.failure("EMPTY_RESPONSE", "AhaSend response mapped to null ID");
+            if (listResponse != null && listResponse.data() != null && !listResponse.data().isEmpty()) {
+                var firstMessage = listResponse.data().get(0);
+                if (firstMessage.id() != null) {
+                    log.info("Email sent successfully to {}, messageId: {}", request.to(), firstMessage.id());
+                    return EmailResult.success(firstMessage.id());
+                }
             }
+            
+            log.error("AhaSend response mapped to empty result. Raw: {}, Mapped: {}", rawResponse, listResponse);
+            return EmailResult.failure("EMPTY_RESPONSE", "AhaSend response mapped to empty result");
+
         } catch (Exception e) {
             log.error("Failed to send email via AhaSend to {}: {}", request.to(), e.getMessage(), e);
             return EmailResult.failure(e);
@@ -137,8 +141,10 @@ public class AhaSendEmailService implements EmailService {
 
     record Recipient(String email, String name) {}
 
+    record AhaSendListResponse(List<AhaSendResponse> data) {}
+
     record AhaSendResponse(
-        @JsonAlias({"message_id", "id"}) String id,
+        String id,
         String status,
         @JsonProperty("created_at") String createdAt
     ) {}

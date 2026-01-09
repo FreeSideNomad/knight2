@@ -77,7 +77,7 @@ class AhaSendEmailServiceTest {
         @DisplayName("should send email successfully")
         void shouldSendEmailSuccessfully() {
             setupPostMockChain();
-            String jsonResponse = "{\"message_id\":\"msg-123\", \"status\":\"sent\", \"created_at\":\"2024-01-01T00:00:00Z\"}";
+            String jsonResponse = "{\"data\": [{\"id\":\"msg-123\", \"status\":\"sent\", \"created_at\":\"2024-01-01T00:00:00Z\"}]}";
             doReturn(jsonResponse).when(responseSpec).body(String.class);
 
             EmailRequest request = new EmailRequest(
@@ -176,7 +176,7 @@ class AhaSendEmailServiceTest {
         @DisplayName("should send OTP verification email")
         void shouldSendOtpVerificationEmail() {
             setupPostMockChain();
-            String jsonResponse = "{\"message_id\":\"otp-msg-123\", \"status\":\"sent\", \"created_at\":\"2024-01-01T00:00:00Z\"}";
+            String jsonResponse = "{\"data\": [{\"id\":\"otp-msg-123\", \"status\":\"sent\", \"created_at\":\"2024-01-01T00:00:00Z\"}]}";
             doReturn(jsonResponse).when(responseSpec).body(String.class);
 
             EmailResult result = emailService.sendOtpVerification(
@@ -194,7 +194,7 @@ class AhaSendEmailServiceTest {
         @DisplayName("should handle null toName in OTP email")
         void shouldHandleNullToNameInOtpEmail() {
             setupPostMockChain();
-            String jsonResponse = "{\"message_id\":\"otp-msg-456\", \"status\":\"sent\", \"created_at\":\"2024-01-01T00:00:00Z\"}";
+            String jsonResponse = "{\"data\": [{\"id\":\"otp-msg-456\", \"status\":\"sent\", \"created_at\":\"2024-01-01T00:00:00Z\"}]}";
             doReturn(jsonResponse).when(responseSpec).body(String.class);
 
             EmailResult result = emailService.sendOtpVerification(
