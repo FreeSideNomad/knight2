@@ -108,13 +108,8 @@ public class PayorEnrolmentProcessorImpl implements PayorEnrolmentProcessor {
                 String firstName = nameParts[0];
                 String lastName = nameParts.length > 1 ? nameParts[1] : "";
 
-                // Generate loginId from email (everything before @)
-                String loginId = person.email().split("@")[0].replaceAll("[^a-zA-Z0-9_]", "_");
-                if (loginId.length() < 3) {
-                    loginId = loginId + "_user";
-                } else if (loginId.length() > 50) {
-                    loginId = loginId.substring(0, 50);
-                }
+                // Use email as loginId (loginId must be valid email format for Auth0)
+                String loginId = person.email();
 
                 UserId userId = userCommands.createUser(new UserCommands.CreateUserCmd(
                         loginId,
