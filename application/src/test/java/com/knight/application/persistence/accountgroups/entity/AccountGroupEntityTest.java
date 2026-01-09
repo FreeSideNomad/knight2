@@ -77,34 +77,42 @@ class AccountGroupEntityTest {
     }
 
     @Test
-    @DisplayName("should add account to existing set")
-    void shouldAddAccountToExistingSet() {
-        entity.getAccountIds().add(ACCOUNT_ID_1);
-        entity.getAccountIds().add(ACCOUNT_ID_2);
+    @DisplayName("should add accounts via setAccountIds")
+    void shouldAddAccountsViaSetAccountIds() {
+        Set<String> accountIds = new HashSet<>();
+        accountIds.add(ACCOUNT_ID_1);
+        accountIds.add(ACCOUNT_ID_2);
+        entity.setAccountIds(accountIds);
 
         assertThat(entity.getAccountIds()).hasSize(2);
         assertThat(entity.getAccountIds()).contains(ACCOUNT_ID_1, ACCOUNT_ID_2);
     }
 
     @Test
-    @DisplayName("should remove account from set")
-    void shouldRemoveAccountFromSet() {
-        entity.getAccountIds().add(ACCOUNT_ID_1);
-        entity.getAccountIds().add(ACCOUNT_ID_2);
+    @DisplayName("should remove account by setting new set without it")
+    void shouldRemoveAccountBySettingNewSet() {
+        Set<String> accountIds = new HashSet<>();
+        accountIds.add(ACCOUNT_ID_1);
+        accountIds.add(ACCOUNT_ID_2);
+        entity.setAccountIds(accountIds);
 
-        entity.getAccountIds().remove(ACCOUNT_ID_1);
+        Set<String> updatedIds = new HashSet<>();
+        updatedIds.add(ACCOUNT_ID_2);
+        entity.setAccountIds(updatedIds);
 
         assertThat(entity.getAccountIds()).hasSize(1);
         assertThat(entity.getAccountIds()).contains(ACCOUNT_ID_2);
     }
 
     @Test
-    @DisplayName("should clear all accounts")
-    void shouldClearAllAccounts() {
-        entity.getAccountIds().add(ACCOUNT_ID_1);
-        entity.getAccountIds().add(ACCOUNT_ID_2);
+    @DisplayName("should clear all accounts by setting empty set")
+    void shouldClearAllAccountsBySettingEmptySet() {
+        Set<String> accountIds = new HashSet<>();
+        accountIds.add(ACCOUNT_ID_1);
+        accountIds.add(ACCOUNT_ID_2);
+        entity.setAccountIds(accountIds);
 
-        entity.getAccountIds().clear();
+        entity.setAccountIds(new HashSet<>());
 
         assertThat(entity.getAccountIds()).isEmpty();
     }
@@ -152,15 +160,29 @@ class AccountGroupEntityTest {
     @Test
     @DisplayName("should replace entire accountIds set")
     void shouldReplaceEntireAccountIdsSet() {
-        entity.getAccountIds().add(ACCOUNT_ID_1);
+        Set<String> initialIds = new HashSet<>();
+        initialIds.add(ACCOUNT_ID_1);
+        entity.setAccountIds(initialIds);
 
         Set<String> newAccountIds = new HashSet<>();
         newAccountIds.add(ACCOUNT_ID_2);
-
         entity.setAccountIds(newAccountIds);
 
         assertThat(entity.getAccountIds()).hasSize(1);
         assertThat(entity.getAccountIds()).contains(ACCOUNT_ID_2);
         assertThat(entity.getAccountIds()).doesNotContain(ACCOUNT_ID_1);
+    }
+
+    @Test
+    @DisplayName("should store members with added_at timestamp")
+    void shouldStoreMembersWithAddedAtTimestamp() {
+        Set<String> accountIds = new HashSet<>();
+        accountIds.add(ACCOUNT_ID_1);
+        entity.setAccountIds(accountIds);
+
+        assertThat(entity.getMembers()).hasSize(1);
+        AccountGroupMemberEmbeddable member = entity.getMembers().iterator().next();
+        assertThat(member.getAccountId()).isEqualTo(ACCOUNT_ID_1);
+        assertThat(member.getAddedAt()).isNotNull();
     }
 }

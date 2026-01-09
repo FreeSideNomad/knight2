@@ -37,8 +37,7 @@ public class AccountGroupEntity {
         name = "account_group_members",
         joinColumns = @JoinColumn(name = "group_id")
     )
-    @Column(name = "account_id")
-    private Set<String> accountIds = new HashSet<>();
+    private Set<AccountGroupMemberEmbeddable> members = new HashSet<>();
 
     public AccountGroupEntity() {}
 
@@ -100,11 +99,28 @@ public class AccountGroupEntity {
         this.updatedAt = updatedAt;
     }
 
+    public Set<AccountGroupMemberEmbeddable> getMembers() {
+        return members;
+    }
+
+    public void setMembers(Set<AccountGroupMemberEmbeddable> members) {
+        this.members = members;
+    }
+
+    // Convenience methods to get/set account IDs (for mapper compatibility)
     public Set<String> getAccountIds() {
+        Set<String> accountIds = new HashSet<>();
+        for (AccountGroupMemberEmbeddable member : members) {
+            accountIds.add(member.getAccountId());
+        }
         return accountIds;
     }
 
     public void setAccountIds(Set<String> accountIds) {
-        this.accountIds = accountIds;
+        this.members.clear();
+        Instant now = Instant.now();
+        for (String accountId : accountIds) {
+            this.members.add(new AccountGroupMemberEmbeddable(accountId, now));
+        }
     }
 }
