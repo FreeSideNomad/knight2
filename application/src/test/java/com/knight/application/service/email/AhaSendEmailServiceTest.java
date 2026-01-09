@@ -77,7 +77,8 @@ class AhaSendEmailServiceTest {
         @DisplayName("should send email successfully")
         void shouldSendEmailSuccessfully() {
             setupPostMockChain();
-            String jsonResponse = "{\"message_id\":\"msg-123\", \"status\":\"sent\", \"created_at\":\"2024-01-01T00:00:00Z\"}";
+            // AhaSend returns list-wrapped response format
+            String jsonResponse = "{\"object\":\"list\",\"data\":[{\"object\":\"message\",\"id\":\"msg-123\",\"status\":\"queued\",\"error\":null}]}";
             doReturn(jsonResponse).when(responseSpec).body(String.class);
 
             EmailRequest request = new EmailRequest(
@@ -112,10 +113,11 @@ class AhaSendEmailServiceTest {
         }
 
         @Test
-        @DisplayName("should return failure when response id is null")
-        void shouldReturnFailureWhenResponseIdIsNull() {
+        @DisplayName("should return failure when response data is empty")
+        void shouldReturnFailureWhenResponseDataIsEmpty() {
             setupPostMockChain();
-            String jsonResponse = "{\"status\":\"failed\"}"; // Missing ID
+            // List response with empty data array
+            String jsonResponse = "{\"object\":\"list\",\"data\":[]}";
             doReturn(jsonResponse).when(responseSpec).body(String.class);
 
             EmailRequest request = EmailRequest.simple(
@@ -126,6 +128,25 @@ class AhaSendEmailServiceTest {
 
             assertThat(result.success()).isFalse();
             assertThat(result.errorCode()).isEqualTo("EMPTY_RESPONSE");
+        }
+
+        @Test
+        @DisplayName("should return failure when message has error")
+        void shouldReturnFailureWhenMessageHasError() {
+            setupPostMockChain();
+            // List response with error in message
+            String jsonResponse = "{\"object\":\"list\",\"data\":[{\"object\":\"message\",\"id\":null,\"status\":\"failed\",\"error\":\"Invalid recipient\"}]}";
+            doReturn(jsonResponse).when(responseSpec).body(String.class);
+
+            EmailRequest request = EmailRequest.simple(
+                "test@example.com", "Subject", "<p>Body</p>", "Body"
+            );
+
+            EmailResult result = emailService.send(request);
+
+            assertThat(result.success()).isFalse();
+            assertThat(result.errorCode()).isEqualTo("AHASEND_ERROR");
+            assertThat(result.errorMessage()).isEqualTo("Invalid recipient");
         }
 
         @Test
@@ -176,7 +197,7 @@ class AhaSendEmailServiceTest {
         @DisplayName("should send OTP verification email")
         void shouldSendOtpVerificationEmail() {
             setupPostMockChain();
-            String jsonResponse = "{\"message_id\":\"otp-msg-123\", \"status\":\"sent\", \"created_at\":\"2024-01-01T00:00:00Z\"}";
+            String jsonResponse = "{\"object\":\"list\",\"data\":[{\"object\":\"message\",\"id\":\"otp-msg-123\",\"status\":\"queued\",\"error\":null}]}";
             doReturn(jsonResponse).when(responseSpec).body(String.class);
 
             EmailResult result = emailService.sendOtpVerification(
@@ -194,7 +215,7 @@ class AhaSendEmailServiceTest {
         @DisplayName("should handle null toName in OTP email")
         void shouldHandleNullToNameInOtpEmail() {
             setupPostMockChain();
-            String jsonResponse = "{\"message_id\":\"otp-msg-456\", \"status\":\"sent\", \"created_at\":\"2024-01-01T00:00:00Z\"}";
+            String jsonResponse = "{\"object\":\"list\",\"data\":[{\"object\":\"message\",\"id\":\"otp-msg-456\",\"status\":\"queued\",\"error\":null}]}";
             doReturn(jsonResponse).when(responseSpec).body(String.class);
 
             EmailResult result = emailService.sendOtpVerification(
@@ -278,15 +299,20 @@ class AhaSendEmailServiceTest {
         }
 
         @Test
-        @DisplayName("should create AhaSendResponse with all fields")
-        void shouldCreateAhaSendResponse() {
-            AhaSendEmailService.AhaSendResponse response = new AhaSendEmailService.AhaSendResponse(
-                "msg-id", "sent", "2024-01-01T00:00:00Z"
+        @DisplayName("should create AhaSendListResponse with all fields")
+        void shouldCreateAhaSendListResponse() {
+            AhaSendEmailService.AhaSendMessageResponse message = new AhaSendEmailService.AhaSendMessageResponse(
+                "message", "msg-id", "queued", null
+            );
+            AhaSendEmailService.AhaSendListResponse response = new AhaSendEmailService.AhaSendListResponse(
+                "list", java.util.List.of(message)
             );
 
-            assertThat(response.id()).isEqualTo("msg-id");
-            assertThat(response.status()).isEqualTo("sent");
-            assertThat(response.createdAt()).isEqualTo("2024-01-01T00:00:00Z");
+            assertThat(response.object()).isEqualTo("list");
+            assertThat(response.data()).hasSize(1);
+            assertThat(response.data().get(0).id()).isEqualTo("msg-id");
+            assertThat(response.data().get(0).status()).isEqualTo("queued");
+            assertThat(response.data().get(0).error()).isNull();
         }
     }
 }

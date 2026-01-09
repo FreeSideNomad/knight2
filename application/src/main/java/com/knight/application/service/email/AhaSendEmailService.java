@@ -1,6 +1,5 @@
 package com.knight.application.service.email;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,20 +79,25 @@ public class AhaSendEmailService implements EmailService {
                 return EmailResult.failure("EMPTY_RESPONSE", "AhaSend returned empty response");
             }
 
-            // Manually deserialize to check mapping
+            // Parse the list-wrapped response format
             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            // Configure mapper to be lenient
             mapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            
-            AhaSendResponse response = mapper.readValue(rawResponse, AhaSendResponse.class);
 
-            if (response != null && response.id() != null) {
-                log.info("Email sent successfully to {}, messageId: {}", request.to(), response.id());
-                return EmailResult.success(response.id());
-            } else {
-                log.error("AhaSend response mapped to null ID. Raw: {}, Mapped: {}", rawResponse, response);
-                return EmailResult.failure("EMPTY_RESPONSE", "AhaSend response mapped to null ID");
+            AhaSendListResponse listResponse = mapper.readValue(rawResponse, AhaSendListResponse.class);
+
+            if (listResponse != null && listResponse.data() != null && !listResponse.data().isEmpty()) {
+                AhaSendMessageResponse message = listResponse.data().get(0);
+                if (message.id() != null) {
+                    log.info("Email sent successfully to {}, messageId: {}", request.to(), message.id());
+                    return EmailResult.success(message.id());
+                } else if (message.error() != null) {
+                    log.error("AhaSend returned error for email to {}: {}", request.to(), message.error());
+                    return EmailResult.failure("AHASEND_ERROR", message.error());
+                }
             }
+
+            log.error("AhaSend response missing message data. Raw: {}", rawResponse);
+            return EmailResult.failure("EMPTY_RESPONSE", "AhaSend response missing message data");
         } catch (Exception e) {
             log.error("Failed to send email via AhaSend to {}: {}", request.to(), e.getMessage(), e);
             return EmailResult.failure(e);
@@ -137,9 +141,19 @@ public class AhaSendEmailService implements EmailService {
 
     record Recipient(String email, String name) {}
 
-    record AhaSendResponse(
-        @JsonAlias({"message_id", "id"}) String id,
+    /**
+     * AhaSend API returns a list-wrapped response format:
+     * {"object":"list","data":[{"object":"message","id":"<...>","status":"queued",...}]}
+     */
+    record AhaSendListResponse(
+        String object,
+        List<AhaSendMessageResponse> data
+    ) {}
+
+    record AhaSendMessageResponse(
+        String object,
+        String id,
         String status,
-        @JsonProperty("created_at") String createdAt
+        String error
     ) {}
 }
