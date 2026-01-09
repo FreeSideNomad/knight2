@@ -77,10 +77,8 @@ class AhaSendEmailServiceTest {
         @DisplayName("should send email successfully")
         void shouldSendEmailSuccessfully() {
             setupPostMockChain();
-            AhaSendEmailService.AhaSendResponse response = new AhaSendEmailService.AhaSendResponse(
-                "msg-123", "sent", "2024-01-01T00:00:00Z"
-            );
-            doReturn(response).when(responseSpec).body(AhaSendEmailService.AhaSendResponse.class);
+            String jsonResponse = "{\"message_id\":\"msg-123\", \"status\":\"sent\", \"created_at\":\"2024-01-01T00:00:00Z\"}";
+            doReturn(jsonResponse).when(responseSpec).body(String.class);
 
             EmailRequest request = new EmailRequest(
                 "test@example.com",
@@ -101,7 +99,7 @@ class AhaSendEmailServiceTest {
         @DisplayName("should return failure when response is null")
         void shouldReturnFailureWhenResponseIsNull() {
             setupPostMockChain();
-            doReturn(null).when(responseSpec).body(AhaSendEmailService.AhaSendResponse.class);
+            doReturn(null).when(responseSpec).body(String.class);
 
             EmailRequest request = EmailRequest.simple(
                 "test@example.com", "Subject", "<p>Body</p>", "Body"
@@ -117,10 +115,8 @@ class AhaSendEmailServiceTest {
         @DisplayName("should return failure when response id is null")
         void shouldReturnFailureWhenResponseIdIsNull() {
             setupPostMockChain();
-            AhaSendEmailService.AhaSendResponse response = new AhaSendEmailService.AhaSendResponse(
-                null, "failed", null
-            );
-            doReturn(response).when(responseSpec).body(AhaSendEmailService.AhaSendResponse.class);
+            String jsonResponse = "{\"status\":\"failed\"}"; // Missing ID
+            doReturn(jsonResponse).when(responseSpec).body(String.class);
 
             EmailRequest request = EmailRequest.simple(
                 "test@example.com", "Subject", "<p>Body</p>", "Body"
@@ -137,7 +133,7 @@ class AhaSendEmailServiceTest {
         void shouldReturnFailureWhenExceptionThrown() {
             setupPostMockChain();
             doThrow(new RuntimeException("Connection failed"))
-                .when(responseSpec).body(AhaSendEmailService.AhaSendResponse.class);
+                .when(responseSpec).body(String.class);
 
             EmailRequest request = EmailRequest.simple(
                 "test@example.com", "Subject", "<p>Body</p>", "Body"
@@ -180,10 +176,8 @@ class AhaSendEmailServiceTest {
         @DisplayName("should send OTP verification email")
         void shouldSendOtpVerificationEmail() {
             setupPostMockChain();
-            AhaSendEmailService.AhaSendResponse response = new AhaSendEmailService.AhaSendResponse(
-                "otp-msg-123", "sent", "2024-01-01T00:00:00Z"
-            );
-            doReturn(response).when(responseSpec).body(AhaSendEmailService.AhaSendResponse.class);
+            String jsonResponse = "{\"message_id\":\"otp-msg-123\", \"status\":\"sent\", \"created_at\":\"2024-01-01T00:00:00Z\"}";
+            doReturn(jsonResponse).when(responseSpec).body(String.class);
 
             EmailResult result = emailService.sendOtpVerification(
                 "user@example.com",
@@ -200,10 +194,8 @@ class AhaSendEmailServiceTest {
         @DisplayName("should handle null toName in OTP email")
         void shouldHandleNullToNameInOtpEmail() {
             setupPostMockChain();
-            AhaSendEmailService.AhaSendResponse response = new AhaSendEmailService.AhaSendResponse(
-                "otp-msg-456", "sent", "2024-01-01T00:00:00Z"
-            );
-            doReturn(response).when(responseSpec).body(AhaSendEmailService.AhaSendResponse.class);
+            String jsonResponse = "{\"message_id\":\"otp-msg-456\", \"status\":\"sent\", \"created_at\":\"2024-01-01T00:00:00Z\"}";
+            doReturn(jsonResponse).when(responseSpec).body(String.class);
 
             EmailResult result = emailService.sendOtpVerification(
                 "user@example.com",

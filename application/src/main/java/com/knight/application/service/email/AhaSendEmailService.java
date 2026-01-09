@@ -1,5 +1,6 @@
 package com.knight.application.service.email;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +33,15 @@ public class AhaSendEmailService implements EmailService {
             .baseUrl(properties.getAhasend().getApiUrl())
             .defaultHeader("Authorization", "Bearer " + properties.getAhasend().getApiKey())
             .defaultHeader("Content-Type", "application/json")
+            .requestInterceptor((request, body, execution) -> {
+                log.debug("AhaSend Request: {} {}", request.getMethod(), request.getURI());
+                if (body.length > 0) {
+                    log.debug("AhaSend Request Body: {}", new String(body));
+                }
+                var response = execution.execute(request, body);
+                log.debug("AhaSend Response Status: {}", response.getStatusCode());
+                return response;
+            })
             .build();
     }
 
@@ -55,19 +65,34 @@ public class AhaSendEmailService implements EmailService {
 
             log.debug("Sending email to {} via AhaSend", request.to());
 
-            var response = restClient.post()
+            // Use String.class first to debug raw response if mapping fails
+            var rawResponse = restClient.post()
                 .uri(endpoint)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(ahaSendRequest)
                 .retrieve()
-                .body(AhaSendResponse.class);
+                .body(String.class);
+
+            log.info("AhaSend Raw Response: {}", rawResponse);
+
+            if (rawResponse == null || rawResponse.isBlank()) {
+                log.error("AhaSend returned empty response body for email to {}", request.to());
+                return EmailResult.failure("EMPTY_RESPONSE", "AhaSend returned empty response");
+            }
+
+            // Manually deserialize to check mapping
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            // Configure mapper to be lenient
+            mapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            
+            AhaSendResponse response = mapper.readValue(rawResponse, AhaSendResponse.class);
 
             if (response != null && response.id() != null) {
                 log.info("Email sent successfully to {}, messageId: {}", request.to(), response.id());
                 return EmailResult.success(response.id());
             } else {
-                log.error("AhaSend returned empty response for email to {}", request.to());
-                return EmailResult.failure("EMPTY_RESPONSE", "AhaSend returned empty response");
+                log.error("AhaSend response mapped to null ID. Raw: {}, Mapped: {}", rawResponse, response);
+                return EmailResult.failure("EMPTY_RESPONSE", "AhaSend response mapped to null ID");
             }
         } catch (Exception e) {
             log.error("Failed to send email via AhaSend to {}: {}", request.to(), e.getMessage(), e);
@@ -102,7 +127,7 @@ public class AhaSendEmailService implements EmailService {
 
     record AhaSendRequest(
         Sender from,
-        List<Recipient> to,
+        @JsonProperty("recipients") List<Recipient> to,
         String subject,
         @JsonProperty("html_content") String htmlContent,
         @JsonProperty("text_content") String textContent
@@ -113,7 +138,7 @@ public class AhaSendEmailService implements EmailService {
     record Recipient(String email, String name) {}
 
     record AhaSendResponse(
-        String id,
+        @JsonAlias({"message_id", "id"}) String id,
         String status,
         @JsonProperty("created_at") String createdAt
     ) {}

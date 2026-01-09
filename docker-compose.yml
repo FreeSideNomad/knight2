@@ -94,6 +94,7 @@ services:
       - EMAIL_PROVIDER=ahasend
       - EMAIL_AHASEND_ACCOUNT_ID=${EMAIL_AHASEND_ACCOUNT_ID}
       - EMAIL_AHASEND_API_KEY=${EMAIL_AHASEND_API_KEY}
+      - EMAIL_FROM_ADDRESS=${EMAIL_FROM_ADDRESS:-noreply@knight.example.com}
     depends_on:
       sqlserver:
         condition: service_healthy
