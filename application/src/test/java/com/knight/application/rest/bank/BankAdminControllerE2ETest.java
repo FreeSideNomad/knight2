@@ -20,9 +20,14 @@ import com.knight.domain.serviceprofiles.types.AccountEnrollmentType;
 import com.knight.domain.serviceprofiles.types.ProfileType;
 import com.knight.domain.users.aggregate.User;
 import com.knight.domain.users.repository.UserRepository;
+import com.knight.domain.auth0identity.api.Auth0IdentityService;
 import com.knight.platform.sharedkernel.*;
 import com.knight.platform.sharedkernel.Currency;
+import java.time.Instant;
 import org.junit.jupiter.api.*;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -95,6 +100,9 @@ class BankAdminControllerE2ETest {
     @Autowired
     private IndirectClientRepository indirectClientRepository;
 
+    @MockBean
+    private Auth0IdentityService auth0IdentityService;
+
     private Client testClient;
     private ClientAccount testAccount;
 
@@ -108,6 +116,17 @@ class BankAdminControllerE2ETest {
 
         testClient = createAndSaveClient(new SrfClientId("123456789"), "Test Bank Client");
         testAccount = createAndSaveAccount(testClient.clientId(), "000000000001");
+
+        // Mock Auth0IdentityService for user provisioning
+        when(auth0IdentityService.provisionUser(any(Auth0IdentityService.ProvisionUserRequest.class)))
+            .thenAnswer(invocation -> {
+                Auth0IdentityService.ProvisionUserRequest request = invocation.getArgument(0);
+                return new Auth0IdentityService.ProvisionUserResult(
+                    "auth0|" + request.internalUserId(),
+                    "https://knight.auth0.com/reset-password?ticket=test123",
+                    Instant.now()
+                );
+            });
     }
 
     private Client createAndSaveClient(ClientId clientId, String name) {
