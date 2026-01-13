@@ -112,8 +112,7 @@ class AccountGroupMapperTest {
         @DisplayName("should map accounts from entity to domain")
         void shouldMapAccountsFromEntityToDomain() {
             AccountGroupEntity entity = createAccountGroupEntity();
-            entity.getAccountIds().add(ACCOUNT_URN_1);
-            entity.getAccountIds().add(ACCOUNT_URN_2);
+            entity.setAccountIds(Set.of(ACCOUNT_URN_1, ACCOUNT_URN_2));
 
             AccountGroup group = mapper.toDomain(entity);
 

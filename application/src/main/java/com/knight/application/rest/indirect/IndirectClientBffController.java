@@ -853,7 +853,7 @@ public class IndirectClientBffController {
             try {
                 ClientAccountId accountId = ClientAccountId.of(accountIdStr);
                 Optional<ClientAccount> account = clientAccountRepository.findById(accountId);
-                if (account.isEmpty() || !account.get().clientId().equals(clientId.urn())) {
+                if (account.isEmpty() || !clientId.urn().equals(account.get().indirectClientId())) {
                     return ResponseEntity.badRequest().build();
                 }
             } catch (Exception e) {
