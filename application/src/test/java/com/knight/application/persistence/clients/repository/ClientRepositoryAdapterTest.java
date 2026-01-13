@@ -41,7 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
     "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
     "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
     "spring.jpa.hibernate.ddl-auto=create-drop",
-    "spring.jpa.show-sql=true",
+    "spring.jpa.show-sql=false",
     "spring.flyway.enabled=false"
 })
 @EntityScan(basePackages = "com.knight.application.persistence.clients.entity")
