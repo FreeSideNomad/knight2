@@ -23,10 +23,10 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
 
   # Enable Flyway for Tests
   flyway:
@@ -43,6 +43,7 @@ jwt:
 # Logging for Tests
 logging:
   level:
-    com.knight: DEBUG
+    com.knight: INFO
     org.springframework: WARN
-    org.hibernate.SQL: DEBUG
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN
