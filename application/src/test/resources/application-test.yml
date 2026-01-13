@@ -2,6 +2,16 @@ spring:
   application:
     name: knight-platform-test
 
+  # Disable Kafka for tests
+  kafka:
+    enabled: false
+    bootstrap-servers: ""
+
+  # Exclude Kafka auto-configuration
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+
   # SQL Server Database for Testing
   datasource:
     url: jdbc:sqlserver://localhost:1433;databaseName=knight;encrypt=true;trustServerCertificate=true
@@ -13,10 +23,10 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
 
   # Enable Flyway for Tests
   flyway:
@@ -24,9 +34,7 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
-  # Kafka disabled for unit tests
-  kafka:
-    bootstrap-servers: localhost:9092
+  # Kafka disabled for tests (via autoconfigure.exclude above)
 
 # JWT disabled for tests (no authentication required)
 jwt:
@@ -35,6 +43,7 @@ jwt:
 # Logging for Tests
 logging:
   level:
-    com.knight: DEBUG
+    com.knight: INFO
     org.springframework: WARN
-    org.hibernate.SQL: DEBUG
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN

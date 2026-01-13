@@ -32,8 +32,9 @@ import static org.assertj.core.api.Assertions.assertThat;
     "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
     "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
     "spring.jpa.hibernate.ddl-auto=create-drop",
-    "spring.jpa.show-sql=true",
+    "spring.jpa.show-sql=false",
     "spring.flyway.enabled=false",
+    "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration",
     "spring.kafka.listener.auto-startup=false",
     "spring.kafka.consumer.auto-startup=false"
 })
