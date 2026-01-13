@@ -28,14 +28,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: coverage-report/target/site/jacoco/
+          path: application/target/site/jacoco/
           retention-days: 7
 
       - name: Add Coverage PR Comment
         uses: madrapps/jacoco-report@v1.7.2
         if: github.event_name == 'pull_request'
         with:
-          paths: coverage-report/target/site/jacoco/jacoco.xml
+          paths: application/target/site/jacoco/jacoco.xml
           token: ${{ secrets.GITHUB_TOKEN }}
           min-coverage-overall: 80
           min-coverage-changed-files: 80
