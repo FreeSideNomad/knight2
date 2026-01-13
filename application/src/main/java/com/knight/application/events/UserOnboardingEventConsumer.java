@@ -5,6 +5,7 @@ import com.knight.domain.users.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
  * Updates user status in the Knight platform based on Auth0 onboarding progress.
  */
 @Component
+@ConditionalOnProperty(name = "spring.kafka.enabled", havingValue = "true", matchIfMissing = true)
 public class UserOnboardingEventConsumer {
 
     private static final Logger log = LoggerFactory.getLogger(UserOnboardingEventConsumer.class);

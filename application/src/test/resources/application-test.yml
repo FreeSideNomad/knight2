@@ -2,17 +2,15 @@ spring:
   application:
     name: knight-platform-test
 
-  # Disable Kafka auto-configuration for tests
+  # Disable Kafka for tests
+  kafka:
+    enabled: false
+    bootstrap-servers: ""
+
+  # Exclude Kafka auto-configuration
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
-      - org.springframework.kafka.annotation.EnableKafka
-
-  # Disable Kafka
-  kafka:
-    bootstrap-servers: ""
-    admin:
-      fail-fast: false
 
   # SQL Server Database for Testing
   datasource:
