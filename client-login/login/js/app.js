@@ -1714,28 +1714,23 @@
                 if (result.authenticated && result.session_id) {
                     stopGuardianPolling();
 
-                    // Mark onboarding complete
+                    // Complete FTR - updates our DB and Auth0 in one call
                     try {
-                        await markOnboardingComplete(state.userId);
-                        console.log('Onboarding marked complete');
+                        await ftrComplete(state.loginId, true);
+                        console.log('FTR complete - MFA enrolled');
                     } catch (e) {
-                        console.error('Failed to mark onboarding complete:', e);
+                        console.error('Failed to complete FTR:', e);
                     }
 
                     // Store session for later redirect
                     state.sessionId = result.session_id;
 
-                    // Offer passkey enrollment if supported and not already offered
-                    if (state.passkeySupported && !state.passkeyEnrolled) {
-                        console.log('Offering passkey enrollment');
-                        showPasskeyOffer();
-                    } else {
-                        showScreen('success');
-                        document.getElementById('success-message').textContent = 'Setup complete! Redirecting...';
-                        setTimeout(() => {
-                            setSessionAndRedirect(result.session_id);
-                        }, 1000);
-                    }
+                    // Go directly to success
+                    showScreen('success');
+                    document.getElementById('success-message').textContent = 'Setup complete! Redirecting...';
+                    setTimeout(() => {
+                        setSessionAndRedirect(result.session_id);
+                    }, 1000);
                 } else if (result.error === 'authorization_pending') {
                     if (statusEl) statusEl.textContent = 'Waiting for approval in Guardian app...';
                 } else if (result.error === 'slow_down') {

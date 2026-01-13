@@ -21,7 +21,6 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.data.validator.EmailValidator;
-import com.vaadin.flow.data.validator.RegexpValidator;
 
 import java.util.Set;
 import java.util.function.Consumer;
@@ -61,8 +60,8 @@ public class AddUserDialog extends Dialog {
         // Form fields
         loginIdField = new TextField("Login ID");
         loginIdField.setRequired(true);
-        loginIdField.setPlaceholder("e.g., jsmith");
-        loginIdField.setHelperText("Must be unique, no special characters or spaces");
+        loginIdField.setPlaceholder("user@example.com");
+        loginIdField.setHelperText("Must be a valid email address (used for login)");
 
         emailField = new EmailField("Email");
         emailField.setRequired(true);
@@ -117,10 +116,7 @@ public class AddUserDialog extends Dialog {
     private void setupValidation() {
         binder.forField(loginIdField)
             .asRequired("Login ID is required")
-            .withValidator(new RegexpValidator(
-                "Login ID can only contain letters, numbers, and underscores",
-                "^[a-zA-Z0-9_]+$"
-            ))
+            .withValidator(new EmailValidator("Login ID must be a valid email address"))
             .bind(CreateUserRequest::getLoginId, CreateUserRequest::setLoginId);
 
         binder.forField(emailField)
