@@ -153,6 +153,18 @@ otp:
   rate-limit-max-requests: ${OTP_RATE_LIMIT_MAX:3}
   resend-cooldown-seconds: ${OTP_RESEND_COOLDOWN:30}
 
+# OpenAPI/Swagger Configuration
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  default-produces-media-type: application/json
+
 # Passkey/WebAuthn Configuration
 passkey:
   rp-id: ${PASSKEY_RP_ID:localhost}

@@ -61,6 +61,8 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/actuator/health").permitAll()
                     .requestMatchers("/actuator/**").permitAll()
+                    .requestMatchers("/v3/api-docs/**", "/v3/api-docs.yaml", "/v3/api-docs").permitAll()
+                    .requestMatchers("/swagger-ui/**", "/swagger-ui.html").permitAll()
                     .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
