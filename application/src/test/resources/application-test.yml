@@ -2,6 +2,18 @@ spring:
   application:
     name: knight-platform-test
 
+  # Disable Kafka auto-configuration for tests
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+      - org.springframework.kafka.annotation.EnableKafka
+
+  # Disable Kafka
+  kafka:
+    bootstrap-servers: ""
+    admin:
+      fail-fast: false
+
   # SQL Server Database for Testing
   datasource:
     url: jdbc:sqlserver://localhost:1433;databaseName=knight;encrypt=true;trustServerCertificate=true
@@ -24,9 +36,7 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
-  # Kafka disabled for unit tests
-  kafka:
-    bootstrap-servers: localhost:9092
+  # Kafka disabled for tests (via autoconfigure.exclude above)
 
 # JWT disabled for tests (no authentication required)
 jwt:
