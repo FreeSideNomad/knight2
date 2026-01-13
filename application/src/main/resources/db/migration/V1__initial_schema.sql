@@ -160,7 +160,7 @@ CREATE INDEX idx_account_enrollments_client ON account_enrollments(client_id);
 CREATE TABLE users (
     user_id UNIQUEIDENTIFIER PRIMARY KEY,         -- UUID
     login_id VARCHAR(50) NOT NULL UNIQUE,         -- Login ID
-    email VARCHAR(255) NOT NULL UNIQUE,           -- ASCII only
+    email VARCHAR(255) NOT NULL,           -- ASCII only
     first_name NVARCHAR(100),                     -- May contain Unicode
     last_name NVARCHAR(100),                      -- May contain Unicode
     user_type VARCHAR(20) NOT NULL,               -- CLIENT_USER, etc.
