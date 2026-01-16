@@ -4,9 +4,8 @@ spring:
 
   # SQL Server Configuration
   datasource:
-    url: jdbc:sqlserver://${DB_HOST:localhost}:${DB_PORT:1433};databaseName=${DB_NAME:knight};encrypt=true;trustServerCertificate=true
-    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
-    username: ${DB_USER:knight}
+    url: jdbc:sqlserver://${DB_HOST:localhost}:${DB_PORT:1434};databaseName=${DB_NAME:knight};encrypt=true;trustServerCertificate=true
+    username: ${DB_USERNAME:sa}
     password: ${DB_PASSWORD:knight}
 
     # HikariCP Connection Pool
