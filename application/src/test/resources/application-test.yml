@@ -14,7 +14,7 @@ spring:
 
   # SQL Server Database for Testing
   datasource:
-    url: jdbc:sqlserver://localhost:1433;databaseName=knight;encrypt=true;trustServerCertificate=true
+    url: jdbc:sqlserver://localhost:1434;databaseName=knight;encrypt=true;trustServerCertificate=true
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
     username: sa
     password: ${DB_PASSWORD:YourStrong@Passw0rd}
