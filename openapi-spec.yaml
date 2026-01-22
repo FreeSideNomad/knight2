@@ -1,0 +1,4656 @@
+openapi: 3.1.0
+info:
+  title: Knight Platform API
+  description: Commercial Banking Platform REST API
+  contact:
+    name: Knight Platform Team
+  version: 0.1.0
+servers:
+- url: http://localhost:8002
+  description: Generated server url
+security:
+- bearerAuth: []
+paths:
+  /api/v1/indirect/users/{userId}/roles:
+    put:
+      tags:
+      - indirect-client-bff-controller
+      operationId: updateUserRoles
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRolesRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileUserDto"
+  /api/v1/indirect/persons/{personId}:
+    put:
+      tags:
+      - indirect-client-bff-controller
+      operationId: updateRelatedPerson
+      parameters:
+      - name: personId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RelatedPersonRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+    delete:
+      tags:
+      - indirect-client-bff-controller
+      operationId: removeRelatedPerson
+      parameters:
+      - name: personId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/indirect/me/user:
+    get:
+      tags:
+      - indirect-client-bff-controller
+      operationId: getMyUser
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDetailDto"
+    put:
+      tags:
+      - indirect-client-bff-controller
+      operationId: updateMyUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDetailDto"
+  /api/v1/indirect/groups/{groupId}:
+    get:
+      tags:
+      - indirect-client-bff-controller
+      operationId: getUserGroupDetail
+      parameters:
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserGroupDetailResponseDto"
+    put:
+      tags:
+      - indirect-client-bff-controller
+      operationId: updateUserGroup
+      parameters:
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserGroupRequestDto"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserGroupSummaryDto"
+    delete:
+      tags:
+      - indirect-client-bff-controller
+      operationId: deleteUserGroup
+      parameters:
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/indirect/accounts/{accountId}:
+    put:
+      tags:
+      - indirect-client-bff-controller
+      operationId: updateOfiAccount
+      parameters:
+      - name: accountId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOfiAccountRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfiAccountDto"
+    delete:
+      tags:
+      - indirect-client-bff-controller
+      operationId: deactivateOfiAccount
+      parameters:
+      - name: accountId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/indirect/account-groups/{groupId}:
+    get:
+      tags:
+      - indirect-client-bff-controller
+      operationId: getAccountGroupDetail
+      parameters:
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountGroupDetailResponseDto"
+    put:
+      tags:
+      - indirect-client-bff-controller
+      operationId: updateAccountGroup
+      parameters:
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAccountGroupRequestDto"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountGroupSummaryDto"
+    delete:
+      tags:
+      - indirect-client-bff-controller
+      operationId: deleteAccountGroup
+      parameters:
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/client/users/{userId}:
+    get:
+      tags:
+      - direct-client-controller
+      operationId: getUser
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDetailDto"
+    put:
+      tags:
+      - direct-client-controller
+      operationId: updateUser
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDetailDto"
+  /api/v1/client/users/{userId}/unlock:
+    put:
+      tags:
+      - direct-client-controller
+      operationId: unlockUser
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/client/users/{userId}/lock:
+    put:
+      tags:
+      - direct-client-controller
+      operationId: lockUser
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LockUserRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+  /api/v1/client/users/{userId}/deactivate:
+    put:
+      tags:
+      - direct-client-controller
+      operationId: deactivateUser
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeactivateUserRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+  /api/v1/client/users/{userId}/activate:
+    put:
+      tags:
+      - direct-client-controller
+      operationId: activateUser
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/client/indirect-clients/{id}/persons/{personId}:
+    put:
+      tags:
+      - direct-client-controller
+      operationId: updateRelatedPerson_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: personId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RelatedPersonRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+    delete:
+      tags:
+      - direct-client-controller
+      operationId: removeRelatedPerson_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: personId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/client/indirect-clients/{id}/name:
+    put:
+      tags:
+      - direct-client-controller
+      operationId: updateIndirectClientName
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateNameRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+  /api/v1/bank/users/{userId}:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getGlobalUserDetail
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDetailDto"
+    put:
+      tags:
+      - bank-admin-controller
+      operationId: updateUser_1
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDetailDto"
+  /api/v1/bank/users/{userId}/unlock:
+    put:
+      tags:
+      - bank-admin-controller
+      operationId: unlockUser_1
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/bank/users/{userId}/lock:
+    put:
+      tags:
+      - bank-admin-controller
+      operationId: lockUser_1
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LockUserRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+  /api/v1/bank/users/{userId}/deactivate:
+    put:
+      tags:
+      - bank-admin-controller
+      operationId: deactivateUser_1
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeactivateUserRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+  /api/v1/bank/users/{userId}/activate:
+    put:
+      tags:
+      - bank-admin-controller
+      operationId: activateUser_1
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/bank/profiles/{profileId}/user-groups/{groupId}:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getUserGroup
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserGroupDetailDto"
+    put:
+      tags:
+      - bank-admin-controller
+      operationId: updateUserGroup_1
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserGroupRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserGroupDetailDto"
+    delete:
+      tags:
+      - bank-admin-controller
+      operationId: deleteUserGroup_1
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/bank/profiles/{profileId}/permission-policies/{policyId}:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getPolicy
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: policyId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PermissionPolicyDto"
+    put:
+      tags:
+      - bank-admin-controller
+      operationId: updatePolicy
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: policyId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePermissionPolicyRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PermissionPolicyDto"
+    delete:
+      tags:
+      - bank-admin-controller
+      operationId: deletePolicy
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: policyId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/bank/profiles/{profileId}/account-groups/{groupId}:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getAccountGroup
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountGroupDetailDto"
+    put:
+      tags:
+      - bank-admin-controller
+      operationId: updateAccountGroup_1
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAccountGroupRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountGroupDetailDto"
+    delete:
+      tags:
+      - bank-admin-controller
+      operationId: deleteAccountGroup_1
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/bank/indirect-clients/{id}/persons/{personId}:
+    put:
+      tags:
+      - bank-admin-controller
+      operationId: updateRelatedPerson_2
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: personId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RelatedPersonRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+    delete:
+      tags:
+      - bank-admin-controller
+      operationId: removeRelatedPerson_2
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: personId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/indirect/users:
+    get:
+      tags:
+      - indirect-client-bff-controller
+      operationId: listProfileUsers
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProfileUserDto"
+    post:
+      tags:
+      - indirect-client-bff-controller
+      operationId: createUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileUserDto"
+  /api/v1/indirect/users/{userId}/unlock:
+    post:
+      tags:
+      - indirect-client-bff-controller
+      operationId: unlockUser_2
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/indirect/users/{userId}/reset-password:
+    post:
+      tags:
+      - indirect-client-bff-controller
+      operationId: resetUserPassword
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/indirect/users/{userId}/reset-mfa:
+    post:
+      tags:
+      - indirect-client-bff-controller
+      operationId: resetUserMfa
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/indirect/users/{userId}/resend-invitation:
+    post:
+      tags:
+      - indirect-client-bff-controller
+      operationId: resendInvitation
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/indirect/users/{userId}/lock:
+    post:
+      tags:
+      - indirect-client-bff-controller
+      operationId: lockUser_2
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LockUserRequest"
+      responses:
+        "200":
+          description: OK
+  /api/v1/indirect/users/{userId}/deactivate:
+    post:
+      tags:
+      - indirect-client-bff-controller
+      operationId: deactivateUser_2
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeactivateUserRequest"
+      responses:
+        "200":
+          description: OK
+  /api/v1/indirect/persons:
+    post:
+      tags:
+      - indirect-client-bff-controller
+      operationId: addRelatedPerson
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RelatedPersonRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+  /api/v1/indirect/groups:
+    get:
+      tags:
+      - indirect-client-bff-controller
+      operationId: listUserGroups
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserGroupSummaryDto"
+    post:
+      tags:
+      - indirect-client-bff-controller
+      operationId: createUserGroup
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserGroupRequestDto"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserGroupSummaryDto"
+  /api/v1/indirect/groups/{groupId}/members:
+    post:
+      tags:
+      - indirect-client-bff-controller
+      operationId: addGroupMembers
+      parameters:
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModifyGroupMembersRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserGroupDetailResponseDto"
+    delete:
+      tags:
+      - indirect-client-bff-controller
+      operationId: removeGroupMembers
+      parameters:
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModifyGroupMembersRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserGroupDetailResponseDto"
+  /api/v1/indirect/accounts:
+    get:
+      tags:
+      - indirect-client-bff-controller
+      operationId: getMyAccounts
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OfiAccountDto"
+    post:
+      tags:
+      - indirect-client-bff-controller
+      operationId: addOfiAccount
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddOfiAccountRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfiAccountDto"
+  /api/v1/indirect/account-groups:
+    get:
+      tags:
+      - indirect-client-bff-controller
+      operationId: listAccountGroups
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccountGroupSummaryDto"
+    post:
+      tags:
+      - indirect-client-bff-controller
+      operationId: createAccountGroup
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAccountGroupRequestDto"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountGroupSummaryDto"
+  /api/v1/indirect/account-groups/{groupId}/accounts:
+    post:
+      tags:
+      - indirect-client-bff-controller
+      operationId: addAccountsToGroup
+      parameters:
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModifyGroupAccountsRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountGroupDetailResponseDto"
+    delete:
+      tags:
+      - indirect-client-bff-controller
+      operationId: removeAccountsFromGroup
+      parameters:
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModifyGroupAccountsRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountGroupDetailResponseDto"
+  /api/v1/client/users:
+    get:
+      tags:
+      - direct-client-controller
+      operationId: listUsers
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProfileUserDto"
+    post:
+      tags:
+      - direct-client-controller
+      operationId: addUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddUserRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddUserResponse"
+  /api/v1/client/users/{userId}/roles:
+    post:
+      tags:
+      - direct-client-controller
+      operationId: addRole
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+  /api/v1/client/users/{userId}/reset-mfa:
+    post:
+      tags:
+      - direct-client-controller
+      operationId: resetUserMfa_1
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/client/users/{userId}/resend-invitation:
+    post:
+      tags:
+      - direct-client-controller
+      operationId: resendInvitation_1
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  /api/v1/client/payor-enrolment/validate:
+    post:
+      tags:
+      - direct-client-controller
+      operationId: validatePayorEnrolment
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required:
+              - file
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationResultDto"
+  /api/v1/client/payor-enrolment/execute:
+    post:
+      tags:
+      - direct-client-controller
+      operationId: executePayorEnrolment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExecuteBatchRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecuteBatchResponse"
+  /api/v1/client/indirect-clients:
+    get:
+      tags:
+      - direct-client-controller
+      operationId: getMyIndirectClients
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IndirectClientDto"
+    post:
+      tags:
+      - direct-client-controller
+      operationId: createIndirectClient
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateIndirectClientForProfileRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateIndirectClientResponse"
+  /api/v1/client/indirect-clients/{id}/persons:
+    post:
+      tags:
+      - direct-client-controller
+      operationId: addRelatedPerson_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RelatedPersonRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+  /api/v1/bank/users/{userId}/roles:
+    post:
+      tags:
+      - bank-admin-controller
+      operationId: addRole_1
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+  /api/v1/bank/users/{userId}/resend-invitation:
+    post:
+      tags:
+      - bank-admin-controller
+      operationId: resendInvitation_2
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  /api/v1/bank/profiles:
+    post:
+      tags:
+      - bank-admin-controller
+      operationId: createProfile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProfileRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateProfileResponse"
+  /api/v1/bank/profiles/{profileId}/users:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: listProfileUsers_1
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProfileUserDto"
+    post:
+      tags:
+      - bank-admin-controller
+      operationId: addUserToProfile
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddUserRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddUserResponse"
+  /api/v1/bank/profiles/{profileId}/user-groups:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: listUserGroups_1
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserGroupDto"
+    post:
+      tags:
+      - bank-admin-controller
+      operationId: createUserGroup_1
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserGroupRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserGroupDetailDto"
+  /api/v1/bank/profiles/{profileId}/user-groups/{groupId}/members:
+    post:
+      tags:
+      - bank-admin-controller
+      operationId: addMembersToGroup
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModifyMembersRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserGroupDetailDto"
+    delete:
+      tags:
+      - bank-admin-controller
+      operationId: removeMembersFromGroup
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModifyMembersRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserGroupDetailDto"
+  /api/v1/bank/profiles/{profileId}/services:
+    post:
+      tags:
+      - bank-admin-controller
+      operationId: enrollService
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrollServiceRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrollServiceResponse"
+  /api/v1/bank/profiles/{profileId}/permission-policies:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: listPolicies
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PermissionPolicyDto"
+    post:
+      tags:
+      - bank-admin-controller
+      operationId: createPolicy
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePermissionPolicyRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PermissionPolicyDto"
+  /api/v1/bank/profiles/{profileId}/payor-enrolment/validate:
+    post:
+      tags:
+      - bank-admin-controller
+      operationId: validatePayorEnrolment_1
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required:
+              - file
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationResultDto"
+  /api/v1/bank/profiles/{profileId}/payor-enrolment/execute:
+    post:
+      tags:
+      - bank-admin-controller
+      operationId: executePayorEnrolment_1
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExecuteBatchRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecuteBatchResponse"
+  /api/v1/bank/profiles/{profileId}/clients:
+    post:
+      tags:
+      - bank-admin-controller
+      operationId: addSecondaryClient
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddSecondaryClientRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+  /api/v1/bank/profiles/{profileId}/authorize:
+    post:
+      tags:
+      - bank-admin-controller
+      operationId: checkAuthorization
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: X-User-Id
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: X-User-Roles
+        in: header
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthorizeRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthorizeResponse"
+  /api/v1/bank/profiles/{profileId}/account-groups:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: listAccountGroups_1
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccountGroupDto"
+    post:
+      tags:
+      - bank-admin-controller
+      operationId: createAccountGroup_1
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAccountGroupRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountGroupDetailDto"
+  /api/v1/bank/profiles/{profileId}/account-groups/{groupId}/accounts:
+    post:
+      tags:
+      - bank-admin-controller
+      operationId: addAccountsToGroup_1
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModifyAccountsRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountGroupDetailDto"
+    delete:
+      tags:
+      - bank-admin-controller
+      operationId: removeAccountsFromGroup_1
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModifyAccountsRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountGroupDetailDto"
+  /api/v1/bank/profiles/search:
+    post:
+      tags:
+      - bank-admin-controller
+      operationId: searchProfiles
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileSearchRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageResponseDtoProfileSummaryDto"
+  /api/v1/bank/indirect-clients:
+    post:
+      tags:
+      - bank-admin-controller
+      operationId: createIndirectClient_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateIndirectClientRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateIndirectClientResponse"
+  /api/v1/bank/indirect-clients/{id}/persons:
+    post:
+      tags:
+      - bank-admin-controller
+      operationId: addRelatedPerson_2
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RelatedPersonRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+  /api/login/user/mark-onboarding-complete:
+    post:
+      tags:
+      - user-controller
+      operationId: markOnboardingComplete
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarkOnboardingCompleteCommand"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/user/complete-onboarding:
+    post:
+      tags:
+      - user-controller
+      operationId: completeOnboarding
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteOnboardingCommand"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/user/check:
+    post:
+      tags:
+      - user-controller
+      operationId: checkUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCheckRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/stepup/verify:
+    post:
+      tags:
+      - stepup-controller
+      operationId: verify
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StepupVerifyCommand"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/stepup/start:
+    post:
+      tags:
+      - stepup-controller
+      operationId: start
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StepupStartCommand"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/stepup/refresh-token:
+    post:
+      tags:
+      - stepup-controller
+      operationId: refreshToken
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StepupRefreshTokenCommand"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/password/verify-otp:
+    post:
+      tags:
+      - password-reset-controller
+      operationId: verifyOtp
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetVerifyOtpCommand"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/password/reset:
+    post:
+      tags:
+      - password-reset-controller
+      operationId: resetPassword
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetCommand"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/password/reset-request:
+    post:
+      tags:
+      - password-reset-controller
+      operationId: requestReset
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetRequestCommand"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/password/resend-otp:
+    post:
+      tags:
+      - password-reset-controller
+      operationId: resendOtp
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetRequestCommand"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/mfa/verify:
+    post:
+      tags:
+      - mfa-controller
+      operationId: verify_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyMfaCommand"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/mfa/verify-challenge:
+    post:
+      tags:
+      - mfa-controller
+      operationId: verifyChallenge
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyMfaChallengeCommand"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/mfa/send-challenge:
+    post:
+      tags:
+      - mfa-controller
+      operationId: sendChallenge
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMfaChallengeCommand"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: string
+  /api/login/mfa/enrollments:
+    post:
+      tags:
+      - mfa-controller
+      operationId: getEnrollments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetMfaEnrollmentsCommand"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: string
+  /api/login/mfa/challenge:
+    post:
+      tags:
+      - mfa-controller
+      operationId: challenge
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChallengeMfaCommand"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/mfa/associate:
+    post:
+      tags:
+      - mfa-controller
+      operationId: associate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssociateMfaCommand"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: string
+  /api/login/ftr/verify-otp:
+    post:
+      tags:
+      - ftr-controller
+      operationId: verifyOtp_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FtrVerifyOtpRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/ftr/set-password:
+    post:
+      tags:
+      - ftr-controller
+      operationId: setPassword
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FtrSetPasswordRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/ftr/send-otp:
+    post:
+      tags:
+      - ftr-controller
+      operationId: sendOtp
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FtrSendOtpRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/ftr/complete:
+    post:
+      tags:
+      - ftr-controller
+      operationId: complete
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FtrCompleteRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/ftr/check:
+    post:
+      tags:
+      - ftr-controller
+      operationId: checkUser_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FtrCheckRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/auth/token:
+    post:
+      tags:
+      - authentication-controller
+      operationId: exchangeToken
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TokenExchangeRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/auth/refresh:
+    post:
+      tags:
+      - authentication-controller
+      operationId: refreshToken_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/auth/logout:
+    post:
+      tags:
+      - authentication-controller
+      operationId: logout
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogoutRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+  /api/login/auth/login:
+    post:
+      tags:
+      - authentication-controller
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginCommand"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/auth/forgot-password:
+    post:
+      tags:
+      - authentication-controller
+      operationId: forgotPassword
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordCommand"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/auth/ciba-verify:
+    post:
+      tags:
+      - authentication-controller
+      operationId: cibaVerify
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CibaVerifyCommand"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/login/auth/ciba-start:
+    post:
+      tags:
+      - authentication-controller
+      operationId: cibaStart
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CibaStartCommand"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/v1/indirect/users/{userId}:
+    get:
+      tags:
+      - indirect-client-bff-controller
+      operationId: getUserDetails
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDetailWithAuth0Dto"
+  /api/v1/indirect/permission-policies:
+    get:
+      tags:
+      - indirect-client-bff-controller
+      operationId: listPolicies_1
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PermissionPolicyDto"
+  /api/v1/indirect/me:
+    get:
+      tags:
+      - indirect-client-bff-controller
+      operationId: getMyIndirectClient
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IndirectClientDetailDto"
+  /api/v1/client/users/counts:
+    get:
+      tags:
+      - direct-client-controller
+      operationId: getUserCounts
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: integer
+                  format: int32
+  /api/v1/client/permission-policies:
+    get:
+      tags:
+      - direct-client-controller
+      operationId: listPolicies_2
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PermissionPolicyDto"
+  /api/v1/client/permission-policies/{policyId}:
+    get:
+      tags:
+      - direct-client-controller
+      operationId: getPolicy_1
+      parameters:
+      - name: policyId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PermissionPolicyDto"
+  /api/v1/client/payor-enrolment/batches:
+    get:
+      tags:
+      - direct-client-controller
+      operationId: listBatches
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BatchSummaryDto"
+  /api/v1/client/indirect-clients/{id}:
+    get:
+      tags:
+      - direct-client-controller
+      operationId: getIndirectClient
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IndirectClientDetailDto"
+  /api/v1/client/indirect-clients/{id}/accounts:
+    get:
+      tags:
+      - direct-client-controller
+      operationId: getIndirectClientAccounts
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OfiAccountDto"
+  /api/v1/client/batches/{batchId}:
+    get:
+      tags:
+      - direct-client-controller
+      operationId: getBatch
+      parameters:
+      - name: batchId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchDetailDto"
+  /api/v1/client/batches/{batchId}/items:
+    get:
+      tags:
+      - direct-client-controller
+      operationId: getBatchItems
+      parameters:
+      - name: batchId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BatchItemDto"
+  /api/v1/bank/profiles/{profileId}:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getProfile
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileSummaryDto"
+  /api/v1/bank/profiles/{profileId}/users/{userId}:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getUserDetail
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDetailDto"
+  /api/v1/bank/profiles/{profileId}/users/{userId}/permissions:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getUserPermissions
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: X-User-Roles
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EffectivePermissionsResponse"
+  /api/v1/bank/profiles/{profileId}/users/counts:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getUserCounts_1
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: integer
+                  format: int32
+  /api/v1/bank/profiles/{profileId}/payor-enrolment/batches:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: listPayorEnrolmentBatches
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BatchSummaryDto"
+  /api/v1/bank/profiles/{profileId}/detail:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getProfileDetail
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileDetailDto"
+  /api/v1/bank/indirect-profiles:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: searchIndirectProfiles
+      parameters:
+      - name: parentClientId
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      - name: sortBy
+        in: query
+        required: false
+        schema:
+          type: string
+          default: name
+      - name: sortDir
+        in: query
+        required: false
+        schema:
+          type: string
+          default: asc
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageResponseDtoIndirectProfileSummaryDto"
+  /api/v1/bank/indirect-profiles/parent-clients:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getIndirectProfileParentClients
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ParentClientDto"
+  /api/v1/bank/indirect-clients/{id}:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getIndirectClient_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IndirectClientDetailDto"
+  /api/v1/bank/indirect-clients/{id}/accounts:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getIndirectClientAccounts_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OfiAccountDto"
+  /api/v1/bank/indirect-clients/by-profile:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getIndirectClientsByProfile
+      parameters:
+      - name: parentProfileId
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IndirectClientDto"
+  /api/v1/bank/indirect-clients/by-client/{clientId}:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getIndirectClientsByClient
+      parameters:
+      - name: clientId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IndirectClientDto"
+  /api/v1/bank/clients:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: searchClients
+      parameters:
+      - name: type
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: name
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: clientId
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageResultDtoClientSearchResponseDto"
+  /api/v1/bank/clients/{clientId}:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getClient
+      parameters:
+      - name: clientId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientDetailDto"
+  /api/v1/bank/clients/{clientId}/profiles:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getClientProfiles
+      parameters:
+      - name: clientId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProfileSummaryDto"
+  /api/v1/bank/clients/{clientId}/profiles/servicing:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getServicingProfiles
+      parameters:
+      - name: clientId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProfileSummaryDto"
+  /api/v1/bank/clients/{clientId}/profiles/secondary:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getSecondaryProfiles
+      parameters:
+      - name: clientId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProfileSummaryDto"
+  /api/v1/bank/clients/{clientId}/profiles/primary:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getPrimaryProfiles
+      parameters:
+      - name: clientId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProfileSummaryDto"
+  /api/v1/bank/clients/{clientId}/profiles/online:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getOnlineProfiles
+      parameters:
+      - name: clientId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProfileSummaryDto"
+  /api/v1/bank/clients/{clientId}/accounts:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getClientAccounts
+      parameters:
+      - name: clientId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageResultDtoClientAccountDto"
+  /api/v1/bank/batches/{batchId}:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getBatch_1
+      parameters:
+      - name: batchId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchDetailDto"
+  /api/v1/bank/batches/{batchId}/items:
+    get:
+      tags:
+      - bank-admin-controller
+      operationId: getBatchItems_1
+      parameters:
+      - name: batchId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BatchItemDto"
+  /api/login/ftr/status/{loginId}:
+    get:
+      tags:
+      - ftr-controller
+      operationId: getStatus
+      parameters:
+      - name: loginId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/v1/client/users/{userId}/roles/{role}:
+    delete:
+      tags:
+      - direct-client-controller
+      operationId: removeRole
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: role
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/bank/users/{userId}/roles/{role}:
+    delete:
+      tags:
+      - bank-admin-controller
+      operationId: removeRole_1
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: role
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/bank/profiles/{profileId}/clients/{clientId}:
+    delete:
+      tags:
+      - bank-admin-controller
+      operationId: removeSecondaryClient
+      parameters:
+      - name: profileId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: clientId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+components:
+  schemas:
+    UpdateRolesRequest:
+      type: object
+      properties:
+        roles:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+      required:
+      - roles
+    ProfileUserDto:
+      type: object
+      properties:
+        userId:
+          type: string
+        loginId:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        status:
+          type: string
+        statusDisplayName:
+          type: string
+        lockType:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+        canResendInvitation:
+          type: boolean
+        canLock:
+          type: boolean
+        canDeactivate:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        lastLoggedInAt:
+          type: string
+          format: date-time
+    RelatedPersonRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+      required:
+      - name
+      - role
+    UpdateUserRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+    UserDetailDto:
+      type: object
+      properties:
+        userId:
+          type: string
+        loginId:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        status:
+          type: string
+        userType:
+          type: string
+        identityProvider:
+          type: string
+        profileId:
+          type: string
+        identityProviderUserId:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+        passwordSet:
+          type: boolean
+        mfaEnrolled:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        lastSyncedAt:
+          type: string
+          format: date-time
+        lastLoggedInAt:
+          type: string
+          format: date-time
+        lockType:
+          type: string
+        lockedBy:
+          type: string
+        lockedAt:
+          type: string
+          format: date-time
+        deactivationReason:
+          type: string
+    UpdateUserGroupRequestDto:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 0
+        description:
+          type: string
+          maxLength: 500
+          minLength: 0
+      required:
+      - name
+    UserGroupSummaryDto:
+      type: object
+      properties:
+        groupId:
+          type: string
+        profileId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        memberCount:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+    UpdateOfiAccountRequest:
+      type: object
+      properties:
+        accountHolderName:
+          type: string
+    OfiAccountDto:
+      type: object
+      properties:
+        accountId:
+          type: string
+        bankCode:
+          type: string
+        transitNumber:
+          type: string
+        accountNumber:
+          type: string
+        accountHolderName:
+          type: string
+        status:
+          type: string
+        formattedAccountId:
+          type: string
+        addedAt:
+          type: string
+          format: date-time
+    UpdateAccountGroupRequestDto:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 0
+        description:
+          type: string
+          maxLength: 500
+          minLength: 0
+      required:
+      - name
+    AccountGroupSummaryDto:
+      type: object
+      properties:
+        groupId:
+          type: string
+        profileId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        accountCount:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+    LockUserRequest:
+      type: object
+      properties:
+        lockType:
+          type: string
+    DeactivateUserRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+    UpdateNameRequest:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+      - name
+    UpdateUserGroupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 0
+        description:
+          type: string
+          maxLength: 500
+          minLength: 0
+      required:
+      - name
+    UserGroupDetailDto:
+      type: object
+      properties:
+        groupId:
+          type: string
+        profileId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserGroupMemberDto"
+          uniqueItems: true
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+    UserGroupMemberDto:
+      type: object
+      properties:
+        userId:
+          type: string
+        addedAt:
+          type: string
+          format: date-time
+        addedBy:
+          type: string
+    UpdatePermissionPolicyRequest:
+      type: object
+      properties:
+        action:
+          type: string
+        resource:
+          type: string
+        effect:
+          type: string
+        description:
+          type: string
+    PermissionPolicyDto:
+      type: object
+      properties:
+        id:
+          type: string
+        profileId:
+          type: string
+        subject:
+          type: string
+        action:
+          type: string
+        resource:
+          type: string
+        effect:
+          type: string
+        description:
+          type: string
+        systemPolicy:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+    UpdateAccountGroupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 0
+        description:
+          type: string
+          maxLength: 500
+          minLength: 0
+      required:
+      - name
+    AccountGroupDetailDto:
+      type: object
+      properties:
+        groupId:
+          type: string
+        profileId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        accountIds:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+    CreateUserRequest:
+      type: object
+      properties:
+        loginId:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+      required:
+      - email
+      - firstName
+      - lastName
+      - loginId
+    CreateUserGroupRequestDto:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 0
+        description:
+          type: string
+          maxLength: 500
+          minLength: 0
+      required:
+      - name
+    ModifyGroupMembersRequest:
+      type: object
+      properties:
+        userIds:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+      required:
+      - userIds
+    UserGroupDetailResponseDto:
+      type: object
+      properties:
+        groupId:
+          type: string
+        profileId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserGroupMemberResponseDto"
+          uniqueItems: true
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+    UserGroupMemberResponseDto:
+      type: object
+      properties:
+        userId:
+          type: string
+        addedAt:
+          type: string
+          format: date-time
+        addedBy:
+          type: string
+    AddOfiAccountRequest:
+      type: object
+      properties:
+        bankCode:
+          type: string
+          pattern: "\\d{3}"
+        transitNumber:
+          type: string
+          pattern: "\\d{5}"
+        accountNumber:
+          type: string
+          pattern: "\\d{7,12}"
+        accountHolderName:
+          type: string
+      required:
+      - accountNumber
+      - bankCode
+      - transitNumber
+    CreateAccountGroupRequestDto:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 0
+        description:
+          type: string
+          maxLength: 500
+          minLength: 0
+      required:
+      - name
+    ModifyGroupAccountsRequest:
+      type: object
+      properties:
+        accountIds:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+      required:
+      - accountIds
+    AccountGroupDetailResponseDto:
+      type: object
+      properties:
+        groupId:
+          type: string
+        profileId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        accountIds:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+    AddUserRequest:
+      type: object
+      properties:
+        loginId:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+    AddUserResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        status:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+        passwordResetUrl:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    RoleRequest:
+      type: object
+      properties:
+        role:
+          type: string
+    ValidationErrorDto:
+      type: object
+      properties:
+        payorIndex:
+          type: integer
+          format: int32
+        businessName:
+          type: string
+        field:
+          type: string
+        message:
+          type: string
+    ValidationResultDto:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        payorCount:
+          type: integer
+          format: int32
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/ValidationErrorDto"
+        batchId:
+          type: string
+    ExecuteBatchRequest:
+      type: object
+      properties:
+        batchId:
+          type: string
+    ExecuteBatchResponse:
+      type: object
+      properties:
+        batchId:
+          type: string
+        status:
+          type: string
+        totalItems:
+          type: integer
+          format: int32
+        message:
+          type: string
+    CreateIndirectClientForProfileRequest:
+      type: object
+      properties:
+        parentClientId:
+          type: string
+        name:
+          type: string
+        relatedPersons:
+          type: array
+          items:
+            $ref: "#/components/schemas/RelatedPersonRequest"
+      required:
+      - name
+      - parentClientId
+    CreateIndirectClientResponse:
+      type: object
+      properties:
+        id:
+          type: string
+    ClientAccountSelectionDto:
+      type: object
+      properties:
+        clientId:
+          type: string
+        isPrimary:
+          type: boolean
+        accountEnrollmentType:
+          type: string
+        accountIds:
+          type: array
+          items:
+            type: string
+    CreateProfileRequest:
+      type: object
+      properties:
+        profileType:
+          type: string
+        name:
+          type: string
+        clients:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClientAccountSelectionDto"
+    CreateProfileResponse:
+      type: object
+      properties:
+        profileId:
+          type: string
+        name:
+          type: string
+    CreateUserGroupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 0
+        description:
+          type: string
+          maxLength: 500
+          minLength: 0
+      required:
+      - name
+    ModifyMembersRequest:
+      type: object
+      properties:
+        userIds:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+      required:
+      - userIds
+    AccountLink:
+      type: object
+      properties:
+        clientId:
+          type: string
+        accountId:
+          type: string
+    EnrollServiceRequest:
+      type: object
+      properties:
+        serviceType:
+          type: string
+        configuration:
+          type: string
+        accountLinks:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccountLink"
+      required:
+      - serviceType
+    EnrollServiceResponse:
+      type: object
+      properties:
+        enrollmentId:
+          type: string
+        serviceType:
+          type: string
+        status:
+          type: string
+        enrolledAt:
+          type: string
+          format: date-time
+        linkedAccountCount:
+          type: integer
+          format: int32
+    CreatePermissionPolicyRequest:
+      type: object
+      properties:
+        subject:
+          type: string
+        action:
+          type: string
+        resource:
+          type: string
+        effect:
+          type: string
+        description:
+          type: string
+    AddSecondaryClientRequest:
+      type: object
+      properties:
+        clientId:
+          type: string
+        accountEnrollmentType:
+          type: string
+        accountIds:
+          type: array
+          items:
+            type: string
+    AuthorizeRequest:
+      type: object
+      properties:
+        action:
+          type: string
+        resourceId:
+          type: string
+    AuthorizeResponse:
+      type: object
+      properties:
+        allowed:
+          type: boolean
+        reason:
+          type: string
+        effectiveEffect:
+          type: string
+    CreateAccountGroupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 0
+        description:
+          type: string
+          maxLength: 500
+          minLength: 0
+        accountIds:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+      required:
+      - name
+    ModifyAccountsRequest:
+      type: object
+      properties:
+        accountIds:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+      required:
+      - accountIds
+    ProfileSearchRequest:
+      type: object
+      properties:
+        clientId:
+          type: string
+        clientName:
+          type: string
+        primaryOnly:
+          type: boolean
+        profileTypes:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+    PageResponseDtoProfileSummaryDto:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfileSummaryDto"
+        totalElements:
+          type: integer
+          format: int64
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        totalPages:
+          type: integer
+          format: int32
+    ProfileSummaryDto:
+      type: object
+      properties:
+        profileId:
+          type: string
+        name:
+          type: string
+        profileType:
+          type: string
+        status:
+          type: string
+        primaryClientId:
+          type: string
+        clientCount:
+          type: integer
+          format: int32
+        serviceEnrollmentCount:
+          type: integer
+          format: int32
+        accountEnrollmentCount:
+          type: integer
+          format: int32
+    CreateIndirectClientRequest:
+      type: object
+      properties:
+        parentClientId:
+          type: string
+        profileId:
+          type: string
+        businessName:
+          type: string
+        relatedPersons:
+          type: array
+          items:
+            $ref: "#/components/schemas/RelatedPersonRequest"
+      required:
+      - businessName
+      - parentClientId
+      - profileId
+    MarkOnboardingCompleteCommand:
+      type: object
+      properties:
+        user_id:
+          type: string
+      required:
+      - user_id
+    CompleteOnboardingCommand:
+      type: object
+      properties:
+        user_id:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+          maxLength: 2147483647
+          minLength: 12
+      required:
+      - email
+      - password
+      - user_id
+    UserCheckRequest:
+      type: object
+      properties:
+        loginId:
+          type: string
+      required:
+      - loginId
+    StepupVerifyCommand:
+      type: object
+      properties:
+        mfa_token:
+          type: string
+        oob_code:
+          type: string
+      required:
+      - mfa_token
+      - oob_code
+    StepupStartCommand:
+      type: object
+      properties:
+        mfa_token:
+          type: string
+        message:
+          type: string
+      required:
+      - mfa_token
+    StepupRefreshTokenCommand:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+      - email
+      - password
+    PasswordResetVerifyOtpCommand:
+      type: object
+      properties:
+        loginId:
+          type: string
+        code:
+          type: string
+          maxLength: 6
+          minLength: 6
+      required:
+      - code
+      - loginId
+    PasswordResetCommand:
+      type: object
+      properties:
+        loginId:
+          type: string
+        resetToken:
+          type: string
+        password:
+          type: string
+          maxLength: 2147483647
+          minLength: 12
+      required:
+      - loginId
+      - password
+      - resetToken
+    PasswordResetRequestCommand:
+      type: object
+      properties:
+        loginId:
+          type: string
+      required:
+      - loginId
+    VerifyMfaCommand:
+      type: object
+      properties:
+        mfa_token:
+          type: string
+        otp:
+          type: string
+        authenticator_type:
+          type: string
+        email:
+          type: string
+      required:
+      - mfa_token
+      - otp
+    VerifyMfaChallengeCommand:
+      type: object
+      properties:
+        mfa_token:
+          type: string
+        otp:
+          type: string
+        oob_code:
+          type: string
+        authenticator_type:
+          type: string
+        email:
+          type: string
+      required:
+      - mfa_token
+    SendMfaChallengeCommand:
+      type: object
+      properties:
+        mfa_token:
+          type: string
+        authenticator_id:
+          type: string
+        authenticator_type:
+          type: string
+      required:
+      - mfa_token
+    GetMfaEnrollmentsCommand:
+      type: object
+      properties:
+        mfa_token:
+          type: string
+      required:
+      - mfa_token
+    ChallengeMfaCommand:
+      type: object
+      properties:
+        mfa_token:
+          type: string
+        oob_code:
+          type: string
+        email:
+          type: string
+      required:
+      - mfa_token
+      - oob_code
+    AssociateMfaCommand:
+      type: object
+      properties:
+        mfa_token:
+          type: string
+        authenticator_type:
+          type: string
+      required:
+      - mfa_token
+    FtrVerifyOtpRequest:
+      type: object
+      properties:
+        login_id:
+          type: string
+        code:
+          type: string
+          maxLength: 6
+          minLength: 6
+      required:
+      - code
+      - login_id
+    FtrSetPasswordRequest:
+      type: object
+      properties:
+        login_id:
+          type: string
+        password:
+          type: string
+          maxLength: 2147483647
+          minLength: 8
+      required:
+      - login_id
+      - password
+    FtrSendOtpRequest:
+      type: object
+      properties:
+        login_id:
+          type: string
+      required:
+      - login_id
+    FtrCompleteRequest:
+      type: object
+      properties:
+        login_id:
+          type: string
+        mfa_enrolled:
+          type: boolean
+      required:
+      - login_id
+    FtrCheckRequest:
+      type: object
+      properties:
+        login_id:
+          type: string
+      required:
+      - login_id
+    TokenExchangeRequest:
+      type: object
+      properties:
+        code:
+          type: string
+        redirect_uri:
+          type: string
+      required:
+      - code
+      - redirect_uri
+    RefreshTokenRequest:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+      required:
+      - refresh_token
+    LogoutRequest:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+      required:
+      - refresh_token
+    LoginCommand:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+      - password
+      - username
+    ForgotPasswordCommand:
+      type: object
+      properties:
+        email:
+          type: string
+      required:
+      - email
+    CibaVerifyCommand:
+      type: object
+      properties:
+        auth_req_id:
+          type: string
+        email:
+          type: string
+      required:
+      - auth_req_id
+    CibaStartCommand:
+      type: object
+      properties:
+        user_id:
+          type: string
+        binding_message:
+          type: string
+      required:
+      - user_id
+    UserDetailWithAuth0Dto:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/UserDetailDto"
+        auth0RawJson:
+          type: string
+    IndirectClientDetailDto:
+      type: object
+      properties:
+        id:
+          type: string
+        parentClientId:
+          type: string
+        profileId:
+          type: string
+        clientType:
+          type: string
+        businessName:
+          type: string
+        status:
+          type: string
+        relatedPersons:
+          type: array
+          items:
+            $ref: "#/components/schemas/RelatedPersonDto"
+        ofiAccounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/OfiAccountDto"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    RelatedPersonDto:
+      type: object
+      properties:
+        personId:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        addedAt:
+          type: string
+          format: date-time
+    BatchSummaryDto:
+      type: object
+      properties:
+        batchId:
+          type: string
+        batchType:
+          type: string
+        status:
+          type: string
+        statusDisplayName:
+          type: string
+        totalItems:
+          type: integer
+          format: int32
+        successCount:
+          type: integer
+          format: int32
+        failedCount:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
+    IndirectClientDto:
+      type: object
+      properties:
+        id:
+          type: string
+        parentClientId:
+          type: string
+        clientType:
+          type: string
+        businessName:
+          type: string
+        status:
+          type: string
+        relatedPersonCount:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
+    BatchDetailDto:
+      type: object
+      properties:
+        batchId:
+          type: string
+        batchType:
+          type: string
+        batchTypeDisplayName:
+          type: string
+        sourceProfileId:
+          type: string
+        status:
+          type: string
+        statusDisplayName:
+          type: string
+        totalItems:
+          type: integer
+          format: int32
+        successCount:
+          type: integer
+          format: int32
+        failedCount:
+          type: integer
+          format: int32
+        pendingCount:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+    BatchItemDto:
+      type: object
+      properties:
+        batchItemId:
+          type: string
+        sequenceNumber:
+          type: integer
+          format: int32
+        businessName:
+          type: string
+        status:
+          type: string
+        statusDisplayName:
+          type: string
+        result:
+          $ref: "#/components/schemas/BatchItemResultDto"
+        errorMessage:
+          type: string
+        processedAt:
+          type: string
+          format: date-time
+    BatchItemResultDto:
+      type: object
+      properties:
+        indirectClientId:
+          type: string
+        profileId:
+          type: string
+        userIds:
+          type: array
+          items:
+            type: string
+    EffectivePermissionsResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+        policies:
+          type: array
+          items:
+            $ref: "#/components/schemas/PermissionPolicyDto"
+        allowedActions:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+    UserGroupDto:
+      type: object
+      properties:
+        groupId:
+          type: string
+        profileId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        memberCount:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+    AccountEnrollmentDto:
+      type: object
+      properties:
+        enrollmentId:
+          type: string
+        clientId:
+          type: string
+        accountId:
+          type: string
+        serviceEnrollmentId:
+          type: string
+        status:
+          type: string
+        enrolledAt:
+          type: string
+          format: date-time
+    ClientEnrollmentDto:
+      type: object
+      properties:
+        clientId:
+          type: string
+        clientName:
+          type: string
+        isPrimary:
+          type: boolean
+        accountEnrollmentType:
+          type: string
+        enrolledAt:
+          type: string
+          format: date-time
+    ProfileDetailDto:
+      type: object
+      properties:
+        profileId:
+          type: string
+        name:
+          type: string
+        profileType:
+          type: string
+        status:
+          type: string
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        clientEnrollments:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClientEnrollmentDto"
+        serviceEnrollments:
+          type: array
+          items:
+            $ref: "#/components/schemas/ServiceEnrollmentDto"
+        accountEnrollments:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccountEnrollmentDto"
+    ServiceEnrollmentDto:
+      type: object
+      properties:
+        enrollmentId:
+          type: string
+        serviceType:
+          type: string
+        status:
+          type: string
+        configuration:
+          type: string
+        enrolledAt:
+          type: string
+          format: date-time
+    AccountGroupDto:
+      type: object
+      properties:
+        groupId:
+          type: string
+        profileId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        accountCount:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+    IndirectProfileSummaryDto:
+      type: object
+      properties:
+        profileId:
+          type: string
+        name:
+          type: string
+        profileType:
+          type: string
+        status:
+          type: string
+        primaryClientId:
+          type: string
+        clientEnrollmentCount:
+          type: integer
+          format: int32
+        serviceEnrollmentCount:
+          type: integer
+          format: int32
+        accountEnrollmentCount:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+    PageResponseDtoIndirectProfileSummaryDto:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/IndirectProfileSummaryDto"
+        totalElements:
+          type: integer
+          format: int64
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        totalPages:
+          type: integer
+          format: int32
+    ParentClientDto:
+      type: object
+      properties:
+        clientId:
+          type: string
+        displayName:
+          type: string
+    ClientSearchResponseDto:
+      type: object
+      properties:
+        clientId:
+          type: string
+        name:
+          type: string
+        clientType:
+          type: string
+      required:
+      - clientId
+      - clientType
+      - name
+    PageResultDtoClientSearchResponseDto:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClientSearchResponseDto"
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+        first:
+          type: boolean
+        last:
+          type: boolean
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+    AddressDto:
+      type: object
+      properties:
+        addressLine1:
+          type: string
+        addressLine2:
+          type: string
+        city:
+          type: string
+        stateProvince:
+          type: string
+        zipPostalCode:
+          type: string
+        countryCode:
+          type: string
+          pattern: "^[A-Z]{2}$"
+      required:
+      - addressLine1
+      - city
+      - countryCode
+      - stateProvince
+      - zipPostalCode
+    ClientDetailDto:
+      type: object
+      properties:
+        clientId:
+          type: string
+        name:
+          type: string
+        clientType:
+          type: string
+        address:
+          $ref: "#/components/schemas/AddressDto"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+      - address
+      - clientId
+      - clientType
+      - createdAt
+      - name
+      - updatedAt
+    ClientAccountDto:
+      type: object
+      properties:
+        accountId:
+          type: string
+        clientId:
+          type: string
+        currency:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+      - accountId
+      - clientId
+      - createdAt
+      - currency
+      - status
+    PageResultDtoClientAccountDto:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClientAccountDto"
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+        first:
+          type: boolean
+        last:
+          type: boolean
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+  securitySchemes:
+    bearerAuth:
+      type: http
+      description: "JWT token from Auth0, Entra ID, or Portal"
+      scheme: bearer
+      bearerFormat: JWT
